@@ -1,0 +1,17 @@
+{
+  "name": "cosmetics-ecommerce-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Full-stack cosmetics e-commerce application",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "devDependencies": {
+    "turbo": "^2.11.7"
+  }
+}
