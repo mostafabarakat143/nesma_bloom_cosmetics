@@ -13,11 +13,13 @@ export function createLogger(env: Env) {
       paths: [
         "req.headers.authorization",
         "req.headers.cookie",
+        "req.headers['x-csrf-token']",
         "password",
         "passwordHash",
         "token",
         "accessToken",
         "refreshToken",
+        "csrfToken",
       ],
       remove: true,
     },

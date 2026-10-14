@@ -1,3 +1,4 @@
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import express, { type Express } from "express";
 import rateLimit from "express-rate-limit";
@@ -7,27 +8,31 @@ import { pinoHttp } from "pino-http";
 import type { Database } from "./config/database.js";
 import { getCorsOrigins, type Env } from "./config/env.js";
 import type { Logger } from "./config/logger.js";
+import { createCsrfMiddleware } from "./common/middlewares/csrf.middleware.js";
 import { createErrorMiddleware } from "./common/middlewares/error.middleware.js";
 import { notFoundMiddleware } from "./common/middlewares/not-found.middleware.js";
 import { requestIdMiddleware } from "./common/middlewares/request-id.middleware.js";
 import { validate } from "./common/middlewares/validate.middleware.js";
+import { createAuthRouter } from "./modules/auth/auth.routes.js";
+import { createCategoryRouter } from "./modules/categories/category.routes.js";
 import { healthRouter } from "./modules/health/health.routes.js";
 import {
   healthEchoBodySchema,
   type HealthEchoBody,
 } from "./modules/health/health.schema.js";
+import { createUserRouter } from "./modules/users/user.routes.js";
 
 export type AppDependencies = {
   env: Env;
   logger: Logger;
-  /** Available for future modules; not required by /health. */
-  prisma?: Database;
+  prisma: Database;
 };
 
-export function createApp({ env, logger }: AppDependencies): Express {
+export function createApp({ env, logger, prisma }: AppDependencies): Express {
   const app: Express = express();
 
   app.disable("x-powered-by");
+  app.set("trust proxy", 1);
 
   app.use(requestIdMiddleware);
   app.use(helmet());
@@ -58,6 +63,8 @@ export function createApp({ env, logger }: AppDependencies): Express {
   );
 
   app.use(express.json({ limit: env.BODY_SIZE_LIMIT }));
+  app.use(cookieParser());
+  app.use(createCsrfMiddleware(env));
 
   app.use(
     pinoHttp({
@@ -77,8 +84,6 @@ export function createApp({ env, logger }: AppDependencies): Express {
   app.use("/health", healthRouter);
   app.use("/api/v1/health", healthRouter);
 
-  // Temporary validated route to prove the shared validation pipeline.
-  // Will be replaced by real feature modules.
   app.post(
     "/api/v1/health/echo",
     validate({ body: healthEchoBodySchema }),
@@ -90,6 +95,10 @@ export function createApp({ env, logger }: AppDependencies): Express {
       });
     },
   );
+
+  app.use("/api/v1/auth", createAuthRouter(env, prisma));
+  app.use("/api/v1/users", createUserRouter(env, prisma));
+  app.use("/api/v1/categories", createCategoryRouter(env, prisma));
 
   app.use(notFoundMiddleware);
   app.use(createErrorMiddleware(env, logger));

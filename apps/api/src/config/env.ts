@@ -20,6 +20,21 @@ const envSchema = z.object({
         value.startsWith("postgresql://") || value.startsWith("postgres://"),
       "DATABASE_URL must be a PostgreSQL connection string",
     ),
+  JWT_ACCESS_SECRET: z
+    .string()
+    .min(32, "JWT_ACCESS_SECRET must be at least 32 characters"),
+  JWT_ACCESS_TTL_SECONDS: z.coerce.number().int().positive().default(900),
+  REFRESH_TOKEN_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(604_800),
+  COOKIE_SECURE: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
+  AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900_000),
+  AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -51,4 +66,12 @@ export function getCorsOrigins(corsOrigin: string): string[] | boolean {
     .split(",")
     .map((origin) => origin.trim())
     .filter((origin) => origin.length > 0);
+}
+
+export function getTrustedOrigins(env: Env): string[] {
+  const origins = getCorsOrigins(env.CORS_ORIGIN);
+  if (origins === false || origins === true) {
+    return [];
+  }
+  return origins;
 }

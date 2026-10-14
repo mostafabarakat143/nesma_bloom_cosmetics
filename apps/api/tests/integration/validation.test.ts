@@ -1,14 +1,20 @@
 import request from "supertest";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 
+import { TEST_ORIGIN } from "../helpers/auth.js";
 import { buildTestApp } from "../helpers/test-app.js";
 
 describe("request validation", () => {
-  const app = buildTestApp();
+  const { app, prisma } = buildTestApp();
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
 
   it("rejects invalid echo bodies with HTTP 400", async () => {
     const response = await request(app)
       .post("/api/v1/health/echo")
+      .set("Origin", TEST_ORIGIN)
       .send({ message: "" });
 
     expect(response.status).toBe(400);
@@ -24,6 +30,7 @@ describe("request validation", () => {
   it("accepts valid echo bodies", async () => {
     const response = await request(app)
       .post("/api/v1/health/echo")
+      .set("Origin", TEST_ORIGIN)
       .send({ message: "hello" });
 
     expect(response.status).toBe(200);

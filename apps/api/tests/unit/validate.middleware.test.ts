@@ -8,13 +8,13 @@ import { validate } from "../../src/common/middlewares/validate.middleware.js";
 import { loadEnv } from "../../src/config/env.js";
 import { createLogger } from "../../src/config/logger.js";
 import { requestIdMiddleware } from "../../src/common/middlewares/request-id.middleware.js";
+import { baseTestEnvVars } from "../helpers/test-env.js";
 
 describe("validate middleware", () => {
   it("rejects invalid bodies with HTTP 400 and field details", async () => {
     const env = loadEnv({
-      NODE_ENV: "test",
+      ...baseTestEnvVars,
       LOG_LEVEL: "silent",
-      DATABASE_URL: "postgresql://test:test@127.0.0.1:5432/test",
     });
     const logger = createLogger(env);
     const app = express();
