@@ -17,6 +17,8 @@ describe("auth and profiles", () => {
 
   beforeEach(async () => {
     await prisma.refreshToken.deleteMany();
+    await prisma.orderItem.deleteMany();
+    await prisma.order.deleteMany();
     await prisma.userProfile.deleteMany();
     await prisma.user.deleteMany();
   });

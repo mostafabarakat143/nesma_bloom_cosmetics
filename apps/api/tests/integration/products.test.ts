@@ -11,12 +11,14 @@ describe("products CRUD and images", () => {
 
   beforeEach(async () => {
     await prisma.refreshToken.deleteMany();
-    await prisma.userProfile.deleteMany();
-    await prisma.user.deleteMany();
+    await prisma.orderItem.deleteMany();
+    await prisma.order.deleteMany();
     await prisma.productImage.deleteMany();
     await prisma.product.deleteMany();
     await prisma.subcategory.deleteMany();
     await prisma.category.deleteMany();
+    await prisma.userProfile.deleteMany();
+    await prisma.user.deleteMany();
   });
 
   afterAll(async () => {
