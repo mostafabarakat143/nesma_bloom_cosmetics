@@ -20,6 +20,7 @@ import {
   healthEchoBodySchema,
   type HealthEchoBody,
 } from "./modules/health/health.schema.js";
+import { createProductRouter } from "./modules/products/product.routes.js";
 import { createSubcategoryRouter } from "./modules/subcategories/subcategory.routes.js";
 import { createUserRouter } from "./modules/users/user.routes.js";
 
@@ -101,6 +102,7 @@ export function createApp({ env, logger, prisma }: AppDependencies): Express {
   app.use("/api/v1/users", createUserRouter(env, prisma));
   app.use("/api/v1/categories", createCategoryRouter(env, prisma));
   app.use("/api/v1/subcategories", createSubcategoryRouter(env, prisma));
+  app.use("/api/v1/products", createProductRouter(env, prisma));
 
   app.use(notFoundMiddleware);
   app.use(createErrorMiddleware(env, logger));
