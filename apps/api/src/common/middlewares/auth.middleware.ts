@@ -10,8 +10,8 @@ import {
 } from "../../modules/auth/token.service.js";
 
 /**
- * Verifies access JWT, then checks refresh_tokens row by sid.
- * Extra cost per protected request: 1 indexed PK lookup (immediate logout).
+ * Verifies access JWT, then checks refresh_tokens + live user status/role.
+ * Role for authorization always comes from PostgreSQL, not the JWT claim.
  */
 export function createRequireAuth(env: Env, prisma: Database) {
   return async function requireAuth(
@@ -26,11 +26,11 @@ export function createRequireAuth(env: Env, prisma: Database) {
       }
 
       const claims = await verifyAccessToken(env, token);
-      await assertSessionActive(prisma, claims.sid, claims.sub);
+      const session = await assertSessionActive(prisma, claims.sid, claims.sub);
 
       req.user = {
         id: claims.sub,
-        role: claims.role,
+        role: session.role,
         sessionId: claims.sid,
       };
 

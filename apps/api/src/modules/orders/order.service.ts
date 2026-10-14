@@ -1,3 +1,5 @@
+import { createHash, randomUUID } from "node:crypto";
+
 import type { Request } from "express";
 
 import { AppError } from "../../common/errors/app-error.js";
@@ -6,17 +8,21 @@ import type { Database } from "../../config/database.js";
 import { isPublicProductVisible } from "../categories/catalog-visibility.js";
 import { toOrderDto, type OrderDto } from "./order.mapper.js";
 import {
+  completeOrderIdempotencyKey,
   createOrderWithItems,
   decrementStockIfAvailable,
+  deleteExpiredOrderIdempotencyKey,
   findCheckoutProducts,
   findOrderById,
+  findOrderIdempotencyKey,
   findOrdersPage,
   findUserStatus,
-  incrementStock,
+  incrementStockIfSafe,
   lockCategoriesForUpdate,
   lockProductsForUpdate,
   lockSubcategoriesForUpdate,
   transitionOrderStatus,
+  tryInsertOrderIdempotencyKey,
   type CheckoutProduct,
   type TxClient,
 } from "./order.repository.js";
@@ -134,8 +140,42 @@ function assertPurchasable(product: CheckoutProduct): void {
   }
 }
 
-async function createOrderInTransaction(
-  prisma: Database,
+const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000;
+const MAX_IDEMPOTENCY_INSERT_ATTEMPTS = 3;
+
+export function parseIdempotencyKey(raw: unknown): string {
+  if (typeof raw !== "string" || raw.trim().length === 0) {
+    throw AppError.badRequest(
+      "Idempotency-Key header is required",
+      undefined,
+      "VALIDATION_ERROR",
+    );
+  }
+  const key = raw.trim();
+  if (key.length > 128 || !/^[\x21-\x7E]+$/.test(key)) {
+    throw AppError.badRequest(
+      "Idempotency-Key must be 1–128 printable ASCII characters",
+      undefined,
+      "VALIDATION_ERROR",
+    );
+  }
+  return key;
+}
+
+export function hashOrderCreateRequest(
+  items: CreateOrderBody["items"],
+): string {
+  const canonical = [...items]
+    .map((item) => ({
+      productId: item.productId,
+      quantity: item.quantity,
+    }))
+    .sort((a, b) => a.productId.localeCompare(b.productId));
+  return createHash("sha256").update(JSON.stringify(canonical)).digest("hex");
+}
+
+async function executeCheckout(
+  tx: TxClient,
   userId: string,
   items: CreateOrderBody["items"],
 ): Promise<OrderDto> {
@@ -144,83 +184,147 @@ async function createOrderInTransaction(
   );
   const sortedProductIds = [...quantityByProductId.keys()].sort();
 
-  const order = await prisma.$transaction(async (tx: TxClient) => {
-    // Lock product rows first (deterministic order) so price/status/stock
-    // cannot change under us until commit. Concurrent admin updates wait.
-    await lockProductsForUpdate(tx, sortedProductIds);
+  await lockProductsForUpdate(tx, sortedProductIds);
 
-    let products = await findCheckoutProducts(tx, sortedProductIds);
-    if (products.length !== sortedProductIds.length) {
-      throw AppError.notFound("Product not found");
+  let products = await findCheckoutProducts(tx, sortedProductIds);
+  if (products.length !== sortedProductIds.length) {
+    throw AppError.notFound("Product not found");
+  }
+
+  const subcategoryIds = [
+    ...new Set(products.map((p) => p.subcategory.id)),
+  ].sort();
+  const categoryIds = [
+    ...new Set(products.map((p) => p.subcategory.category.id)),
+  ].sort();
+
+  await lockSubcategoriesForUpdate(tx, subcategoryIds);
+  await lockCategoriesForUpdate(tx, categoryIds);
+
+  products = await findCheckoutProducts(tx, sortedProductIds);
+  if (products.length !== sortedProductIds.length) {
+    throw AppError.notFound("Product not found");
+  }
+
+  for (const product of products) {
+    assertPurchasable(product);
+  }
+
+  const productById = new Map(products.map((p) => [p.id, p]));
+
+  let totalMinor = 0;
+  const orderItems = sortedProductIds.map((productId) => {
+    const product = productById.get(productId)!;
+    const quantity = quantityByProductId.get(productId)!;
+    const unitPriceMinor = product.priceMinor;
+    const lineTotalMinor = multiplyMinor(unitPriceMinor, quantity);
+    totalMinor = addMinor(totalMinor, lineTotalMinor);
+
+    return {
+      productId,
+      productNameSnapshot: product.name,
+      productSkuSnapshot: product.sku,
+      unitPriceMinor,
+      quantity,
+      lineTotalMinor,
+    };
+  });
+
+  for (const productId of sortedProductIds) {
+    const quantity = quantityByProductId.get(productId)!;
+    const count = await decrementStockIfAvailable(tx, productId, quantity);
+    if (count !== 1) {
+      throw AppError.conflict("Insufficient stock for one or more products");
     }
+  }
 
-    const subcategoryIds = [
-      ...new Set(products.map((p) => p.subcategory.id)),
-    ].sort();
-    const categoryIds = [
-      ...new Set(products.map((p) => p.subcategory.category.id)),
-    ].sort();
-
-    // Lock ancestors so archival mid-checkout cannot sneak past validation.
-    await lockSubcategoriesForUpdate(tx, subcategoryIds);
-    await lockCategoriesForUpdate(tx, categoryIds);
-
-    // Re-read under locks for a consistent checkout snapshot.
-    products = await findCheckoutProducts(tx, sortedProductIds);
-    if (products.length !== sortedProductIds.length) {
-      throw AppError.notFound("Product not found");
-    }
-
-    for (const product of products) {
-      assertPurchasable(product);
-    }
-
-    const productById = new Map(products.map((p) => [p.id, p]));
-
-    // Safe totals from locked snapshot before mutating stock.
-    let totalMinor = 0;
-    const orderItems = sortedProductIds.map((productId) => {
-      const product = productById.get(productId)!;
-      const quantity = quantityByProductId.get(productId)!;
-      const unitPriceMinor = product.priceMinor;
-      const lineTotalMinor = multiplyMinor(unitPriceMinor, quantity);
-      totalMinor = addMinor(totalMinor, lineTotalMinor);
-
-      return {
-        productId,
-        productNameSnapshot: product.name,
-        productSkuSnapshot: product.sku,
-        unitPriceMinor,
-        quantity,
-        lineTotalMinor,
-      };
-    });
-
-    // Conditional decrements in id order — second concurrent buyer of last
-    // unit gets count=0 → 409; transaction rolls back.
-    for (const productId of sortedProductIds) {
-      const quantity = quantityByProductId.get(productId)!;
-      const count = await decrementStockIfAvailable(tx, productId, quantity);
-      if (count !== 1) {
-        throw AppError.conflict("Insufficient stock for one or more products");
-      }
-    }
-
-    return createOrderWithItems(tx, {
-      userId,
-      totalMinor,
-      items: orderItems,
-    });
-  }, TX_OPTIONS);
-
+  const order = await createOrderWithItems(tx, {
+    userId,
+    totalMinor,
+    items: orderItems,
+  });
   return toOrderDto(order);
+}
+
+export type CreateOrderResult = {
+  order: OrderDto;
+  created: boolean;
+};
+
+/**
+ * Create order with required Idempotency-Key.
+ * Concurrency gate: INSERT … ON CONFLICT DO NOTHING on (user_id, key).
+ * PROCESSING rows are never committed (full rollback on failure).
+ */
+async function createOrderInTransaction(
+  prisma: Database,
+  userId: string,
+  items: CreateOrderBody["items"],
+  idempotencyKey: string,
+): Promise<CreateOrderResult> {
+  const requestHash = hashOrderCreateRequest(items);
+
+  return prisma.$transaction(async (tx: TxClient) => {
+    for (let attempt = 0; attempt < MAX_IDEMPOTENCY_INSERT_ATTEMPTS; attempt += 1) {
+      const createdAt = new Date();
+      const expiresAt = new Date(createdAt.getTime() + IDEMPOTENCY_TTL_MS);
+      const keyId = randomUUID();
+
+      const inserted = await tryInsertOrderIdempotencyKey(tx, {
+        id: keyId,
+        userId,
+        key: idempotencyKey,
+        requestHash,
+        createdAt,
+        expiresAt,
+      });
+
+      if (inserted) {
+        const order = await executeCheckout(tx, userId, items);
+        await completeOrderIdempotencyKey(tx, keyId, order.id);
+        return { order, created: true };
+      }
+
+      // Conflict — transaction is still healthy (ON CONFLICT DO NOTHING).
+      const existing = await findOrderIdempotencyKey(tx, userId, idempotencyKey);
+      if (!existing) {
+        continue;
+      }
+
+      if (existing.expiresAt.getTime() <= Date.now()) {
+        await deleteExpiredOrderIdempotencyKey(tx, userId, idempotencyKey);
+        continue;
+      }
+
+      if (existing.status === "COMPLETED" && existing.orderId) {
+        if (existing.requestHash !== requestHash) {
+          throw AppError.conflict(
+            "Idempotency-Key was reused with a different request payload",
+          );
+        }
+        const order = await findOrderById(tx, existing.orderId);
+        if (!order) {
+          throw AppError.conflict(
+            "Idempotency-Key refers to a missing order",
+          );
+        }
+        return { order: toOrderDto(order), created: false };
+      }
+
+      // Should not observe committed PROCESSING; treat as conflict.
+      throw AppError.conflict("Idempotency-Key request is already in progress");
+    }
+
+    throw AppError.conflict("Unable to acquire idempotency lock");
+  }, TX_OPTIONS);
 }
 
 export async function createOrderService(
   prisma: Database,
   user: AuthUser,
   input: CreateOrderBody,
-): Promise<OrderDto> {
+  idempotencyKeyRaw: unknown,
+): Promise<CreateOrderResult> {
   if (user.role !== "CUSTOMER") {
     throw AppError.forbidden("Only customers may create orders");
   }
@@ -233,8 +337,10 @@ export async function createOrderService(
     throw AppError.forbidden("Account is disabled");
   }
 
+  const idempotencyKey = parseIdempotencyKey(idempotencyKeyRaw);
+
   return withTransactionRetry(() =>
-    createOrderInTransaction(prisma, user.id, input.items),
+    createOrderInTransaction(prisma, user.id, input.items, idempotencyKey),
   );
 }
 
@@ -339,7 +445,13 @@ async function cancelOrderInTransaction(
       }
 
       for (const productId of restockIds) {
-        await incrementStock(tx, productId, quantityByProduct.get(productId)!);
+        const quantity = quantityByProduct.get(productId)!;
+        const updated = await incrementStockIfSafe(tx, productId, quantity);
+        if (updated !== 1) {
+          throw AppError.conflict(
+            "Unable to restore stock without exceeding inventory limits",
+          );
+        }
       }
 
       return toOrderDto(order);

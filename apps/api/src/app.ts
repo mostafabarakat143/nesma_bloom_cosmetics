@@ -20,6 +20,7 @@ import {
   healthEchoBodySchema,
   type HealthEchoBody,
 } from "./modules/health/health.schema.js";
+import { createDocsRouter } from "./docs/docs.routes.js";
 import { createOrderRouter } from "./modules/orders/order.routes.js";
 import { createProductRouter } from "./modules/products/product.routes.js";
 import { createSubcategoryRouter } from "./modules/subcategories/subcategory.routes.js";
@@ -105,6 +106,9 @@ export function createApp({ env, logger, prisma }: AppDependencies): Express {
   app.use("/api/v1/subcategories", createSubcategoryRouter(env, prisma));
   app.use("/api/v1/products", createProductRouter(env, prisma));
   app.use("/api/v1/orders", createOrderRouter(env, prisma));
+
+  // /api/openapi.json and /api/docs (gated by ENABLE_API_DOCS)
+  app.use("/api", createDocsRouter(env));
 
   app.use(notFoundMiddleware);
   app.use(createErrorMiddleware(env, logger));

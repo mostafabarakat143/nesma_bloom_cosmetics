@@ -11,6 +11,7 @@ describe("orders management", () => {
 
   beforeEach(async () => {
     await prisma.refreshToken.deleteMany();
+    await prisma.orderIdempotencyKey.deleteMany();
     await prisma.orderItem.deleteMany();
     await prisma.order.deleteMany();
     await prisma.productImage.deleteMany();
@@ -20,6 +21,12 @@ describe("orders management", () => {
     await prisma.userProfile.deleteMany();
     await prisma.user.deleteMany();
   });
+
+  let idempotencySeq = 0;
+  function nextIdempotencyKey(prefix = "ord") {
+    idempotencySeq += 1;
+    return `${prefix}-${Date.now()}-${idempotencySeq}`;
+  }
 
   afterAll(async () => {
     await prisma.$disconnect();
@@ -103,6 +110,7 @@ describe("orders management", () => {
     const response = await request(app)
       .post("/api/v1/orders")
       .set(authHeaders(cookies))
+      .set("Idempotency-Key", nextIdempotencyKey())
       .send({ items: [{ productId: product.id, quantity: 2 }] });
 
     expect(response.status).toBe(201);
@@ -148,6 +156,7 @@ describe("orders management", () => {
         await request(app)
           .post("/api/v1/orders")
           .set(authHeaders(cookies))
+          .set("Idempotency-Key", nextIdempotencyKey())
           .send({ items: [] })
       ).status,
     ).toBe(400);
@@ -157,6 +166,7 @@ describe("orders management", () => {
         await request(app)
           .post("/api/v1/orders")
           .set(authHeaders(cookies))
+          .set("Idempotency-Key", nextIdempotencyKey())
           .send({
             items: [
               { productId: product.id, quantity: 1 },
@@ -171,6 +181,7 @@ describe("orders management", () => {
         await request(app)
           .post("/api/v1/orders")
           .set(authHeaders(cookies))
+          .set("Idempotency-Key", nextIdempotencyKey())
           .send({ items: [{ productId: product.id, quantity: 0 }] })
       ).status,
     ).toBe(400);
@@ -183,6 +194,7 @@ describe("orders management", () => {
     const overflow = await request(app)
       .post("/api/v1/orders")
       .set(authHeaders(cookies))
+      .set("Idempotency-Key", nextIdempotencyKey())
       .send({ items: [{ productId: product.id, quantity: 2 }] });
     expect(overflow.status).toBe(400);
 
@@ -201,6 +213,7 @@ describe("orders management", () => {
         await request(app)
           .post("/api/v1/orders")
           .set(authHeaders(cookies))
+          .set("Idempotency-Key", nextIdempotencyKey())
           .send({
             items: [
               {
@@ -221,6 +234,7 @@ describe("orders management", () => {
         await request(app)
           .post("/api/v1/orders")
           .set(authHeaders(cookies))
+          .set("Idempotency-Key", nextIdempotencyKey())
           .send({ items: [{ productId: product.id, quantity: 1 }] })
       ).status,
     ).toBe(409);
@@ -234,6 +248,7 @@ describe("orders management", () => {
         await request(app)
           .post("/api/v1/orders")
           .set(authHeaders(cookies))
+          .set("Idempotency-Key", nextIdempotencyKey())
           .send({ items: [{ productId: product.id, quantity: 1 }] })
       ).status,
     ).toBe(409);
@@ -247,6 +262,7 @@ describe("orders management", () => {
         await request(app)
           .post("/api/v1/orders")
           .set(authHeaders(cookies))
+          .set("Idempotency-Key", nextIdempotencyKey())
           .send({ items: [{ productId: product.id, quantity: 1 }] })
       ).status,
     ).toBe(409);
@@ -274,6 +290,7 @@ describe("orders management", () => {
     const insufficient = await request(app)
       .post("/api/v1/orders")
       .set(authHeaders(cookies))
+      .set("Idempotency-Key", nextIdempotencyKey())
       .send({ items: [{ productId: a.id, quantity: 2 }] });
     expect(insufficient.status).toBe(409);
 
@@ -287,6 +304,7 @@ describe("orders management", () => {
     const multi = await request(app)
       .post("/api/v1/orders")
       .set(authHeaders(cookies))
+      .set("Idempotency-Key", nextIdempotencyKey())
       .send({ items });
     expect(multi.status).toBe(409);
 
@@ -305,10 +323,12 @@ describe("orders management", () => {
       request(app)
         .post("/api/v1/orders")
         .set(authHeaders(customerA.cookies))
+        .set("Idempotency-Key", nextIdempotencyKey())
         .send({ items: [{ productId: product.id, quantity: 1 }] }),
       request(app)
         .post("/api/v1/orders")
         .set(authHeaders(customerB.cookies))
+        .set("Idempotency-Key", nextIdempotencyKey())
         .send({ items: [{ productId: product.id, quantity: 1 }] }),
     ]);
 
@@ -333,6 +353,7 @@ describe("orders management", () => {
     const created = await request(app)
       .post("/api/v1/orders")
       .set(authHeaders(customerA.cookies))
+      .set("Idempotency-Key", nextIdempotencyKey())
       .send({ items: [{ productId: product.id, quantity: 1 }] });
     const orderId = created.body.data.order.id;
 
@@ -374,6 +395,7 @@ describe("orders management", () => {
     const created = await request(app)
       .post("/api/v1/orders")
       .set(authHeaders(customerCookies))
+      .set("Idempotency-Key", nextIdempotencyKey())
       .send({ items: [{ productId: product.id, quantity: 1 }] });
     const orderId = created.body.data.order.id;
 
@@ -411,6 +433,7 @@ describe("orders management", () => {
     const created = await request(app)
       .post("/api/v1/orders")
       .set(authHeaders(cookies))
+      .set("Idempotency-Key", nextIdempotencyKey())
       .send({ items: [{ productId: product.id, quantity: 3 }] });
     const orderId = created.body.data.order.id;
 
@@ -447,6 +470,7 @@ describe("orders management", () => {
     const created = await request(app)
       .post("/api/v1/orders")
       .set(authHeaders(customerCookies))
+      .set("Idempotency-Key", nextIdempotencyKey())
       .send({ items: [{ productId: product.id, quantity: 2 }] });
     const orderId = created.body.data.order.id;
 
@@ -474,6 +498,7 @@ describe("orders management", () => {
     const created = await request(app)
       .post("/api/v1/orders")
       .set(authHeaders(customerCookies))
+      .set("Idempotency-Key", nextIdempotencyKey())
       .send({ items: [{ productId: product.id, quantity: 1 }] });
     const orderId = created.body.data.order.id;
 
@@ -517,6 +542,7 @@ describe("orders management", () => {
     const created = await request(app)
       .post("/api/v1/orders")
       .set(authHeaders(customerA.cookies))
+      .set("Idempotency-Key", nextIdempotencyKey())
       .send({ items: [{ productId: product.id, quantity: 1 }] });
     const orderId = created.body.data.order.id;
 
@@ -552,6 +578,7 @@ describe("orders management", () => {
         await request(app)
           .post("/api/v1/orders")
           .set("Origin", TEST_ORIGIN)
+          .set("Idempotency-Key", nextIdempotencyKey())
           .send({ items: [{ productId: product.id, quantity: 1 }] })
       ).status,
     ).toBe(401);
@@ -561,6 +588,7 @@ describe("orders management", () => {
         await request(app)
           .post("/api/v1/orders")
           .set(authHeaders(admin))
+          .set("Idempotency-Key", nextIdempotencyKey())
           .send({ items: [{ productId: product.id, quantity: 1 }] })
       ).status,
     ).toBe(403);
@@ -570,6 +598,7 @@ describe("orders management", () => {
         await request(app)
           .post("/api/v1/orders")
           .set("Origin", TEST_ORIGIN)
+          .set("Idempotency-Key", nextIdempotencyKey())
           .set(
             "Cookie",
             Object.entries(customer)
@@ -579,5 +608,87 @@ describe("orders management", () => {
           .send({ items: [{ productId: product.id, quantity: 1 }] })
       ).status,
     ).toBe(403);
+  });
+
+  it("requires Idempotency-Key and replays same payload with 200", async () => {
+    const { cookies } = await asCustomer();
+    const { product } = await seedCatalog(5);
+    const key = nextIdempotencyKey("idem");
+
+    const missing = await request(app)
+      .post("/api/v1/orders")
+      .set(authHeaders(cookies))
+      .send({ items: [{ productId: product.id, quantity: 1 }] });
+    expect(missing.status).toBe(400);
+
+    const first = await request(app)
+      .post("/api/v1/orders")
+      .set(authHeaders(cookies))
+      .set("Idempotency-Key", key)
+      .send({ items: [{ productId: product.id, quantity: 1 }] });
+    expect(first.status).toBe(201);
+    const orderId = first.body.data.order.id;
+
+    const replay = await request(app)
+      .post("/api/v1/orders")
+      .set(authHeaders(cookies))
+      .set("Idempotency-Key", key)
+      .send({ items: [{ productId: product.id, quantity: 1 }] });
+    expect(replay.status).toBe(200);
+    expect(replay.body.data.order.id).toBe(orderId);
+
+    expect(
+      (await prisma.product.findUniqueOrThrow({ where: { id: product.id } }))
+        .stockQty,
+    ).toBe(4);
+    expect(await prisma.order.count()).toBe(1);
+  });
+
+  it("rejects same Idempotency-Key with different payload", async () => {
+    const { cookies } = await asCustomer();
+    const { product } = await seedCatalog(5);
+    const key = nextIdempotencyKey("conflict");
+
+    await request(app)
+      .post("/api/v1/orders")
+      .set(authHeaders(cookies))
+      .set("Idempotency-Key", key)
+      .send({ items: [{ productId: product.id, quantity: 1 }] });
+
+    const conflict = await request(app)
+      .post("/api/v1/orders")
+      .set(authHeaders(cookies))
+      .set("Idempotency-Key", key)
+      .send({ items: [{ productId: product.id, quantity: 2 }] });
+    expect(conflict.status).toBe(409);
+  });
+
+  it("handles concurrent duplicate Idempotency-Key submissions safely", async () => {
+    const { cookies } = await asCustomer();
+    const { product } = await seedCatalog(5);
+    const key = nextIdempotencyKey("conc");
+    const body = { items: [{ productId: product.id, quantity: 1 }] };
+
+    const [a, b] = await Promise.all([
+      request(app)
+        .post("/api/v1/orders")
+        .set(authHeaders(cookies))
+        .set("Idempotency-Key", key)
+        .send(body),
+      request(app)
+        .post("/api/v1/orders")
+        .set(authHeaders(cookies))
+        .set("Idempotency-Key", key)
+        .send(body),
+    ]);
+
+    const statuses = [a.status, b.status].sort();
+    expect(statuses).toEqual([200, 201]);
+    expect(a.body.data.order.id).toBe(b.body.data.order.id);
+    expect(await prisma.order.count()).toBe(1);
+    expect(
+      (await prisma.product.findUniqueOrThrow({ where: { id: product.id } }))
+        .stockQty,
+    ).toBe(4);
   });
 });

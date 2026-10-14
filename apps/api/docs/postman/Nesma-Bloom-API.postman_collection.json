@@ -1,0 +1,1017 @@
+{
+  "info": {
+    "name": "Nesma Bloom Cosmetics API",
+    "description": "Generated from OpenAPI 3.1. Use cookie jar + CSRF. Set baseUrl and origin variables.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000"
+    },
+    {
+      "key": "origin",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "csrfToken",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Liveness",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Liveness\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register CUSTOMER",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin}}",
+                "description": "Trusted frontend origin"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrfToken}}",
+                "description": "Copy from nb_csrf cookie"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Register CUSTOMER\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \n}\n"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin}}",
+                "description": "Trusted frontend origin"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrfToken}}",
+                "description": "Copy from nb_csrf cookie"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \n}\n"
+            }
+          }
+        },
+        {
+          "name": "Rotate refresh session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin}}",
+                "description": "Trusted frontend origin"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrfToken}}",
+                "description": "Copy from nb_csrf cookie"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "Concurrent multi-tab refresh: one request wins (200), the other gets 401 without global logout when within the 30s rotation grace window. Delayed reuse of a rotated token after 30s triggers revoke-all.\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        },
+        {
+          "name": "Logout current session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin}}",
+                "description": "Trusted frontend origin"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrfToken}}",
+                "description": "Copy from nb_csrf cookie"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Logout current session\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        },
+        {
+          "name": "Current user",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Current user\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get own profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me",
+                "profile"
+              ]
+            },
+            "description": "Get own profile\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        },
+        {
+          "name": "Update own profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin}}",
+                "description": "Trusted frontend origin"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrfToken}}",
+                "description": "Copy from nb_csrf cookie"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me",
+                "profile"
+              ]
+            },
+            "description": "Update own profile\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "List categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories"
+              ]
+            },
+            "description": "Public default ACTIVE. ADMIN may use status ARCHIVED/ALL.\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        },
+        {
+          "name": "Create category (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin}}",
+                "description": "Trusted frontend origin"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrfToken}}",
+                "description": "Copy from nb_csrf cookie"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories"
+              ]
+            },
+            "description": "Create category (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        },
+        {
+          "name": "Get category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categories/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories",
+                "{id}"
+              ]
+            },
+            "description": "Get category\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        },
+        {
+          "name": "Update category (ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin}}",
+                "description": "Trusted frontend origin"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrfToken}}",
+                "description": "Copy from nb_csrf cookie"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categories/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories",
+                "{id}"
+              ]
+            },
+            "description": "Update category (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        },
+        {
+          "name": "Archive category (ADMIN)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin}}",
+                "description": "Trusted frontend origin"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrfToken}}",
+                "description": "Copy from nb_csrf cookie"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categories/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories",
+                "{id}"
+              ]
+            },
+            "description": "Archive category (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Subcategories",
+      "item": [
+        {
+          "name": "List subcategories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subcategories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subcategories"
+              ]
+            },
+            "description": "List subcategories\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        },
+        {
+          "name": "Create subcategory (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin}}",
+                "description": "Trusted frontend origin"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrfToken}}",
+                "description": "Copy from nb_csrf cookie"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subcategories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subcategories"
+              ]
+            },
+            "description": "Create subcategory (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        },
+        {
+          "name": "Get subcategory",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subcategories/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subcategories",
+                "{id}"
+              ]
+            },
+            "description": "Get subcategory\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        },
+        {
+          "name": "Update subcategory (ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin}}",
+                "description": "Trusted frontend origin"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrfToken}}",
+                "description": "Copy from nb_csrf cookie"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subcategories/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subcategories",
+                "{id}"
+              ]
+            },
+            "description": "Update subcategory (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        },
+        {
+          "name": "Archive subcategory (ADMIN)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin}}",
+                "description": "Trusted frontend origin"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrfToken}}",
+                "description": "Copy from nb_csrf cookie"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subcategories/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subcategories",
+                "{id}"
+              ]
+            },
+            "description": "Archive subcategory (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products"
+              ]
+            },
+            "description": "Public: ACTIVE + available + ACTIVE parents. Out-of-stock (`stockQty=0`) remains visible with `inStock=false`.\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        },
+        {
+          "name": "Create product (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin}}",
+                "description": "Trusted frontend origin"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrfToken}}",
+                "description": "Copy from nb_csrf cookie"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products"
+              ]
+            },
+            "description": "Create product (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        },
+        {
+          "name": "Get product",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products",
+                "{id}"
+              ]
+            },
+            "description": "Get product\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        },
+        {
+          "name": "Update product (ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin}}",
+                "description": "Trusted frontend origin"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrfToken}}",
+                "description": "Copy from nb_csrf cookie"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products",
+                "{id}"
+              ]
+            },
+            "description": "Update product (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        },
+        {
+          "name": "Archive product (ADMIN)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin}}",
+                "description": "Trusted frontend origin"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrfToken}}",
+                "description": "Copy from nb_csrf cookie"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products",
+                "{id}"
+              ]
+            },
+            "description": "Archive product (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        },
+        {
+          "name": "Add product image URL (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin}}",
+                "description": "Trusted frontend origin"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrfToken}}",
+                "description": "Copy from nb_csrf cookie"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/{id}/images",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products",
+                "{id}",
+                "images"
+              ]
+            },
+            "description": "Add product image URL (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        },
+        {
+          "name": "Update product image (ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin}}",
+                "description": "Trusted frontend origin"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrfToken}}",
+                "description": "Copy from nb_csrf cookie"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/{id}/images/{imageId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products",
+                "{id}",
+                "images",
+                "{imageId}"
+              ]
+            },
+            "description": "Update product image (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        },
+        {
+          "name": "Delete product image (ADMIN)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin}}",
+                "description": "Trusted frontend origin"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrfToken}}",
+                "description": "Copy from nb_csrf cookie"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/{id}/images/{imageId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products",
+                "{id}",
+                "images",
+                "{imageId}"
+              ]
+            },
+            "description": "Delete product image (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "List all orders (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders"
+              ]
+            },
+            "description": "List all orders (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        },
+        {
+          "name": "Create order (CUSTOMER)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin}}",
+                "description": "Trusted frontend origin"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrfToken}}",
+                "description": "Copy from nb_csrf cookie"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}",
+                "description": "Required; reuse for safe retries"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders"
+              ]
+            },
+            "description": "Create order (CUSTOMER)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \n}\n"
+            }
+          }
+        },
+        {
+          "name": "List own orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders/my",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders",
+                "my"
+              ]
+            },
+            "description": "List own orders\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        },
+        {
+          "name": "Get order (owner or ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders",
+                "{id}"
+              ]
+            },
+            "description": "Get order (owner or ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        },
+        {
+          "name": "Cancel order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin}}",
+                "description": "Trusted frontend origin"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrfToken}}",
+                "description": "Copy from nb_csrf cookie"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders/{id}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders",
+                "{id}",
+                "cancel"
+              ]
+            },
+            "description": "Cancel order\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
+          }
+        },
+        {
+          "name": "Transition order status (ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin}}",
+                "description": "Trusted frontend origin"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrfToken}}",
+                "description": "Copy from nb_csrf cookie"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders/{id}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders",
+                "{id}",
+                "status"
+              ]
+            },
+            "description": "Transition order status (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \n}\n"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

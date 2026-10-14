@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 
@@ -13,10 +13,17 @@ export type AccessTokenClaims = {
   sid: string;
 };
 
+export type ActiveSession = {
+  role: UserRole;
+};
+
 type SessionMeta = {
   userAgent?: string;
   ipAddress?: string;
 };
+
+/** Multi-tab stale refresh grace after graceful rotation (not a theft oracle). */
+export const REFRESH_ROTATION_GRACE_MS = 30_000;
 
 export function hashRefreshToken(rawToken: string): string {
   return createHash("sha256").update(rawToken).digest("hex");
@@ -102,14 +109,38 @@ export async function createRefreshSession(
   return { sessionId: session.id, rawRefreshToken };
 }
 
+async function revokeAllActiveSessions(
+  tx: Parameters<Parameters<Database["$transaction"]>[0]>[0],
+  userId: string,
+): Promise<void> {
+  await tx.refreshToken.updateMany({
+    where: { userId, revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
+}
+
 /**
  * Atomically rotates a refresh token.
- * Uses updateMany(revokedAt: null) as an optimistic lock so only one concurrent
- * rotation succeeds. A failed lock on an already-revoked token triggers
- * revoke-all (replay / theft detection). Legitimate concurrent refreshes:
- * one wins; the loser is treated as replay and all sessions are revoked —
- * clients should serialize refresh or tolerate re-login after parallel tabs race.
+ *
+ * Graceful rotation sets replacedById on the old row. Presenting that revoked
+ * token within REFRESH_ROTATION_GRACE_MS yields 401 without revoke-all (multi-tab).
+ * Delayed reuse after the grace window still revoke-all (suspicious replay).
+ * Logout/hard revoke leaves replacedById null; reuse triggers revoke-all.
+ *
+ * Tradeoff: the grace window reduces accidental logout but cannot securely
+ * distinguish every stolen-token replay from legitimate concurrency.
  */
+type RotateOutcome =
+  | {
+      kind: "rotated";
+      userId: string;
+      role: UserRole;
+      sessionId: string;
+      rawRefreshToken: string;
+    }
+  | { kind: "unauthorized" }
+  | { kind: "revoked_all" };
+
 export async function rotateRefreshSession(
   prisma: Database,
   env: Env,
@@ -123,27 +154,47 @@ export async function rotateRefreshSession(
 }> {
   const tokenHash = hashRefreshToken(rawRefreshToken);
 
-  return prisma.$transaction(async (tx) => {
+  // Return structured outcomes so revoke-all can COMMIT before throwing.
+  // Throwing AppError inside $transaction would roll back the revoke-all.
+  const outcome = await prisma.$transaction(async (tx): Promise<RotateOutcome> => {
     const existing = await tx.refreshToken.findUnique({
       where: { tokenHash },
       include: { user: { select: { id: true, role: true, status: true } } },
     });
 
     if (!existing) {
-      throw AppError.unauthorized("Authentication required");
+      return { kind: "unauthorized" };
     }
 
     if (existing.user.status !== "ACTIVE") {
-      throw AppError.unauthorized("Invalid email or password");
+      return { kind: "unauthorized" };
     }
 
-    if (existing.revokedAt !== null || existing.expiresAt <= new Date()) {
-      await tx.refreshToken.updateMany({
-        where: { userId: existing.userId, revokedAt: null },
-        data: { revokedAt: new Date() },
-      });
-      throw AppError.unauthorized("Authentication required");
+    const now = Date.now();
+    const isExpired = existing.expiresAt.getTime() <= now;
+    const isRevoked = existing.revokedAt !== null;
+
+    if (isRevoked || isExpired) {
+      const graceful =
+        existing.replacedById !== null &&
+        existing.revokedAt !== null &&
+        now - existing.revokedAt.getTime() <= REFRESH_ROTATION_GRACE_MS;
+
+      if (graceful) {
+        // Stale tab / concurrent loser — do not return a new refresh token.
+        return { kind: "unauthorized" };
+      }
+
+      await revokeAllActiveSessions(tx, existing.userId);
+      return { kind: "revoked_all" };
     }
+
+    const nextId = randomUUID();
+    const rawNext = generateRefreshToken();
+    const nextHash = hashRefreshToken(rawNext);
+    const expiresAt = new Date(
+      Date.now() + env.REFRESH_TOKEN_TTL_SECONDS * 1000,
+    );
 
     const revoked = await tx.refreshToken.updateMany({
       where: {
@@ -151,25 +202,30 @@ export async function rotateRefreshSession(
         revokedAt: null,
         expiresAt: { gt: new Date() },
       },
-      data: { revokedAt: new Date() },
+      data: {
+        revokedAt: new Date(),
+        replacedById: nextId,
+      },
     });
 
     if (revoked.count !== 1) {
-      await tx.refreshToken.updateMany({
-        where: { userId: existing.userId, revokedAt: null },
-        data: { revokedAt: new Date() },
+      const again = await tx.refreshToken.findUnique({
+        where: { id: existing.id },
+        select: { revokedAt: true, replacedById: true },
       });
-      throw AppError.unauthorized("Authentication required");
+
+      if (again?.replacedById) {
+        // Concurrent winner already rotated — no revoke-all, no new token.
+        return { kind: "unauthorized" };
+      }
+
+      await revokeAllActiveSessions(tx, existing.userId);
+      return { kind: "revoked_all" };
     }
 
-    const rawNext = generateRefreshToken();
-    const nextHash = hashRefreshToken(rawNext);
-    const expiresAt = new Date(
-      Date.now() + env.REFRESH_TOKEN_TTL_SECONDS * 1000,
-    );
-
-    const next = await tx.refreshToken.create({
+    await tx.refreshToken.create({
       data: {
+        id: nextId,
         userId: existing.userId,
         tokenHash: nextHash,
         expiresAt,
@@ -179,12 +235,24 @@ export async function rotateRefreshSession(
     });
 
     return {
+      kind: "rotated",
       userId: existing.user.id,
       role: existing.user.role,
-      sessionId: next.id,
+      sessionId: nextId,
       rawRefreshToken: rawNext,
     };
   });
+
+  if (outcome.kind === "rotated") {
+    return {
+      userId: outcome.userId,
+      role: outcome.role,
+      sessionId: outcome.sessionId,
+      rawRefreshToken: outcome.rawRefreshToken,
+    };
+  }
+
+  throw AppError.unauthorized("Authentication required");
 }
 
 export async function revokeRefreshSessionByHash(
@@ -209,14 +277,14 @@ export async function revokeSessionById(
 }
 
 /**
- * Immediate logout invalidation check.
- * Cost: one indexed PK lookup on refresh_tokens per protected request.
+ * Immediate logout invalidation + live user status/role from PostgreSQL.
+ * Cost: one indexed PK lookup with user join per protected request.
  */
 export async function assertSessionActive(
   prisma: Database,
   sessionId: string,
   userId: string,
-): Promise<void> {
+): Promise<ActiveSession> {
   const session = await prisma.refreshToken.findUnique({
     where: { id: sessionId },
     select: {
@@ -224,6 +292,12 @@ export async function assertSessionActive(
       userId: true,
       revokedAt: true,
       expiresAt: true,
+      user: {
+        select: {
+          status: true,
+          role: true,
+        },
+      },
     },
   });
 
@@ -235,4 +309,10 @@ export async function assertSessionActive(
   ) {
     throw AppError.unauthorized("Authentication required");
   }
+
+  if (session.user.status === "DISABLED") {
+    throw AppError.unauthorized("Authentication required");
+  }
+
+  return { role: session.user.role };
 }

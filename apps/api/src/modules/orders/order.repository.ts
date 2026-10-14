@@ -139,14 +139,109 @@ export async function decrementStockIfAvailable(
   return result.count;
 }
 
-export async function incrementStock(
+const PG_INT_MAX = 2_147_483_647;
+
+/**
+ * Restock with INTEGER overflow guard. Uses a conditional update so overflow
+ * cannot partially apply; caller should treat count !== 1 as failure.
+ */
+export async function incrementStockIfSafe(
   tx: TxClient,
   productId: string,
   quantity: number,
-): Promise<void> {
-  await tx.product.update({
+): Promise<number> {
+  const product = await tx.product.findUnique({
     where: { id: productId },
-    data: { stockQty: { increment: quantity } },
+    select: { stockQty: true },
+  });
+  if (!product) {
+    return 0;
+  }
+  if (product.stockQty > PG_INT_MAX - quantity) {
+    return 0;
+  }
+
+  const result = await tx.product.updateMany({
+    where: {
+      id: productId,
+      stockQty: { lte: PG_INT_MAX - quantity },
+    },
+    data: {
+      stockQty: { increment: quantity },
+    },
+  });
+  return result.count;
+}
+
+export async function tryInsertOrderIdempotencyKey(
+  tx: TxClient,
+  data: {
+    id: string;
+    userId: string;
+    key: string;
+    requestHash: string;
+    createdAt: Date;
+    expiresAt: Date;
+  },
+): Promise<boolean> {
+  const rows = await tx.$queryRaw<Array<{ id: string }>>`
+    INSERT INTO order_idempotency_keys (
+      id, user_id, key, request_hash, status, order_id, expires_at, created_at, updated_at
+    ) VALUES (
+      ${data.id}::uuid,
+      ${data.userId}::uuid,
+      ${data.key},
+      ${data.requestHash},
+      'PROCESSING'::idempotency_record_status,
+      NULL,
+      ${data.expiresAt},
+      ${data.createdAt},
+      ${data.createdAt}
+    )
+    ON CONFLICT (user_id, key) DO NOTHING
+    RETURNING id
+  `;
+  return rows.length === 1;
+}
+
+export async function findOrderIdempotencyKey(
+  tx: TxClient,
+  userId: string,
+  key: string,
+) {
+  return tx.orderIdempotencyKey.findUnique({
+    where: {
+      userId_key: { userId, key },
+    },
+  });
+}
+
+export async function deleteExpiredOrderIdempotencyKey(
+  tx: TxClient,
+  userId: string,
+  key: string,
+): Promise<number> {
+  const result = await tx.orderIdempotencyKey.deleteMany({
+    where: {
+      userId,
+      key,
+      expiresAt: { lt: new Date() },
+    },
+  });
+  return result.count;
+}
+
+export async function completeOrderIdempotencyKey(
+  tx: TxClient,
+  id: string,
+  orderId: string,
+): Promise<void> {
+  await tx.orderIdempotencyKey.update({
+    where: { id },
+    data: {
+      status: "COMPLETED",
+      orderId,
+    },
   });
 }
 

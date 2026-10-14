@@ -11,6 +11,7 @@ describe("subcategories CRUD", () => {
 
   beforeEach(async () => {
     await prisma.refreshToken.deleteMany();
+    await prisma.orderIdempotencyKey.deleteMany();
     await prisma.orderItem.deleteMany();
     await prisma.order.deleteMany();
     await prisma.productImage.deleteMany();

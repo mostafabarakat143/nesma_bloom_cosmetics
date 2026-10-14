@@ -25,8 +25,15 @@ export function createOrderController(prisma: Database) {
     ): Promise<void> {
       try {
         const body = req.body as CreateOrderBody;
-        const order = await createOrderService(prisma, req.user!, body);
-        res.status(201).json({ status: "success", data: { order } });
+        const result = await createOrderService(
+          prisma,
+          req.user!,
+          body,
+          req.get("Idempotency-Key"),
+        );
+        res
+          .status(result.created ? 201 : 200)
+          .json({ status: "success", data: { order: result.order } });
       } catch (error) {
         next(error);
       }

@@ -17,6 +17,7 @@ describe("auth and profiles", () => {
 
   beforeEach(async () => {
     await prisma.refreshToken.deleteMany();
+    await prisma.orderIdempotencyKey.deleteMany();
     await prisma.orderItem.deleteMany();
     await prisma.order.deleteMany();
     await prisma.userProfile.deleteMany();
@@ -173,6 +174,90 @@ describe("auth and profiles", () => {
     const statuses = [first.status, second.status].sort();
     expect(statuses).toContain(200);
     expect(statuses).toContain(401);
+
+    const winner = first.status === 200 ? first : second;
+    const winnerCookies = mergeCookies(cookies, winner);
+    const me = await request(app)
+      .get("/api/v1/auth/me")
+      .set(authHeaders(winnerCookies));
+    expect(me.status).toBe(200);
+  });
+
+  it("locks out disabled users immediately while session cookie remains", async () => {
+    const { cookies, email } = await register(`disabled-live-${Date.now()}@example.com`);
+
+    await prisma.user.update({
+      where: { email },
+      data: { status: "DISABLED" },
+    });
+
+    const me = await request(app)
+      .get("/api/v1/auth/me")
+      .set(authHeaders(cookies));
+    expect(me.status).toBe(401);
+  });
+
+  it("applies role changes from PostgreSQL immediately", async () => {
+    const password = "Password123!";
+    const email = `role-flip-${Date.now()}@example.com`;
+    await prisma.user.create({
+      data: {
+        email,
+        passwordHash: await hashPassword(password),
+        role: "ADMIN",
+        profile: { create: {} },
+      },
+    });
+
+    const login = await request(app)
+      .post("/api/v1/auth/login")
+      .set("Origin", TEST_ORIGIN)
+      .send({ email, password });
+    const cookies = parseCookies(login);
+
+    const before = await request(app)
+      .get("/api/v1/categories")
+      .set(authHeaders(cookies))
+      .query({ status: "ALL" });
+    expect(before.status).toBe(200);
+
+    await prisma.user.update({
+      where: { email },
+      data: { role: "CUSTOMER" },
+    });
+
+    const after = await request(app)
+      .get("/api/v1/categories")
+      .set(authHeaders(cookies))
+      .query({ status: "ALL" });
+    expect(after.status).toBe(403);
+  });
+
+  it("revokes all sessions on delayed reuse of a rotated refresh token", async () => {
+    let cookies = (await register(`delayed-${Date.now()}@example.com`)).cookies;
+    const oldRefresh = cookies[REFRESH_COOKIE];
+
+    const refreshed = await request(app)
+      .post("/api/v1/auth/refresh")
+      .set(authHeaders(cookies));
+    expect(refreshed.status).toBe(200);
+    cookies = mergeCookies(cookies, refreshed);
+
+    await prisma.refreshToken.updateMany({
+      where: { replacedById: { not: null } },
+      data: { revokedAt: new Date(Date.now() - 31_000) },
+    });
+
+    const delayed = await request(app)
+      .post("/api/v1/auth/refresh")
+      .set("Origin", TEST_ORIGIN)
+      .set("Cookie", `${REFRESH_COOKIE}=${oldRefresh}`);
+    expect(delayed.status).toBe(401);
+
+    const me = await request(app)
+      .get("/api/v1/auth/me")
+      .set(authHeaders(cookies));
+    expect(me.status).toBe(401);
   });
 
   it("rejects CSRF-invalid mutating requests after login", async () => {

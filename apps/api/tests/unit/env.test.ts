@@ -49,4 +49,23 @@ describe("loadEnv", () => {
     ]);
     expect(getCorsOrigins("")).toBe(false);
   });
+
+  it("requires COOKIE_SECURE in production", () => {
+    expect(() =>
+      loadEnv({
+        ...baseTestEnvVars,
+        NODE_ENV: "production",
+        COOKIE_SECURE: "false",
+      }),
+    ).toThrow(/COOKIE_SECURE/);
+  });
+
+  it("disables API docs by default in production", () => {
+    const env = loadEnv({
+      ...baseTestEnvVars,
+      NODE_ENV: "production",
+      COOKIE_SECURE: "true",
+    });
+    expect(env.ENABLE_API_DOCS).toBe(false);
+  });
 });
