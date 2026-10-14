@@ -1,9 +1,116 @@
 {
   "info": {
     "name": "Nesma Bloom Cosmetics API",
-    "description": "Generated from OpenAPI 3.1. Use cookie jar + CSRF. Set baseUrl and origin variables.",
+    "description": "Ready-to-use examples for local manual testing.\n\n## Postman Desktop setup\n1. Delete any old copy of this collection (do not merge).\n2. Cookies → Domains Allowlist → add your API origin (e.g. `http://localhost:4000`).\n3. If register/login return CSRF 403: Cookies → delete `nb_csrf` for that host, then retry.\n4. Import `apps/api/docs/postman/Nesma-Bloom-API.postman_collection.json`.\n5. Collection variables: `baseUrl=http://localhost:4000`, `origin=http://localhost:3000`.\n6. Prefer leaving Environment `csrfToken` unset (collection variable is enough).\n\n## Quick start\n1. Register or Login — collection pre-request clears stale `nb_csrf`; Tests capture the new token.\n2. ADMIN catalog writes: login as an existing ADMIN (register cannot create ADMIN).\n3. Create Category → Subcategory → Product → Image; save IDs into variables.\n4. CUSTOMER → Create Order (idempotencyKey) → Get/Cancel.\n\n## CSRF notes\n- Backend: Origin required; double-submit (`nb_csrf` == `x-csrf-token`) when the cookie exists.\n- Register/Login (Postman): clear only `nb_csrf` for `baseUrl` + strip CSRF headers (first-visit path).\n- Other mutations: pre-request upserts a concrete `x-csrf-token` matching `nb_csrf`.\n\nRegenerate: pnpm --filter @cosmetics/api docs:postman\nSource: apps/api/scripts/generate-postman.mts",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "function stripCsrfHeaders() {",
+          "  ['x-csrf-token', 'X-CSRF-Token', 'X-CSRF-TOKEN'].forEach(function (key) {",
+          "    pm.request.headers.remove(key);",
+          "  });",
+          "}",
+          "",
+          "function requestUrlString() {",
+          "  try {",
+          "    return pm.variables.replaceIn(pm.request.url.toString());",
+          "  } catch (e) {",
+          "    return pm.request.url.toString();",
+          "  }",
+          "}",
+          "",
+          "function baseOrigin() {",
+          "  try {",
+          "    return new URL(requestUrlString()).origin;",
+          "  } catch (e) {",
+          "    var fromVar = pm.collectionVariables.get('baseUrl');",
+          "    return fromVar ? String(fromVar).replace(/\\/$/, '') : '';",
+          "  }",
+          "}",
+          "",
+          "function requestPath() {",
+          "  try {",
+          "    return new URL(requestUrlString()).pathname;",
+          "  } catch (e) {",
+          "    return pm.request.url.getPath ? pm.request.url.getPath() : '';",
+          "  }",
+          "}",
+          "",
+          "function isAuthBootstrapPath(pathname) {",
+          "  return /\\/api\\/v1\\/auth\\/(register|login)\\/?$/.test(pathname || '');",
+          "}",
+          "",
+          "function unsetNbCsrf(jar, origin) {",
+          "  return new Promise(function (resolve) {",
+          "    if (!origin) return resolve();",
+          "    try {",
+          "      jar.unset(origin, 'nb_csrf', function () { resolve(); });",
+          "    } catch (e) {",
+          "      resolve();",
+          "    }",
+          "  });",
+          "}",
+          "",
+          "function getNbCsrf(jar, origin) {",
+          "  return new Promise(function (resolve) {",
+          "    if (!origin) return resolve(null);",
+          "    try {",
+          "      jar.get(origin, 'nb_csrf', function (err, value) {",
+          "        resolve(!err && value ? String(value) : null);",
+          "      });",
+          "    } catch (e) {",
+          "      resolve(null);",
+          "    }",
+          "  });",
+          "}",
+          "",
+          "return (async function () {",
+          "  var jar = pm.cookies.jar();",
+          "  var origin = baseOrigin();",
+          "  var pathname = requestPath();",
+          "  var method = String(pm.request.method || '').toUpperCase();",
+          "",
+          "  if (isAuthBootstrapPath(pathname)) {",
+          "    await unsetNbCsrf(jar, origin);",
+          "    pm.collectionVariables.set('csrfToken', '');",
+          "    stripCsrfHeaders();",
+          "    return;",
+          "  }",
+          "",
+          "  var csrf = await getNbCsrf(jar, origin);",
+          "  if (!csrf) {",
+          "    try {",
+          "      var direct = pm.cookies.get('nb_csrf');",
+          "      if (direct) csrf = String(direct);",
+          "    } catch (e) {}",
+          "  }",
+          "  if (!csrf) {",
+          "    var fromVar = pm.collectionVariables.get('csrfToken');",
+          "    if (fromVar && String(fromVar).trim()) csrf = String(fromVar).trim();",
+          "  }",
+          "",
+          "  if (csrf) {",
+          "    pm.collectionVariables.set('csrfToken', csrf);",
+          "    if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {",
+          "      pm.request.headers.upsert({ key: 'x-csrf-token', value: csrf });",
+          "    }",
+          "  } else {",
+          "    pm.collectionVariables.set('csrfToken', '');",
+          "    var existing = pm.request.headers.get('x-csrf-token');",
+          "    if (existing === null || existing === undefined || !String(existing).trim() || String(existing).indexOf('{{') !== -1) {",
+          "      stripCsrfHeaders();",
+          "    }",
+          "  }",
+          "})();"
+        ]
+      }
+    }
+  ],
   "variable": [
     {
       "key": "baseUrl",
@@ -16,6 +123,35 @@
     {
       "key": "csrfToken",
       "value": ""
+    },
+    {
+      "key": "categoryId",
+      "value": ""
+    },
+    {
+      "key": "subcategoryId",
+      "value": ""
+    },
+    {
+      "key": "productId",
+      "value": ""
+    },
+    {
+      "key": "imageId",
+      "value": ""
+    },
+    {
+      "key": "orderId",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "idempotencyKey",
+      "value": "demo-order-key-001",
+      "description": "Change for each new order; reuse to test idempotent replay"
     }
   ],
   "item": [
@@ -36,8 +172,23 @@
                 "health"
               ]
             },
-            "description": "Liveness\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "Liveness probe. No authentication.\n\nPublic — no cookies or CSRF.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"ok\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         }
       ]
     },
@@ -46,18 +197,39 @@
       "item": [
         {
           "name": "Register CUSTOMER",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "(function () {",
+                  "  var headers = pm.response.headers.all();",
+                  "  for (var i = 0; i < headers.length; i++) {",
+                  "    if (String(headers[i].key).toLowerCase() !== 'set-cookie') continue;",
+                  "    var raw = String(headers[i].value || '');",
+                  "    var match = raw.match(/^nb_csrf=([^;]+)/i);",
+                  "    if (match && match[1]) {",
+                  "      pm.collectionVariables.set('csrfToken', decodeURIComponent(match[1]));",
+                  "      return;",
+                  "    }",
+                  "  }",
+                  "  try {",
+                  "    var cookie = pm.cookies.get('nb_csrf');",
+                  "    if (cookie) pm.collectionVariables.set('csrfToken', cookie);",
+                  "  } catch (e) {}",
+                  "})();"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Origin",
                 "value": "{{origin}}",
-                "description": "Trusted frontend origin"
-              },
-              {
-                "key": "x-csrf-token",
-                "value": "{{csrfToken}}",
-                "description": "Copy from nb_csrf cookie"
+                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
               },
               {
                 "key": "Content-Type",
@@ -76,27 +248,81 @@
                 "register"
               ]
             },
-            "description": "Register CUSTOMER\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection.",
+            "description": "Creates a CUSTOMER account and sets cookies:\n- `nb_access` / `nb_refresh` (HttpOnly)\n- `nb_csrf` (readable; used for double-submit CSRF on later mutations)\n\n**Role:** Public (always registers as CUSTOMER — cannot self-register as ADMIN).\n**Cookies:** Enable cookie jar. Add `{{baseUrl}}` origin to Cookies → Domains Allowlist.\n**CSRF:** Origin required. Collection pre-request clears stale `nb_csrf` for `baseUrl` and strips\n`x-csrf-token` (backend only requires double-submit when `nb_csrf` is present).\nTests capture the new `nb_csrf` into `csrfToken`.\n\nEmail uses `{{$timestamp}}` for uniqueness. Re-run with the same email to see 409.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \n}\n"
+              "raw": "{\n  \"email\": \"customer-{{$timestamp}}@example.com\",\n  \"password\": \"Password123!\",\n  \"firstName\": \"Nesma\",\n  \"lastName\": \"Bloom\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Success 201",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"user\": {\n      \"id\": \"66666666-6666-4666-8666-666666666666\",\n      \"email\": \"customer-demo@example.com\",\n      \"role\": \"CUSTOMER\",\n      \"status\": \"ACTIVE\",\n      \"createdAt\": \"2026-10-14T18:00:00.000Z\",\n      \"updatedAt\": \"2026-10-14T18:00:00.000Z\",\n      \"profile\": {\n        \"firstName\": \"Nesma\",\n        \"lastName\": \"Bloom\",\n        \"phone\": null,\n        \"avatarUrl\": null\n      }\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 409",
+              "status": "Conflict",
+              "code": 409,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"An account with this email already exists. Please log in.\",\n  \"code\": \"CONFLICT\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
           "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "(function () {",
+                  "  var headers = pm.response.headers.all();",
+                  "  for (var i = 0; i < headers.length; i++) {",
+                  "    if (String(headers[i].key).toLowerCase() !== 'set-cookie') continue;",
+                  "    var raw = String(headers[i].value || '');",
+                  "    var match = raw.match(/^nb_csrf=([^;]+)/i);",
+                  "    if (match && match[1]) {",
+                  "      pm.collectionVariables.set('csrfToken', decodeURIComponent(match[1]));",
+                  "      return;",
+                  "    }",
+                  "  }",
+                  "  try {",
+                  "    var cookie = pm.cookies.get('nb_csrf');",
+                  "    if (cookie) pm.collectionVariables.set('csrfToken', cookie);",
+                  "  } catch (e) {}",
+                  "})();"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Origin",
                 "value": "{{origin}}",
-                "description": "Trusted frontend origin"
-              },
-              {
-                "key": "x-csrf-token",
-                "value": "{{csrfToken}}",
-                "description": "Copy from nb_csrf cookie"
+                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
               },
               {
                 "key": "Content-Type",
@@ -115,31 +341,60 @@
                 "login"
               ]
             },
-            "description": "Login\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection.",
+            "description": "Logs in CUSTOMER or ADMIN. Sets session cookies.\n\n**Role:** Public.\n**Cookies:** Cookie jar + Domains Allowlist for `{{baseUrl}}`.\n**CSRF:** Same as register — clear stale `nb_csrf` / strip CSRF headers; capture new token after success.\n\nFor ADMIN catalog mutations, log in with an existing ADMIN account (registration cannot create ADMIN).\nReplace the email with your registered customer (or ADMIN) address.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \n}\n"
+              "raw": "{\n  \"email\": \"customer-demo@example.com\",\n  \"password\": \"Password123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"user\": {\n      \"id\": \"66666666-6666-4666-8666-666666666666\",\n      \"email\": \"customer-demo@example.com\",\n      \"role\": \"CUSTOMER\",\n      \"status\": \"ACTIVE\"\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 401",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Invalid email or password\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
-          "name": "Rotate refresh session",
+          "name": "Refresh session",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Origin",
                 "value": "{{origin}}",
-                "description": "Trusted frontend origin"
+                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
               },
               {
                 "key": "x-csrf-token",
                 "value": "{{csrfToken}}",
-                "description": "Copy from nb_csrf cookie"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
               }
             ],
             "url": {
@@ -154,27 +409,51 @@
                 "refresh"
               ]
             },
-            "description": "Concurrent multi-tab refresh: one request wins (200), the other gets 401 without global logout when within the 30s rotation grace window. Delayed reuse of a rotated token after 30s triggers revoke-all.\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "Rotates the refresh cookie and issues a new access cookie.\n\n**Auth:** Requires `nb_refresh` cookie (cookie jar).\n**CSRF:** Send Origin + `x-csrf-token: {{csrfToken}}` after login.\nDo not store refresh tokens in variables.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"user\": {\n      \"id\": \"66666666-6666-4666-8666-666666666666\",\n      \"email\": \"customer-demo@example.com\",\n      \"role\": \"CUSTOMER\"\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 401",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Authentication required\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
-          "name": "Logout current session",
+          "name": "Logout",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Origin",
                 "value": "{{origin}}",
-                "description": "Trusted frontend origin"
+                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
               },
               {
                 "key": "x-csrf-token",
                 "value": "{{csrfToken}}",
-                "description": "Copy from nb_csrf cookie"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
               }
             ],
             "url": {
@@ -189,11 +468,26 @@
                 "logout"
               ]
             },
-            "description": "Logout current session\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "Revokes the current session and clears auth cookies.\n\n**Auth:** Authenticated (access cookie).\n**CSRF:** Origin + `x-csrf-token: {{csrfToken}}`.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"ok\": true\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
-          "name": "Current user",
+          "name": "Current user (me)",
           "request": {
             "method": "GET",
             "header": [],
@@ -209,8 +503,36 @@
                 "me"
               ]
             },
-            "description": "Current user\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "Returns the authenticated user. Never includes passwordHash.\n\n**Auth:** CUSTOMER or ADMIN cookie session.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"user\": {\n      \"id\": \"66666666-6666-4666-8666-666666666666\",\n      \"email\": \"customer-demo@example.com\",\n      \"role\": \"CUSTOMER\",\n      \"status\": \"ACTIVE\"\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 401",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Authentication required\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         }
       ]
     },
@@ -235,8 +557,23 @@
                 "profile"
               ]
             },
-            "description": "Get own profile\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "**Auth:** CUSTOMER or ADMIN (own profile only).\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"profile\": {\n      \"firstName\": \"Nesma\",\n      \"lastName\": \"Bloom\",\n      \"phone\": null,\n      \"avatarUrl\": null\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
           "name": "Update own profile",
@@ -246,12 +583,12 @@
               {
                 "key": "Origin",
                 "value": "{{origin}}",
-                "description": "Trusted frontend origin"
+                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
               },
               {
                 "key": "x-csrf-token",
                 "value": "{{csrfToken}}",
-                "description": "Copy from nb_csrf cookie"
+                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
               },
               {
                 "key": "Content-Type",
@@ -271,8 +608,45 @@
                 "profile"
               ]
             },
-            "description": "Update own profile\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "Partial profile update. At least one field required.\n\n**Auth:** Authenticated.\n**CSRF:** Origin + `x-csrf-token: {{csrfToken}}`.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Nesma\",\n  \"lastName\": \"Bloom\",\n  \"phone\": \"+201000000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"profile\": {\n      \"firstName\": \"Nesma\",\n      \"lastName\": \"Bloom\",\n      \"phone\": \"+201000000000\",\n      \"avatarUrl\": null\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 400",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Validation failed\",\n  \"code\": \"VALIDATION_ERROR\",\n  \"details\": [\n    {\n      \"path\": \"(root)\",\n      \"message\": \"At least one profile field is required\"\n    }\n  ]\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         }
       ]
     },
@@ -285,7 +659,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/categories",
+              "raw": "{{baseUrl}}/api/v1/categories?page=1&pageSize=20&status=ACTIVE&sortBy=name&sortOrder=asc",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -293,25 +667,67 @@
                 "api",
                 "v1",
                 "categories"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "skin",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "name"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "asc"
+                }
               ]
             },
-            "description": "Public default ACTIVE. ADMIN may use status ARCHIVED/ALL.\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "Public list defaults to ACTIVE. `status=ALL` or `ARCHIVED` requires ADMIN.\n\n**Auth:** Optional for ACTIVE; ADMIN for archived/all filters.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": \"11111111-1111-4111-8111-111111111111\",\n        \"name\": \"Skincare\",\n        \"slug\": \"skincare\",\n        \"status\": \"ACTIVE\"\n      }\n    ],\n    \"meta\": {\n      \"page\": 1,\n      \"pageSize\": 20,\n      \"totalItems\": 1,\n      \"totalPages\": 1\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
-          "name": "Create category (ADMIN)",
+          "name": "Create category",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Origin",
                 "value": "{{origin}}",
-                "description": "Trusted frontend origin"
+                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
               },
               {
                 "key": "x-csrf-token",
                 "value": "{{csrfToken}}",
-                "description": "Copy from nb_csrf cookie"
+                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
               },
               {
                 "key": "Content-Type",
@@ -329,16 +745,53 @@
                 "categories"
               ]
             },
-            "description": "Create category (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "Creates a catalog category. Slug optional (generated from name).\n\n**Auth:** ADMIN + cookies.\n**CSRF:** Origin + `x-csrf-token: {{csrfToken}}`.\n\nAfter success, copy `data.category.id` into `{{categoryId}}`.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Skincare Demo\",\n  \"slug\": \"skincare-demo\",\n  \"description\": \"Face and body care\",\n  \"status\": \"ACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 201",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"category\": {\n      \"id\": \"11111111-1111-4111-8111-111111111111\",\n      \"name\": \"Skincare Demo\",\n      \"slug\": \"skincare-demo\",\n      \"description\": \"Face and body care\",\n      \"status\": \"ACTIVE\",\n      \"createdAt\": \"2026-10-14T18:00:00.000Z\",\n      \"updatedAt\": \"2026-10-14T18:00:00.000Z\"\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 409",
+              "status": "Conflict",
+              "code": 409,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Category slug already exists\",\n  \"code\": \"CONFLICT\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
-          "name": "Get category",
+          "name": "Get category by ID",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/categories/{id}",
+              "raw": "{{baseUrl}}/api/v1/categories/{{categoryId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -346,26 +799,54 @@
                 "api",
                 "v1",
                 "categories",
-                "{id}"
+                "{{categoryId}}"
               ]
             },
-            "description": "Get category\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "Public if ACTIVE; ADMIN can view ARCHIVED. Uses `{{categoryId}}`.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"category\": {\n      \"id\": \"11111111-1111-4111-8111-111111111111\",\n      \"name\": \"Skincare Demo\",\n      \"slug\": \"skincare-demo\",\n      \"status\": \"ACTIVE\"\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 404",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Category not found\",\n  \"code\": \"NOT_FOUND\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
-          "name": "Update category (ADMIN)",
+          "name": "Update category",
           "request": {
             "method": "PATCH",
             "header": [
               {
                 "key": "Origin",
                 "value": "{{origin}}",
-                "description": "Trusted frontend origin"
+                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
               },
               {
                 "key": "x-csrf-token",
                 "value": "{{csrfToken}}",
-                "description": "Copy from nb_csrf cookie"
+                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
               },
               {
                 "key": "Content-Type",
@@ -373,7 +854,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/categories/{id}",
+              "raw": "{{baseUrl}}/api/v1/categories/{{categoryId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -381,34 +862,54 @@
                 "api",
                 "v1",
                 "categories",
-                "{id}"
+                "{{categoryId}}"
               ]
             },
-            "description": "Update category (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "**Auth:** ADMIN. **CSRF** required. Name updates do not auto-change slug.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Skincare Updated\",\n  \"description\": \"Updated description\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"category\": {\n      \"id\": \"11111111-1111-4111-8111-111111111111\",\n      \"name\": \"Skincare Updated\",\n      \"slug\": \"skincare-demo\",\n      \"status\": \"ACTIVE\"\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
-          "name": "Archive category (ADMIN)",
+          "name": "Archive category",
           "request": {
             "method": "DELETE",
             "header": [
               {
                 "key": "Origin",
                 "value": "{{origin}}",
-                "description": "Trusted frontend origin"
+                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
               },
               {
                 "key": "x-csrf-token",
                 "value": "{{csrfToken}}",
-                "description": "Copy from nb_csrf cookie"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/categories/{id}",
+              "raw": "{{baseUrl}}/api/v1/categories/{{categoryId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -416,11 +917,26 @@
                 "api",
                 "v1",
                 "categories",
-                "{id}"
+                "{{categoryId}}"
               ]
             },
-            "description": "Archive category (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "Soft-delete (status ARCHIVED). **Auth:** ADMIN. **CSRF** required. Idempotent.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"category\": {\n      \"id\": \"11111111-1111-4111-8111-111111111111\",\n      \"status\": \"ARCHIVED\"\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         }
       ]
     },
@@ -433,7 +949,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/subcategories",
+              "raw": "{{baseUrl}}/api/v1/subcategories?page=1&pageSize=20&categoryId={{categoryId}}&status=ACTIVE&sortBy=name&sortOrder=asc",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -441,25 +957,66 @@
                 "api",
                 "v1",
                 "subcategories"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}"
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "name"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "asc"
+                }
               ]
             },
-            "description": "List subcategories\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "Public ACTIVE + ACTIVE parent. Filter by `categoryId`. ADMIN for status ALL/ARCHIVED.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": \"22222222-2222-4222-8222-222222222222\",\n        \"name\": \"Serums\",\n        \"slug\": \"serums\",\n        \"categoryId\": \"11111111-1111-4111-8111-111111111111\",\n        \"status\": \"ACTIVE\"\n      }\n    ],\n    \"meta\": {\n      \"page\": 1,\n      \"pageSize\": 20,\n      \"totalItems\": 1,\n      \"totalPages\": 1\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
-          "name": "Create subcategory (ADMIN)",
+          "name": "Create subcategory",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Origin",
                 "value": "{{origin}}",
-                "description": "Trusted frontend origin"
+                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
               },
               {
                 "key": "x-csrf-token",
                 "value": "{{csrfToken}}",
-                "description": "Copy from nb_csrf cookie"
+                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
               },
               {
                 "key": "Content-Type",
@@ -477,16 +1034,53 @@
                 "subcategories"
               ]
             },
-            "description": "Create subcategory (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "**Auth:** ADMIN. **CSRF** required.\nSet `categoryId` to `{{categoryId}}` from a created category.\nCopy response id into `{{subcategoryId}}`.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Serums Demo\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"slug\": \"serums-demo\",\n  \"description\": \"Concentrated treatments\",\n  \"status\": \"ACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 201",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"subcategory\": {\n      \"id\": \"22222222-2222-4222-8222-222222222222\",\n      \"name\": \"Serums Demo\",\n      \"slug\": \"serums-demo\",\n      \"categoryId\": \"11111111-1111-4111-8111-111111111111\",\n      \"status\": \"ACTIVE\",\n      \"category\": {\n        \"id\": \"11111111-1111-4111-8111-111111111111\",\n        \"name\": \"Skincare Demo\",\n        \"slug\": \"skincare-demo\",\n        \"status\": \"ACTIVE\"\n      }\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 409",
+              "status": "Conflict",
+              "code": 409,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Cannot place an ACTIVE subcategory under an archived category\",\n  \"code\": \"CONFLICT\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
-          "name": "Get subcategory",
+          "name": "Get subcategory by ID",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/subcategories/{id}",
+              "raw": "{{baseUrl}}/api/v1/subcategories/{{subcategoryId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -494,26 +1088,41 @@
                 "api",
                 "v1",
                 "subcategories",
-                "{id}"
+                "{{subcategoryId}}"
               ]
             },
-            "description": "Get subcategory\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "Uses `{{subcategoryId}}`. Public if visible; else 404.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"subcategory\": {\n      \"id\": \"22222222-2222-4222-8222-222222222222\",\n      \"name\": \"Serums Demo\",\n      \"slug\": \"serums-demo\",\n      \"status\": \"ACTIVE\"\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
-          "name": "Update subcategory (ADMIN)",
+          "name": "Update subcategory",
           "request": {
             "method": "PATCH",
             "header": [
               {
                 "key": "Origin",
                 "value": "{{origin}}",
-                "description": "Trusted frontend origin"
+                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
               },
               {
                 "key": "x-csrf-token",
                 "value": "{{csrfToken}}",
-                "description": "Copy from nb_csrf cookie"
+                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
               },
               {
                 "key": "Content-Type",
@@ -521,7 +1130,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/subcategories/{id}",
+              "raw": "{{baseUrl}}/api/v1/subcategories/{{subcategoryId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -529,34 +1138,54 @@
                 "api",
                 "v1",
                 "subcategories",
-                "{id}"
+                "{{subcategoryId}}"
               ]
             },
-            "description": "Update subcategory (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "**Auth:** ADMIN. **CSRF** required.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Serums Updated\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"subcategory\": {\n      \"id\": \"22222222-2222-4222-8222-222222222222\",\n      \"name\": \"Serums Updated\",\n      \"slug\": \"serums-demo\",\n      \"status\": \"ACTIVE\"\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
-          "name": "Archive subcategory (ADMIN)",
+          "name": "Archive subcategory",
           "request": {
             "method": "DELETE",
             "header": [
               {
                 "key": "Origin",
                 "value": "{{origin}}",
-                "description": "Trusted frontend origin"
+                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
               },
               {
                 "key": "x-csrf-token",
                 "value": "{{csrfToken}}",
-                "description": "Copy from nb_csrf cookie"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/subcategories/{id}",
+              "raw": "{{baseUrl}}/api/v1/subcategories/{{subcategoryId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -564,11 +1193,26 @@
                 "api",
                 "v1",
                 "subcategories",
-                "{id}"
+                "{{subcategoryId}}"
               ]
             },
-            "description": "Archive subcategory (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "**Auth:** ADMIN. Soft archive. **CSRF** required.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"subcategory\": {\n      \"id\": \"22222222-2222-4222-8222-222222222222\",\n      \"status\": \"ARCHIVED\"\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         }
       ]
     },
@@ -581,7 +1225,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/products",
+              "raw": "{{baseUrl}}/api/v1/products?page=1&pageSize=20&availability=AVAILABLE&status=ACTIVE&sortBy=createdAt&sortOrder=desc",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -589,25 +1233,91 @@
                 "api",
                 "v1",
                 "products"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "serum",
+                  "disabled": true
+                },
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "subcategoryId",
+                  "value": "{{subcategoryId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "minPriceMinor",
+                  "value": "0",
+                  "disabled": true
+                },
+                {
+                  "key": "maxPriceMinor",
+                  "value": "100000",
+                  "disabled": true
+                },
+                {
+                  "key": "availability",
+                  "value": "AVAILABLE"
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc"
+                }
               ]
             },
-            "description": "Public: ACTIVE + available + ACTIVE parents. Out-of-stock (`stockQty=0`) remains visible with `inStock=false`.\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "Public: ACTIVE + available + ACTIVE parents. Out-of-stock still listed (`inStock: false`).\nADMIN may use `status` / `availability` filters beyond defaults.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": \"33333333-3333-4333-8333-333333333333\",\n        \"name\": \"Rose Serum\",\n        \"sku\": \"SKU-ROSE-001\",\n        \"priceMinor\": 25000,\n        \"currency\": \"EGP\",\n        \"stockQty\": 10,\n        \"inStock\": true,\n        \"status\": \"ACTIVE\"\n      }\n    ],\n    \"meta\": {\n      \"page\": 1,\n      \"pageSize\": 20,\n      \"totalItems\": 1,\n      \"totalPages\": 1\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
-          "name": "Create product (ADMIN)",
+          "name": "Create product",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Origin",
                 "value": "{{origin}}",
-                "description": "Trusted frontend origin"
+                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
               },
               {
                 "key": "x-csrf-token",
                 "value": "{{csrfToken}}",
-                "description": "Copy from nb_csrf cookie"
+                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
               },
               {
                 "key": "Content-Type",
@@ -625,16 +1335,53 @@
                 "products"
               ]
             },
-            "description": "Create product (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "**Auth:** ADMIN. **CSRF** required.\nSet `subcategoryId` to `{{subcategoryId}}`. SKU unique; use a unique value each run.\nPrices are integer EGP piastres (`25000` = 250.00 EGP).\nCopy response id into `{{productId}}`.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rose Serum Demo\",\n  \"subcategoryId\": \"{{subcategoryId}}\",\n  \"sku\": \"SKU-ROSE-DEMO-001\",\n  \"priceMinor\": 25000,\n  \"stockQty\": 10,\n  \"slug\": \"rose-serum-demo\",\n  \"description\": \"Hydrating rose serum\",\n  \"isAvailable\": true,\n  \"status\": \"ACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 201",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": \"33333333-3333-4333-8333-333333333333\",\n      \"name\": \"Rose Serum Demo\",\n      \"slug\": \"rose-serum-demo\",\n      \"sku\": \"SKU-ROSE-DEMO-001\",\n      \"priceMinor\": 25000,\n      \"currency\": \"EGP\",\n      \"stockQty\": 10,\n      \"isAvailable\": true,\n      \"inStock\": true,\n      \"status\": \"ACTIVE\",\n      \"images\": [],\n      \"subcategory\": {\n        \"id\": \"22222222-2222-4222-8222-222222222222\",\n        \"name\": \"Serums Demo\",\n        \"slug\": \"serums-demo\",\n        \"status\": \"ACTIVE\"\n      },\n      \"category\": {\n        \"id\": \"11111111-1111-4111-8111-111111111111\",\n        \"name\": \"Skincare Demo\",\n        \"slug\": \"skincare-demo\",\n        \"status\": \"ACTIVE\"\n      }\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 409",
+              "status": "Conflict",
+              "code": 409,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Product SKU already exists\",\n  \"code\": \"CONFLICT\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
-          "name": "Get product",
+          "name": "Get product by ID",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/products/{id}",
+              "raw": "{{baseUrl}}/api/v1/products/{{productId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -642,26 +1389,41 @@
                 "api",
                 "v1",
                 "products",
-                "{id}"
+                "{{productId}}"
               ]
             },
-            "description": "Get product\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "Uses `{{productId}}`. Public if storefront-visible.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": \"33333333-3333-4333-8333-333333333333\",\n      \"name\": \"Rose Serum Demo\",\n      \"sku\": \"SKU-ROSE-DEMO-001\",\n      \"priceMinor\": 25000,\n      \"currency\": \"EGP\",\n      \"stockQty\": 10,\n      \"inStock\": true,\n      \"images\": []\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
-          "name": "Update product (ADMIN)",
+          "name": "Update product",
           "request": {
             "method": "PATCH",
             "header": [
               {
                 "key": "Origin",
                 "value": "{{origin}}",
-                "description": "Trusted frontend origin"
+                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
               },
               {
                 "key": "x-csrf-token",
                 "value": "{{csrfToken}}",
-                "description": "Copy from nb_csrf cookie"
+                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
               },
               {
                 "key": "Content-Type",
@@ -669,7 +1431,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/products/{id}",
+              "raw": "{{baseUrl}}/api/v1/products/{{productId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -677,34 +1439,54 @@
                 "api",
                 "v1",
                 "products",
-                "{id}"
+                "{{productId}}"
               ]
             },
-            "description": "Update product (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "**Auth:** ADMIN. **CSRF** required. Name does not auto-change slug.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stockQty\": 8,\n  \"description\": \"Updated product description\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": \"33333333-3333-4333-8333-333333333333\",\n      \"stockQty\": 8,\n      \"inStock\": true\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
-          "name": "Archive product (ADMIN)",
+          "name": "Archive product",
           "request": {
             "method": "DELETE",
             "header": [
               {
                 "key": "Origin",
                 "value": "{{origin}}",
-                "description": "Trusted frontend origin"
+                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
               },
               {
                 "key": "x-csrf-token",
                 "value": "{{csrfToken}}",
-                "description": "Copy from nb_csrf cookie"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/products/{id}",
+              "raw": "{{baseUrl}}/api/v1/products/{{productId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -712,26 +1494,41 @@
                 "api",
                 "v1",
                 "products",
-                "{id}"
+                "{{productId}}"
               ]
             },
-            "description": "Archive product (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "**Auth:** ADMIN. Soft archive. **CSRF** required.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": \"33333333-3333-4333-8333-333333333333\",\n      \"status\": \"ARCHIVED\"\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
-          "name": "Add product image URL (ADMIN)",
+          "name": "Add product image",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Origin",
                 "value": "{{origin}}",
-                "description": "Trusted frontend origin"
+                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
               },
               {
                 "key": "x-csrf-token",
                 "value": "{{csrfToken}}",
-                "description": "Copy from nb_csrf cookie"
+                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
               },
               {
                 "key": "Content-Type",
@@ -739,7 +1536,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/products/{id}/images",
+              "raw": "{{baseUrl}}/api/v1/products/{{productId}}/images",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -747,27 +1544,64 @@
                 "api",
                 "v1",
                 "products",
-                "{id}",
+                "{{productId}}",
                 "images"
               ]
             },
-            "description": "Add product image URL (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "Adds an image URL (no file upload). **Auth:** ADMIN. **CSRF** required.\nUses `{{productId}}`. Copy image id into `{{imageId}}`.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://cdn.example.com/products/rose-serum.jpg\",\n  \"altText\": \"Rose serum bottle\",\n  \"sortOrder\": 0,\n  \"isPrimary\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 201",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": \"33333333-3333-4333-8333-333333333333\",\n      \"images\": [\n        {\n          \"id\": \"44444444-4444-4444-8444-444444444444\",\n          \"url\": \"https://cdn.example.com/products/rose-serum.jpg\",\n          \"altText\": \"Rose serum bottle\",\n          \"sortOrder\": 0,\n          \"isPrimary\": true\n        }\n      ]\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 400",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Validation failed\",\n  \"code\": \"VALIDATION_ERROR\",\n  \"details\": [\n    {\n      \"path\": \"url\",\n      \"message\": \"Image URL must be http(s) without credentials\"\n    }\n  ]\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
-          "name": "Update product image (ADMIN)",
+          "name": "Update product image",
           "request": {
             "method": "PATCH",
             "header": [
               {
                 "key": "Origin",
                 "value": "{{origin}}",
-                "description": "Trusted frontend origin"
+                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
               },
               {
                 "key": "x-csrf-token",
                 "value": "{{csrfToken}}",
-                "description": "Copy from nb_csrf cookie"
+                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
               },
               {
                 "key": "Content-Type",
@@ -775,7 +1609,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/products/{id}/images/{imageId}",
+              "raw": "{{baseUrl}}/api/v1/products/{{productId}}/images/{{{imageId}}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -783,36 +1617,56 @@
                 "api",
                 "v1",
                 "products",
-                "{id}",
+                "{{productId}}",
                 "images",
-                "{imageId}"
+                "{{{imageId}}}"
               ]
             },
-            "description": "Update product image (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "**Auth:** ADMIN. **CSRF** required. Paths use `{{productId}}` and `{{imageId}}`.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"altText\": \"Updated alt text\",\n  \"isPrimary\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": \"33333333-3333-4333-8333-333333333333\",\n      \"images\": [\n        {\n          \"id\": \"44444444-4444-4444-8444-444444444444\",\n          \"altText\": \"Updated alt text\",\n          \"isPrimary\": true\n        }\n      ]\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
-          "name": "Delete product image (ADMIN)",
+          "name": "Delete product image",
           "request": {
             "method": "DELETE",
             "header": [
               {
                 "key": "Origin",
                 "value": "{{origin}}",
-                "description": "Trusted frontend origin"
+                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
               },
               {
                 "key": "x-csrf-token",
                 "value": "{{csrfToken}}",
-                "description": "Copy from nb_csrf cookie"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/products/{id}/images/{imageId}",
+              "raw": "{{baseUrl}}/api/v1/products/{{productId}}/images/{{{imageId}}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -820,13 +1674,28 @@
                 "api",
                 "v1",
                 "products",
-                "{id}",
+                "{{productId}}",
                 "images",
-                "{imageId}"
+                "{{{imageId}}}"
               ]
             },
-            "description": "Delete product image (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "**Auth:** ADMIN. Hard-deletes image; promotes next primary if needed. **CSRF** required.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": \"33333333-3333-4333-8333-333333333333\",\n      \"images\": []\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         }
       ]
     },
@@ -839,7 +1708,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/orders",
+              "raw": "{{baseUrl}}/api/v1/orders?page=1&pageSize=20&status=ALL&sortOrder=desc",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -847,10 +1716,61 @@
                 "api",
                 "v1",
                 "orders"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "ALL"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc"
+                },
+                {
+                  "key": "userId",
+                  "value": "{{userId}}",
+                  "disabled": true
+                }
               ]
             },
-            "description": "List all orders (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "**Auth:** ADMIN only.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": \"55555555-5555-4555-8555-555555555555\",\n        \"status\": \"PENDING\",\n        \"totalMinor\": 50000,\n        \"currency\": \"EGP\"\n      }\n    ],\n    \"meta\": {\n      \"page\": 1,\n      \"pageSize\": 20,\n      \"totalItems\": 1,\n      \"totalPages\": 1\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 403",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Insufficient permissions\",\n  \"code\": \"FORBIDDEN\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
           "name": "Create order (CUSTOMER)",
@@ -860,12 +1780,12 @@
               {
                 "key": "Origin",
                 "value": "{{origin}}",
-                "description": "Trusted frontend origin"
+                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
               },
               {
                 "key": "x-csrf-token",
                 "value": "{{csrfToken}}",
-                "description": "Copy from nb_csrf cookie"
+                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
               },
               {
                 "key": "Content-Type",
@@ -873,8 +1793,8 @@
               },
               {
                 "key": "Idempotency-Key",
-                "value": "{{$guid}}",
-                "description": "Required; reuse for safe retries"
+                "value": "{{idempotencyKey}}",
+                "description": "Required. Reuse the same value to replay; change it for a new order."
               }
             ],
             "url": {
@@ -888,20 +1808,53 @@
                 "orders"
               ]
             },
-            "description": "Create order (CUSTOMER)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection.",
+            "description": "Places an order. Stock is deducted; prices come from the database.\n\n**Auth:** CUSTOMER only (ADMIN gets 403).\n**CSRF:** Origin + `x-csrf-token: {{csrfToken}}`.\n**Idempotency-Key:** Required. Use `{{idempotencyKey}}`.\n  - First success → HTTP 201\n  - Same key + same body → HTTP 200 (no second stock deduction)\n  - Same key + different body → HTTP 409\n\nSet `productId` to `{{productId}}`. Copy order id into `{{orderId}}`.\nGenerate a new idempotency key (or change `idempotencyKey`) for a fresh order.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \n}\n"
+              "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 2\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Success 201",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"order\": {\n      \"id\": \"55555555-5555-4555-8555-555555555555\",\n      \"userId\": \"66666666-6666-4666-8666-666666666666\",\n      \"status\": \"PENDING\",\n      \"totalMinor\": 50000,\n      \"currency\": \"EGP\",\n      \"items\": [\n        {\n          \"productId\": \"33333333-3333-4333-8333-333333333333\",\n          \"productNameSnapshot\": \"Rose Serum Demo\",\n          \"productSkuSnapshot\": \"SKU-ROSE-DEMO-001\",\n          \"unitPriceMinor\": 25000,\n          \"quantity\": 2,\n          \"lineTotalMinor\": 50000\n        }\n      ]\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 409",
+              "status": "Conflict",
+              "code": 409,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Insufficient stock for one or more products\",\n  \"code\": \"CONFLICT\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
-          "name": "List own orders",
+          "name": "List my orders",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/orders/my",
+              "raw": "{{baseUrl}}/api/v1/orders/my?page=1&pageSize=20&status=ALL&sortOrder=desc",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -910,18 +1863,51 @@
                 "v1",
                 "orders",
                 "my"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "ALL"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc"
+                }
               ]
             },
-            "description": "List own orders\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "**Auth:** Authenticated (own orders only).\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": \"55555555-5555-4555-8555-555555555555\",\n        \"status\": \"PENDING\",\n        \"totalMinor\": 50000,\n        \"currency\": \"EGP\"\n      }\n    ],\n    \"meta\": {\n      \"page\": 1,\n      \"pageSize\": 20,\n      \"totalItems\": 1,\n      \"totalPages\": 1\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
-          "name": "Get order (owner or ADMIN)",
+          "name": "Get order by ID",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/orders/{id}",
+              "raw": "{{baseUrl}}/api/v1/orders/{{orderId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -929,11 +1915,39 @@
                 "api",
                 "v1",
                 "orders",
-                "{id}"
+                "{{orderId}}"
               ]
             },
-            "description": "Get order (owner or ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "Owner or ADMIN. Others get 404. Uses `{{orderId}}`.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"order\": {\n      \"id\": \"55555555-5555-4555-8555-555555555555\",\n      \"status\": \"PENDING\",\n      \"totalMinor\": 50000,\n      \"currency\": \"EGP\",\n      \"items\": []\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 404",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Order not found\",\n  \"code\": \"NOT_FOUND\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
           "name": "Cancel order",
@@ -943,20 +1957,16 @@
               {
                 "key": "Origin",
                 "value": "{{origin}}",
-                "description": "Trusted frontend origin"
+                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
               },
               {
                 "key": "x-csrf-token",
                 "value": "{{csrfToken}}",
-                "description": "Copy from nb_csrf cookie"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/orders/{id}/cancel",
+              "raw": "{{baseUrl}}/api/v1/orders/{{orderId}}/cancel",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -964,27 +1974,55 @@
                 "api",
                 "v1",
                 "orders",
-                "{id}",
+                "{{orderId}}",
                 "cancel"
               ]
             },
-            "description": "Cancel order\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection."
-          }
+            "description": "CUSTOMER: PENDING only. ADMIN: PENDING or CONFIRMED. Restocks once.\n**Auth** + **CSRF** required. Uses `{{orderId}}`.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"order\": {\n      \"id\": \"55555555-5555-4555-8555-555555555555\",\n      \"status\": \"CANCELLED\",\n      \"totalMinor\": 50000,\n      \"currency\": \"EGP\"\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 409",
+              "status": "Conflict",
+              "code": 409,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Order cannot be cancelled in its current status\",\n  \"code\": \"CONFLICT\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
-          "name": "Transition order status (ADMIN)",
+          "name": "Update order status (ADMIN)",
           "request": {
             "method": "PATCH",
             "header": [
               {
                 "key": "Origin",
                 "value": "{{origin}}",
-                "description": "Trusted frontend origin"
+                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
               },
               {
                 "key": "x-csrf-token",
                 "value": "{{csrfToken}}",
-                "description": "Copy from nb_csrf cookie"
+                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
               },
               {
                 "key": "Content-Type",
@@ -992,7 +2030,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/orders/{id}/status",
+              "raw": "{{baseUrl}}/api/v1/orders/{{orderId}}/status",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1000,16 +2038,49 @@
                 "api",
                 "v1",
                 "orders",
-                "{id}",
+                "{{orderId}}",
                 "status"
               ]
             },
-            "description": "Transition order status (ADMIN)\n\nAuth: use Postman cookie jar after login/register.\nDo not store real passwords or tokens in this collection.",
+            "description": "ADMIN only: PENDING→CONFIRMED or CONFIRMED→FULFILLED (no skip).\n**CSRF** required. Uses `{{orderId}}`.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \n}\n"
+              "raw": "{\n  \"status\": \"CONFIRMED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"order\": {\n      \"id\": \"55555555-5555-4555-8555-555555555555\",\n      \"status\": \"CONFIRMED\"\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 409",
+              "status": "Conflict",
+              "code": 409,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Invalid order status transition\",\n  \"code\": \"CONFLICT\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         }
       ]
     }

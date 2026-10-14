@@ -74,7 +74,9 @@ export async function registerUser(
     });
   } catch (error) {
     if (isUniqueConstraintError(error)) {
-      throw AppError.conflict("Email is already registered");
+      throw AppError.conflict(
+        "An account with this email already exists. Please log in.",
+      );
     }
     throw error;
   }
