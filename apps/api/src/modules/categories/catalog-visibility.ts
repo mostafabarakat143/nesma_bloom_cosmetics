@@ -6,8 +6,9 @@ import type { CatalogStatus } from "../../generated/prisma/client.js";
  * unless its own status is ACTIVE AND every ancestor category/subcategory is ACTIVE.
  *
  * Restoring a category (status → ACTIVE) does NOT automatically restore children;
- * each entity keeps its own status. Public filters in Steps 19–20 must join/check
- * parent Category.status === ACTIVE (and Subcategory.status for products).
+ * each entity keeps its own status. Public subcategory APIs (Step 19) filter
+ * Subcategory.status = ACTIVE AND Category.status = ACTIVE in Prisma queries.
+ * Product public filters (Step 20+) must also check ancestor statuses.
  */
 export function isCatalogStatusPubliclyVisible(status: CatalogStatus): boolean {
   return status === "ACTIVE";
