@@ -6,6 +6,7 @@ describe("loadEnv", () => {
   it("applies safe defaults", () => {
     const env = loadEnv({
       NODE_ENV: "test",
+      DATABASE_URL: "postgresql://test:test@127.0.0.1:5432/test",
     });
 
     expect(env.PORT).toBe(4000);
@@ -18,8 +19,18 @@ describe("loadEnv", () => {
       loadEnv({
         NODE_ENV: "test",
         PORT: "not-a-number",
+        DATABASE_URL: "postgresql://test:test@127.0.0.1:5432/test",
       }),
     ).toThrow(/Invalid environment configuration/);
+  });
+
+  it("requires a PostgreSQL DATABASE_URL", () => {
+    expect(() =>
+      loadEnv({
+        NODE_ENV: "test",
+        DATABASE_URL: "mysql://example",
+      }),
+    ).toThrow(/DATABASE_URL/);
   });
 
   it("parses comma-separated CORS origins", () => {

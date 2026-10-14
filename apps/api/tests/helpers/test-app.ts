@@ -11,6 +11,7 @@ export function buildTestApp(envOverrides: Partial<NodeJS.ProcessEnv> = {}) {
     BODY_SIZE_LIMIT: "100kb",
     RATE_LIMIT_WINDOW_MS: "900000",
     RATE_LIMIT_MAX: "100",
+    DATABASE_URL: "postgresql://test:test@127.0.0.1:5432/test",
     ...envOverrides,
   });
 

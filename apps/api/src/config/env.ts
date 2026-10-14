@@ -12,6 +12,14 @@ const envSchema = z.object({
   BODY_SIZE_LIMIT: z.string().default("100kb"),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900_000),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
+  DATABASE_URL: z
+    .string()
+    .min(1, "DATABASE_URL is required")
+    .refine(
+      (value) =>
+        value.startsWith("postgresql://") || value.startsWith("postgres://"),
+      "DATABASE_URL must be a PostgreSQL connection string",
+    ),
 });
 
 export type Env = z.infer<typeof envSchema>;

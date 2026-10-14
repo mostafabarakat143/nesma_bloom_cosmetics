@@ -6,3 +6,6 @@ node_modules/
 dist/
 .turbo/
 coverage/
+
+# Prisma generated client (regenerate with `pnpm --filter @cosmetics/api db:generate`)
+apps/api/src/generated/

@@ -14,6 +14,7 @@ describe("validate middleware", () => {
     const env = loadEnv({
       NODE_ENV: "test",
       LOG_LEVEL: "silent",
+      DATABASE_URL: "postgresql://test:test@127.0.0.1:5432/test",
     });
     const logger = createLogger(env);
     const app = express();

@@ -4,8 +4,9 @@ import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import { pinoHttp } from "pino-http";
 
+import type { Database } from "./config/database.js";
 import { getCorsOrigins, type Env } from "./config/env.js";
-import { createLogger, type Logger } from "./config/logger.js";
+import type { Logger } from "./config/logger.js";
 import { createErrorMiddleware } from "./common/middlewares/error.middleware.js";
 import { notFoundMiddleware } from "./common/middlewares/not-found.middleware.js";
 import { requestIdMiddleware } from "./common/middlewares/request-id.middleware.js";
@@ -19,6 +20,8 @@ import {
 export type AppDependencies = {
   env: Env;
   logger: Logger;
+  /** Available for future modules; not required by /health. */
+  prisma?: Database;
 };
 
 export function createApp({ env, logger }: AppDependencies): Express {

@@ -1,0 +1,11 @@
+// Prisma schema for Nesma Bloom Cosmetics API.
+// Step 14: infrastructure only — no business models yet.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
