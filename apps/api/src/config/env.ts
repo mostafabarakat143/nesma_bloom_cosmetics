@@ -83,11 +83,3 @@ export function getCorsOrigins(corsOrigin: string): string[] | boolean {
     .map((origin) => origin.trim())
     .filter((origin) => origin.length > 0);
 }
-
-export function getTrustedOrigins(env: Env): string[] {
-  const origins = getCorsOrigins(env.CORS_ORIGIN);
-  if (origins === false || origins === true) {
-    return [];
-  }
-  return origins;
-}

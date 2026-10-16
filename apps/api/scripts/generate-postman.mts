@@ -223,6 +223,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
         status: "success",
         data: {
           profile: {
+            email: "customer-demo@example.com",
             firstName: "Nesma",
             lastName: "Bloom",
             phone: null,
@@ -252,6 +253,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
         status: "success",
         data: {
           profile: {
+            email: "customer-demo@example.com",
             firstName: "Nesma",
             lastName: "Bloom",
             phone: "+201000000000",

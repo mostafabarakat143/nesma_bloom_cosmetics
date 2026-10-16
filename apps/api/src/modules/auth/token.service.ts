@@ -115,11 +115,6 @@ export async function revokeAccessToken(
     }
     throw error;
   }
-
-  // Opportunistic cleanup of expired denylist rows.
-  await prisma.revokedAccessToken.deleteMany({
-    where: { expiresAt: { lt: new Date() } },
-  });
 }
 
 export async function loadActiveUserRole(

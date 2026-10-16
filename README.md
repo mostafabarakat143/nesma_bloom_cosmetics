@@ -16,8 +16,7 @@ Next.js storefront is not implemented yet.
 - Node.js, TypeScript, Express 5
 - PostgreSQL 16, Prisma ORM 7
 - Zod validation, Pino logging
-- Argon2id passwords, JWT access + hashed refresh sessions
-- Cookie CSRF (Origin + double-submit)
+- Argon2id passwords, 7-day Bearer JWT, server-side jti revocation
 - Vitest + Supertest against `nesma_bloom_test`
 - OpenAPI 3.1 + Swagger UI + generated Postman collection
 
@@ -124,16 +123,15 @@ cd apps/api
 pnpm docs:postman
 ```
 
-Import `apps/api/docs/postman/Nesma-Bloom-API.postman_collection.json`. Set `baseUrl` and `origin`. Use Postman’s cookie jar after login; copy `nb_csrf` into `csrfToken`. Never commit real credentials.
+Import `apps/api/docs/postman/Nesma-Bloom-API.postman_collection.json`. Set `baseUrl`. Register or Login stores `data.token` in the collection variable `token`. Protected requests send `Authorization: Bearer {{token}}`. Never commit real credentials or JWTs.
 
 ## Authentication workflow
 
-1. `POST /api/v1/auth/register` or `/login` with trusted `Origin`.
-2. Browser stores `nb_access`, `nb_refresh`, `nb_csrf`.
-3. Authenticated calls send cookies automatically.
-4. Mutations also send `x-csrf-token: <nb_csrf>` and a trusted `Origin`.
-5. `POST /api/v1/auth/refresh` rotates refresh tokens. Multi-tab races: one wins; the other gets 401 without logging out all devices when within a 30s grace window after rotation. Delayed reuse of an old rotated token after 30s triggers revoke-all (theft signal).
-6. Disabled users lose API access immediately (DB status check on each protected request). Authorization roles are read from PostgreSQL, not trusted solely from the JWT.
+1. `POST /api/v1/auth/register` or `/login` returns `{ user, token }`.
+2. The token is a 7-day JWT (`JWT_TTL_SECONDS=604800`) with `sub`, `jti`, `iat`, `exp`, `iss`, and `aud`.
+3. Protected calls send `Authorization: Bearer <token>`.
+4. `POST /api/v1/auth/logout` revokes that `jti`. Repeating logout with the same token returns 200. Every other protected route rejects it with 401.
+5. Disabled users lose API access immediately. Authorization roles are read from PostgreSQL on each request, not from the JWT.
 
 ## Orders lifecycle
 

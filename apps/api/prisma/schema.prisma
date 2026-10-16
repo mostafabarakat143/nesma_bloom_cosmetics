@@ -79,7 +79,6 @@ model User {
 
   profile              UserProfile?
   orders               Order[]
-  refreshTokens        RefreshToken[]
   revokedAccessTokens  RevokedAccessToken[]
   orderIdempotencyKeys OrderIdempotencyKey[]
 
@@ -100,30 +99,6 @@ model RevokedAccessToken {
   @@index([userId])
   @@index([expiresAt])
   @@map("revoked_access_tokens")
-}
-
-/// Legacy refresh sessions (unused by Bearer JWT auth). Kept until a separate drop approval.
-/// Server-side auth session. Only the SHA-256 hash of the refresh token is stored.
-/// Access JWTs formerly carried sid = RefreshToken.id.
-/// replacedById marks graceful rotation (multi-tab grace); null means hard revoke/logout.
-model RefreshToken {
-  id           Int       @id @default(autoincrement())
-  userId       Int       @map("user_id")
-  tokenHash    String    @unique @map("token_hash") @db.Char(64)
-  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(3)
-  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz(3)
-  /// Set when this session was superseded by rotation; used for concurrent-refresh grace.
-  replacedById Int?      @map("replaced_by_id")
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  userAgent    String?   @map("user_agent") @db.VarChar(512)
-  ipAddress    String?   @map("ip_address") @db.VarChar(45)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([expiresAt])
-  @@index([replacedById])
-  @@map("refresh_tokens")
 }
 
 model UserProfile {

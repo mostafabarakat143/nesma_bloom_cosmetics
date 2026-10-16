@@ -12,6 +12,7 @@ export type PublicUserDto = {
 export type PublicProfileDto = {
   id: number;
   userId: number;
+  email: string;
   firstName: string | null;
   lastName: string | null;
   phone: string | null;
@@ -31,10 +32,14 @@ export function toPublicUser(user: User): PublicUserDto {
   };
 }
 
-export function toPublicProfile(profile: UserProfile): PublicProfileDto {
+export function toPublicProfile(
+  profile: UserProfile,
+  email: string,
+): PublicProfileDto {
   return {
     id: profile.id,
     userId: profile.userId,
+    email,
     firstName: profile.firstName,
     lastName: profile.lastName,
     phone: profile.phone,

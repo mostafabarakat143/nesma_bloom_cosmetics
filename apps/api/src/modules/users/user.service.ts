@@ -10,11 +10,14 @@ export async function getOwnProfile(
   prisma: Database,
   userId: number,
 ): Promise<PublicProfileDto> {
-  const profile = await prisma.userProfile.findUnique({ where: { userId } });
+  const profile = await prisma.userProfile.findUnique({
+    where: { userId },
+    include: { user: { select: { email: true } } },
+  });
   if (!profile) {
     throw AppError.notFound("Profile not found");
   }
-  return toPublicProfile(profile);
+  return toPublicProfile(profile, profile.user.email);
 }
 
 export async function updateOwnProfile(
@@ -35,7 +38,8 @@ export async function updateOwnProfile(
       ...(input.phone !== undefined ? { phone: input.phone } : {}),
       ...(input.avatarUrl !== undefined ? { avatarUrl: input.avatarUrl } : {}),
     },
+    include: { user: { select: { email: true } } },
   });
 
-  return toPublicProfile(profile);
+  return toPublicProfile(profile, profile.user.email);
 }

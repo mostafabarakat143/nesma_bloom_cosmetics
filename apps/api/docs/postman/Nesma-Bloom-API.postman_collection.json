@@ -383,7 +383,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"profile\": {\n      \"firstName\": \"Nesma\",\n      \"lastName\": \"Bloom\",\n      \"phone\": null,\n      \"avatarUrl\": null\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"profile\": {\n      \"email\": \"customer-demo@example.com\",\n      \"firstName\": \"Nesma\",\n      \"lastName\": \"Bloom\",\n      \"phone\": null,\n      \"avatarUrl\": null\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -438,7 +438,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"profile\": {\n      \"firstName\": \"Nesma\",\n      \"lastName\": \"Bloom\",\n      \"phone\": \"+201000000000\",\n      \"avatarUrl\": null\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"profile\": {\n      \"email\": \"customer-demo@example.com\",\n      \"firstName\": \"Nesma\",\n      \"lastName\": \"Bloom\",\n      \"phone\": \"+201000000000\",\n      \"avatarUrl\": null\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {

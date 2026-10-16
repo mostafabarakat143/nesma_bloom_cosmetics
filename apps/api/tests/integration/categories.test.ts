@@ -11,7 +11,6 @@ describe("categories CRUD", () => {
 
   beforeEach(async () => {
     await prisma.revokedAccessToken.deleteMany();
-    await prisma.refreshToken.deleteMany();
     await prisma.orderIdempotencyKey.deleteMany();
     await prisma.orderItem.deleteMany();
     await prisma.order.deleteMany();

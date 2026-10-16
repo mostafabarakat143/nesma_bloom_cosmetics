@@ -17,8 +17,6 @@ export function createLogger(env: Env) {
         "passwordHash",
         "token",
         "accessToken",
-        "refreshToken",
-        "csrfToken",
       ],
       remove: true,
     },

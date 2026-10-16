@@ -1,7 +1,10 @@
+import { randomUUID } from "node:crypto";
+
 import { decodeJwt } from "jose";
 import request from "supertest";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
+import { purgeExpiredRevokedAccessTokens } from "../../src/modules/auth/revocation-cleanup.js";
 import { hashPassword } from "../../src/modules/auth/password.service.js";
 import { TEST_ORIGIN, authHeaders, extractToken } from "../helpers/auth.js";
 import { buildTestApp } from "../helpers/test-app.js";
@@ -246,7 +249,7 @@ describe("auth and profiles (Bearer JWT)", () => {
   });
 
   it("updates own profile with Bearer auth", async () => {
-    const { token } = await register();
+    const { token, email } = await register();
 
     const patched = await request(app)
       .patch("/api/v1/users/me/profile")
@@ -255,10 +258,36 @@ describe("auth and profiles (Bearer JWT)", () => {
 
     expect(patched.status).toBe(200);
     expect(patched.body.data.profile.firstName).toBe("Bloom");
+    expect(patched.body.data.profile.email).toBe(email);
+
+    const fetched = await request(app)
+      .get("/api/v1/users/me/profile")
+      .set(authHeaders(token));
+    expect(fetched.status).toBe(200);
+    expect(fetched.body.data.profile.email).toBe(email);
   });
 
-  it("does not create refresh_tokens rows on register/login", async () => {
-    await register();
-    expect(await prisma.refreshToken.count()).toBe(0);
+  it("purges only expired revocation rows", async () => {
+    const { email } = await register();
+    const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+
+    await prisma.revokedAccessToken.createMany({
+      data: [
+        {
+          jti: randomUUID(),
+          userId: user.id,
+          expiresAt: new Date(Date.now() - 60_000),
+        },
+        {
+          jti: randomUUID(),
+          userId: user.id,
+          expiresAt: new Date(Date.now() + 86_400_000),
+        },
+      ],
+    });
+
+    const deleted = await purgeExpiredRevokedAccessTokens(prisma);
+    expect(deleted).toBe(1);
+    expect(await prisma.revokedAccessToken.count()).toBe(1);
   });
 });

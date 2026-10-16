@@ -10,6 +10,7 @@ import {
 } from "./config/database.js";
 import { loadEnv } from "./config/env.js";
 import { createLogger } from "./config/logger.js";
+import { startRevocationCleanup } from "./modules/auth/revocation-cleanup.js";
 
 async function bootstrap(): Promise<void> {
   const env = loadEnv();
@@ -19,6 +20,7 @@ async function bootstrap(): Promise<void> {
   await connectDatabase(prisma, logger);
 
   const app = createApp({ env, logger, prisma });
+  const stopRevocationCleanup = startRevocationCleanup(prisma, logger);
 
   const server: Server = app.listen(env.PORT, () => {
     logger.info(
@@ -36,6 +38,7 @@ async function bootstrap(): Promise<void> {
     isShuttingDown = true;
 
     logger.info({ signal }, "Shutting down gracefully");
+    stopRevocationCleanup();
 
     server.close(async (closeError) => {
       if (closeError) {
