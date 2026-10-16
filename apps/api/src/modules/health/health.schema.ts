@@ -6,7 +6,11 @@ import { z } from "zod";
  */
 export const healthEchoBodySchema = z
   .object({
-    message: z.string().trim().min(1).max(200),
+    message: z
+      .string({ error: () => "Message is required." })
+      .trim()
+      .min(1, "Message is required.")
+      .max(200),
   })
   .strict();
 

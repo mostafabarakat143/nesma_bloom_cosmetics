@@ -105,7 +105,7 @@ export async function listSubcategories(
 
 export async function getSubcategoryById(
   prisma: Database,
-  id: string,
+  id: number,
   user?: AuthUser,
 ): Promise<SubcategoryDto> {
   const subcategory = await findSubcategoryById(prisma, id);
@@ -168,7 +168,7 @@ export async function createSubcategoryService(
 
 export async function updateSubcategoryService(
   prisma: Database,
-  id: string,
+  id: number,
   input: UpdateSubcategoryBody,
 ): Promise<SubcategoryDto> {
   const existing = await findSubcategoryById(prisma, id);
@@ -215,7 +215,7 @@ export async function updateSubcategoryService(
  */
 export async function archiveSubcategoryService(
   prisma: Database,
-  id: string,
+  id: number,
 ): Promise<SubcategoryDto> {
   const existing = await findSubcategoryById(prisma, id);
   if (!existing) {

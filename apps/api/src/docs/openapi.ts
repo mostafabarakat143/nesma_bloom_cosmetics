@@ -1,7 +1,7 @@
 /**
  * OpenAPI 3.1 description of the Nesma Bloom Cosmetics API.
  * Kept as a maintainable document (not auto-generated from every Zod schema)
- * so cookie/CSRF/idempotency security requirements stay accurate.
+ * so Bearer JWT / idempotency security requirements stay accurate.
  */
 export const openApiDocument = {
   openapi: "3.1.0",
@@ -12,14 +12,12 @@ export const openApiDocument = {
       "REST API for catalog and order management.",
       "",
       "## Authentication",
-      "Session cookies after register/login:",
-      "- `nb_access` (HttpOnly) — short-lived JWT",
-      "- `nb_refresh` (HttpOnly) — refresh token, path `/api/v1/auth`",
-      "- `nb_csrf` — readable CSRF token for double-submit",
+      "Register and login return a single Bearer JWT in `data.token` (default TTL 7 days / `JWT_TTL_SECONDS=604800`).",
+      "Protected routes require header: `Authorization: Bearer <token>`.",
       "",
-      "Mutating requests must send:",
-      "- Trusted `Origin` (or `Referer`) matching `CORS_ORIGIN`",
-      "- Header `x-csrf-token` equal to `nb_csrf`",
+      "JWT claims: `sub` (user id), `jti`, `iat`, `exp`, `iss`, `aud`.",
+      "Authorization uses the live user role and ACTIVE status from PostgreSQL — never a role claim in the JWT.",
+      "Logout revokes the token jti server-side (idempotent). Revoked tokens receive 401 on all other protected routes.",
       "",
       "## Idempotency",
       "`POST /api/v1/orders` requires header `Idempotency-Key` (1–128 printable ASCII).",
@@ -48,11 +46,12 @@ export const openApiDocument = {
   ],
   components: {
     securitySchemes: {
-      cookieAuth: {
-        type: "apiKey",
-        in: "cookie",
-        name: "nb_access",
-        description: "HttpOnly access JWT cookie set by login/register/refresh.",
+      bearerAuth: {
+        type: "http",
+        scheme: "bearer",
+        bearerFormat: "JWT",
+        description:
+          "JWT from register/login (`data.token`). Send as `Authorization: Bearer <token>`.",
       },
     },
     parameters: {
@@ -63,40 +62,15 @@ export const openApiDocument = {
         schema: { type: "string", minLength: 1, maxLength: 128 },
         description: "Required for order creation; scoped per authenticated user.",
       },
-      CsrfToken: {
-        name: "x-csrf-token",
-        in: "header",
-        required: true,
-        schema: { type: "string" },
-        description: "Must match the `nb_csrf` cookie value.",
-      },
-      Origin: {
-        name: "Origin",
-        in: "header",
-        required: true,
-        schema: { type: "string" },
-        description: "Must be in the server CORS/trusted origin allowlist.",
-      },
     },
     schemas: {
       ErrorResponse: {
         type: "object",
-        required: ["status", "message", "code"],
+        required: ["status", "message"],
+        additionalProperties: false,
         properties: {
           status: { type: "string", const: "error" },
           message: { type: "string" },
-          code: { type: "string" },
-          details: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                path: { type: "string" },
-                message: { type: "string" },
-              },
-            },
-          },
-          requestId: { type: "string" },
         },
       },
       PaginationMeta: {
@@ -116,7 +90,7 @@ export const openApiDocument = {
       User: {
         type: "object",
         properties: {
-          id: { type: "string", format: "uuid" },
+          id: { type: "integer", minimum: 1, maximum: 2147483647 },
           email: { type: "string", format: "email" },
           role: { type: "string", enum: ["CUSTOMER", "ADMIN"] },
           status: { type: "string", enum: ["ACTIVE", "DISABLED"] },
@@ -128,8 +102,8 @@ export const openApiDocument = {
       Order: {
         type: "object",
         properties: {
-          id: { type: "string", format: "uuid" },
-          userId: { type: "string", format: "uuid" },
+          id: { type: "integer", minimum: 1, maximum: 2147483647 },
+          userId: { type: "integer", minimum: 1, maximum: 2147483647 },
           status: { $ref: "#/components/schemas/OrderStatus" },
           totalMinor: { type: "integer" },
           currency: { type: "string", const: "EGP" },
@@ -141,7 +115,7 @@ export const openApiDocument = {
       Product: {
         type: "object",
         properties: {
-          id: { type: "string", format: "uuid" },
+          id: { type: "integer", minimum: 1, maximum: 2147483647 },
           name: { type: "string" },
           slug: { type: "string" },
           sku: { type: "string" },
@@ -170,10 +144,6 @@ export const openApiDocument = {
       post: {
         tags: ["Auth"],
         summary: "Register CUSTOMER",
-        parameters: [
-          { $ref: "#/components/parameters/Origin" },
-          { $ref: "#/components/parameters/CsrfToken" },
-        ],
         requestBody: {
           required: true,
           content: {
@@ -192,7 +162,7 @@ export const openApiDocument = {
           },
         },
         responses: {
-          "201": { description: "Registered; sets auth cookies" },
+          "201": { description: "Registered; returns data.user and data.token" },
           "409": { description: "Email taken", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } },
         },
       },
@@ -201,10 +171,6 @@ export const openApiDocument = {
       post: {
         tags: ["Auth"],
         summary: "Login",
-        parameters: [
-          { $ref: "#/components/parameters/Origin" },
-          { $ref: "#/components/parameters/CsrfToken" },
-        ],
         requestBody: {
           required: true,
           content: {
@@ -221,36 +187,26 @@ export const openApiDocument = {
           },
         },
         responses: {
-          "200": { description: "Logged in; sets auth cookies" },
+          "200": { description: "Logged in; returns data.user and data.token" },
           "401": { description: "Invalid credentials" },
-        },
-      },
-    },
-    "/api/v1/auth/refresh": {
-      post: {
-        tags: ["Auth"],
-        summary: "Rotate refresh session",
-        description:
-          "Concurrent multi-tab refresh: one request wins (200), the other gets 401 without global logout when within the 30s rotation grace window. Delayed reuse of a rotated token after 30s triggers revoke-all.",
-        responses: {
-          "200": { description: "New cookies issued" },
-          "401": { description: "Invalid or raced refresh" },
         },
       },
     },
     "/api/v1/auth/logout": {
       post: {
         tags: ["Auth"],
-        summary: "Logout current session",
-        security: [{ cookieAuth: [] }],
-        responses: { "200": { description: "Logged out" } },
+        summary: "Logout (revoke current JWT jti)",
+        description:
+          "Idempotent Mode B revocation. First and repeated logout with the same valid JWT return 200. Invalid/expired/malformed JWT → 401. Revoked tokens are rejected on all other protected routes.",
+        security: [{ bearerAuth: [] }],
+        responses: { "200": { description: "Logged out (idempotent)" }, "401": { description: "Invalid or expired token" } },
       },
     },
     "/api/v1/auth/me": {
       get: {
         tags: ["Auth"],
         summary: "Current user",
-        security: [{ cookieAuth: [] }],
+        security: [{ bearerAuth: [] }],
         responses: {
           "200": {
             description: "User DTO (never includes passwordHash)",
@@ -276,17 +232,13 @@ export const openApiDocument = {
       get: {
         tags: ["Users"],
         summary: "Get own profile",
-        security: [{ cookieAuth: [] }],
+        security: [{ bearerAuth: [] }],
         responses: { "200": { description: "Profile" } },
       },
       patch: {
         tags: ["Users"],
         summary: "Update own profile",
-        security: [{ cookieAuth: [] }],
-        parameters: [
-          { $ref: "#/components/parameters/Origin" },
-          { $ref: "#/components/parameters/CsrfToken" },
-        ],
+        security: [{ bearerAuth: [] }],
         responses: { "200": { description: "Updated profile" } },
       },
     },
@@ -308,11 +260,7 @@ export const openApiDocument = {
       post: {
         tags: ["Categories"],
         summary: "Create category (ADMIN)",
-        security: [{ cookieAuth: [] }],
-        parameters: [
-          { $ref: "#/components/parameters/Origin" },
-          { $ref: "#/components/parameters/CsrfToken" },
-        ],
+        security: [{ bearerAuth: [] }],
         responses: { "201": { description: "Created" } },
       },
     },
@@ -321,29 +269,25 @@ export const openApiDocument = {
         tags: ["Categories"],
         summary: "Get category",
         parameters: [
-          { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+          { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1, maximum: 2147483647 } },
         ],
         responses: { "200": { description: "Category" }, "404": { description: "Not found / hidden" } },
       },
       patch: {
         tags: ["Categories"],
         summary: "Update category (ADMIN)",
-        security: [{ cookieAuth: [] }],
+        security: [{ bearerAuth: [] }],
         parameters: [
-          { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
-          { $ref: "#/components/parameters/Origin" },
-          { $ref: "#/components/parameters/CsrfToken" },
+          { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1, maximum: 2147483647 } },
         ],
         responses: { "200": { description: "Updated" } },
       },
       delete: {
         tags: ["Categories"],
         summary: "Archive category (ADMIN)",
-        security: [{ cookieAuth: [] }],
+        security: [{ bearerAuth: [] }],
         parameters: [
-          { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
-          { $ref: "#/components/parameters/Origin" },
-          { $ref: "#/components/parameters/CsrfToken" },
+          { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1, maximum: 2147483647 } },
         ],
         responses: { "200": { description: "Archived" } },
       },
@@ -357,7 +301,7 @@ export const openApiDocument = {
       post: {
         tags: ["Subcategories"],
         summary: "Create subcategory (ADMIN)",
-        security: [{ cookieAuth: [] }],
+        security: [{ bearerAuth: [] }],
         responses: { "201": { description: "Created" } },
       },
     },
@@ -366,20 +310,20 @@ export const openApiDocument = {
         tags: ["Subcategories"],
         summary: "Get subcategory",
         parameters: [
-          { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+          { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1, maximum: 2147483647 } },
         ],
         responses: { "200": { description: "Subcategory" } },
       },
       patch: {
         tags: ["Subcategories"],
         summary: "Update subcategory (ADMIN)",
-        security: [{ cookieAuth: [] }],
+        security: [{ bearerAuth: [] }],
         responses: { "200": { description: "Updated" } },
       },
       delete: {
         tags: ["Subcategories"],
         summary: "Archive subcategory (ADMIN)",
-        security: [{ cookieAuth: [] }],
+        security: [{ bearerAuth: [] }],
         responses: { "200": { description: "Archived" } },
       },
     },
@@ -394,7 +338,7 @@ export const openApiDocument = {
       post: {
         tags: ["Products"],
         summary: "Create product (ADMIN)",
-        security: [{ cookieAuth: [] }],
+        security: [{ bearerAuth: [] }],
         responses: { "201": { description: "Created" } },
       },
     },
@@ -403,7 +347,7 @@ export const openApiDocument = {
         tags: ["Products"],
         summary: "Get product",
         parameters: [
-          { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+          { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1, maximum: 2147483647 } },
         ],
         responses: {
           "200": {
@@ -428,13 +372,13 @@ export const openApiDocument = {
       patch: {
         tags: ["Products"],
         summary: "Update product (ADMIN)",
-        security: [{ cookieAuth: [] }],
+        security: [{ bearerAuth: [] }],
         responses: { "200": { description: "Updated" } },
       },
       delete: {
         tags: ["Products"],
         summary: "Archive product (ADMIN)",
-        security: [{ cookieAuth: [] }],
+        security: [{ bearerAuth: [] }],
         responses: { "200": { description: "Archived" } },
       },
     },
@@ -442,7 +386,7 @@ export const openApiDocument = {
       post: {
         tags: ["Products"],
         summary: "Add product image URL (ADMIN)",
-        security: [{ cookieAuth: [] }],
+        security: [{ bearerAuth: [] }],
         responses: { "201": { description: "Product with images" } },
       },
     },
@@ -450,13 +394,13 @@ export const openApiDocument = {
       patch: {
         tags: ["Products"],
         summary: "Update product image (ADMIN)",
-        security: [{ cookieAuth: [] }],
+        security: [{ bearerAuth: [] }],
         responses: { "200": { description: "Product with images" } },
       },
       delete: {
         tags: ["Products"],
         summary: "Delete product image (ADMIN)",
-        security: [{ cookieAuth: [] }],
+        security: [{ bearerAuth: [] }],
         responses: { "200": { description: "Product with images" } },
       },
     },
@@ -464,17 +408,15 @@ export const openApiDocument = {
       get: {
         tags: ["Orders"],
         summary: "List all orders (ADMIN)",
-        security: [{ cookieAuth: [] }],
+        security: [{ bearerAuth: [] }],
         responses: { "200": { description: "Paginated orders" } },
       },
       post: {
         tags: ["Orders"],
         summary: "Create order (CUSTOMER)",
-        security: [{ cookieAuth: [] }],
+        security: [{ bearerAuth: [] }],
         parameters: [
           { $ref: "#/components/parameters/IdempotencyKey" },
-          { $ref: "#/components/parameters/Origin" },
-          { $ref: "#/components/parameters/CsrfToken" },
         ],
         requestBody: {
           required: true,
@@ -492,7 +434,7 @@ export const openApiDocument = {
                       type: "object",
                       required: ["productId", "quantity"],
                       properties: {
-                        productId: { type: "string", format: "uuid" },
+                        productId: { type: "integer", minimum: 1, maximum: 2147483647 },
                         quantity: { type: "integer", minimum: 1, maximum: 100 },
                       },
                     },
@@ -513,7 +455,7 @@ export const openApiDocument = {
       get: {
         tags: ["Orders"],
         summary: "List own orders",
-        security: [{ cookieAuth: [] }],
+        security: [{ bearerAuth: [] }],
         responses: { "200": { description: "Paginated own orders" } },
       },
     },
@@ -521,9 +463,9 @@ export const openApiDocument = {
       get: {
         tags: ["Orders"],
         summary: "Get order (owner or ADMIN)",
-        security: [{ cookieAuth: [] }],
+        security: [{ bearerAuth: [] }],
         parameters: [
-          { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+          { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1, maximum: 2147483647 } },
         ],
         responses: {
           "200": {
@@ -551,7 +493,7 @@ export const openApiDocument = {
       post: {
         tags: ["Orders"],
         summary: "Cancel order",
-        security: [{ cookieAuth: [] }],
+        security: [{ bearerAuth: [] }],
         responses: { "200": { description: "Cancelled (idempotent if already cancelled)" } },
       },
     },
@@ -559,7 +501,7 @@ export const openApiDocument = {
       patch: {
         tags: ["Orders"],
         summary: "Transition order status (ADMIN)",
-        security: [{ cookieAuth: [] }],
+        security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
           content: {

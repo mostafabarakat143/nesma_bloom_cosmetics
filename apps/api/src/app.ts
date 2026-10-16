@@ -1,4 +1,3 @@
-import cookieParser from "cookie-parser";
 import cors from "cors";
 import express, { type Express } from "express";
 import rateLimit from "express-rate-limit";
@@ -8,7 +7,6 @@ import { pinoHttp } from "pino-http";
 import type { Database } from "./config/database.js";
 import { getCorsOrigins, type Env } from "./config/env.js";
 import type { Logger } from "./config/logger.js";
-import { createCsrfMiddleware } from "./common/middlewares/csrf.middleware.js";
 import { createErrorMiddleware } from "./common/middlewares/error.middleware.js";
 import { notFoundMiddleware } from "./common/middlewares/not-found.middleware.js";
 import { requestIdMiddleware } from "./common/middlewares/request-id.middleware.js";
@@ -46,7 +44,8 @@ export function createApp({ env, logger, prisma }: AppDependencies): Express {
     app.use(
       cors({
         origin: corsOrigins,
-        credentials: true,
+        // Bearer tokens use Authorization; cookie credentials not required.
+        credentials: false,
       }),
     );
   }
@@ -59,16 +58,13 @@ export function createApp({ env, logger, prisma }: AppDependencies): Express {
       legacyHeaders: false,
       message: {
         status: "error",
-        message: "Too many requests",
-        code: "TOO_MANY_REQUESTS",
+        message: "Too many requests.",
       },
       skip: () => env.NODE_ENV === "test",
     }),
   );
 
   app.use(express.json({ limit: env.BODY_SIZE_LIMIT }));
-  app.use(cookieParser());
-  app.use(createCsrfMiddleware(env));
 
   app.use(
     pinoHttp({

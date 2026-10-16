@@ -25,158 +25,28 @@ type SavedResponse = {
   _postman_previewlanguage: string;
 };
 
-type CsrfMode =
-  /** No CSRF header (safe GETs). */
-  | "none"
-  /**
-   * Register/login bootstrap: if nb_csrf cookie exists, send matching header;
-   * if not, omit the header (empty {{csrfToken}} must never be sent).
-   */
-  | "bootstrap"
-  /** Authenticated mutations: send x-csrf-token synced from nb_csrf. */
-  | "required";
-
 type ExampleDef = {
   name?: string;
   description: string;
-  /** @deprecated use csrfMode */
-  csrf?: boolean;
-  csrfMode?: CsrfMode;
+  /** Capture data.token from Login/Register into collection {{token}}. */
+  captureToken?: boolean;
+  /** Omit Authorization header (public endpoints). */
+  public?: boolean;
   body?: unknown;
   query?: QueryParam[];
   successExample?: { code: number; status: string; body: unknown };
   errorExample?: { code: number; status: string; body: unknown };
 };
 
-/**
- * Postman CSRF helpers (client-side only; backend keeps full double-submit).
- *
- * Register/login: clear stale nb_csrf for the request baseUrl and strip CSRF headers
- * so the backend "no cookie yet" path applies. Requires Domains Allowlist for baseUrl.
- * Other mutations: upsert x-csrf-token from the nb_csrf cookie (concrete value).
- * Auth Tests: capture Set-Cookie nb_csrf into collection csrfToken.
- */
-const POSTMAN_CSRF_HELPERS = `
-function stripCsrfHeaders() {
-  ['x-csrf-token', 'X-CSRF-Token', 'X-CSRF-TOKEN'].forEach(function (key) {
-    pm.request.headers.remove(key);
-  });
-}
-
-function requestUrlString() {
-  try {
-    return pm.variables.replaceIn(pm.request.url.toString());
-  } catch (e) {
-    return pm.request.url.toString();
-  }
-}
-
-function baseOrigin() {
-  try {
-    return new URL(requestUrlString()).origin;
-  } catch (e) {
-    var fromVar = pm.collectionVariables.get('baseUrl');
-    return fromVar ? String(fromVar).replace(/\\/$/, '') : '';
-  }
-}
-
-function requestPath() {
-  try {
-    return new URL(requestUrlString()).pathname;
-  } catch (e) {
-    return pm.request.url.getPath ? pm.request.url.getPath() : '';
-  }
-}
-
-function isAuthBootstrapPath(pathname) {
-  return /\\/api\\/v1\\/auth\\/(register|login)\\/?$/.test(pathname || '');
-}
-
-function unsetNbCsrf(jar, origin) {
-  return new Promise(function (resolve) {
-    if (!origin) return resolve();
-    try {
-      jar.unset(origin, 'nb_csrf', function () { resolve(); });
-    } catch (e) {
-      resolve();
-    }
-  });
-}
-
-function getNbCsrf(jar, origin) {
-  return new Promise(function (resolve) {
-    if (!origin) return resolve(null);
-    try {
-      jar.get(origin, 'nb_csrf', function (err, value) {
-        resolve(!err && value ? String(value) : null);
-      });
-    } catch (e) {
-      resolve(null);
-    }
-  });
-}
-`.trim();
-
-/** Single collection pre-request: bootstrap clears nb_csrf; mutations sync header. */
-const COLLECTION_PREREQUEST = `
-${POSTMAN_CSRF_HELPERS}
-
-return (async function () {
-  var jar = pm.cookies.jar();
-  var origin = baseOrigin();
-  var pathname = requestPath();
-  var method = String(pm.request.method || '').toUpperCase();
-
-  if (isAuthBootstrapPath(pathname)) {
-    await unsetNbCsrf(jar, origin);
-    pm.collectionVariables.set('csrfToken', '');
-    stripCsrfHeaders();
-    return;
-  }
-
-  var csrf = await getNbCsrf(jar, origin);
-  if (!csrf) {
-    try {
-      var direct = pm.cookies.get('nb_csrf');
-      if (direct) csrf = String(direct);
-    } catch (e) {}
-  }
-  if (!csrf) {
-    var fromVar = pm.collectionVariables.get('csrfToken');
-    if (fromVar && String(fromVar).trim()) csrf = String(fromVar).trim();
-  }
-
-  if (csrf) {
-    pm.collectionVariables.set('csrfToken', csrf);
-    if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
-      pm.request.headers.upsert({ key: 'x-csrf-token', value: csrf });
-    }
-  } else {
-    pm.collectionVariables.set('csrfToken', '');
-    var existing = pm.request.headers.get('x-csrf-token');
-    if (existing === null || existing === undefined || !String(existing).trim() || String(existing).indexOf('{{') !== -1) {
-      stripCsrfHeaders();
-    }
-  }
-})();
-`.trim();
-
-/** After register/login, sync csrfToken from Set-Cookie (no Environment mutation). */
-const AUTH_SUCCESS_TEST = `
+/** Capture Bearer JWT from register/login into collection variable `token`. Never hardcode real JWTs. */
+const AUTH_CAPTURE_TOKEN_TEST = `
 (function () {
-  var headers = pm.response.headers.all();
-  for (var i = 0; i < headers.length; i++) {
-    if (String(headers[i].key).toLowerCase() !== 'set-cookie') continue;
-    var raw = String(headers[i].value || '');
-    var match = raw.match(/^nb_csrf=([^;]+)/i);
-    if (match && match[1]) {
-      pm.collectionVariables.set('csrfToken', decodeURIComponent(match[1]));
-      return;
-    }
-  }
   try {
-    var cookie = pm.cookies.get('nb_csrf');
-    if (cookie) pm.collectionVariables.set('csrfToken', cookie);
+    var json = pm.response.json();
+    var token = json && json.data && json.data.token;
+    if (typeof token === 'string' && token.length > 0) {
+      pm.collectionVariables.set('token', token);
+    }
   } catch (e) {}
 })();
 `.trim();
@@ -185,20 +55,20 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const outDir = path.resolve(__dirname, "../docs/postman");
 const outFile = path.join(outDir, "Nesma-Bloom-API.postman_collection.json");
 
-const SAMPLE_UUID = {
-  categoryId: "11111111-1111-4111-8111-111111111111",
-  subcategoryId: "22222222-2222-4222-8222-222222222222",
-  productId: "33333333-3333-4333-8333-333333333333",
-  imageId: "44444444-4444-4444-8444-444444444444",
-  orderId: "55555555-5555-4555-8555-555555555555",
-  userId: "66666666-6666-4666-8666-666666666666",
+const SAMPLE_ID = {
+  categoryId: 1,
+  subcategoryId: 1,
+  productId: 1,
+  imageId: 1,
+  orderId: 1,
+  userId: 1,
 };
 
 /** Key: `${METHOD} ${openapiPath}` e.g. `POST /api/v1/orders` */
 const EXAMPLES: Record<string, ExampleDef> = {
   "GET /health": {
-    description:
-      "Liveness probe. No authentication.\n\nPublic — no cookies or CSRF.",
+    description: "Liveness probe. No authentication.",
+    public: true,
     successExample: {
       code: 200,
       status: "OK",
@@ -209,19 +79,15 @@ const EXAMPLES: Record<string, ExampleDef> = {
   "POST /api/v1/auth/register": {
     name: "Register CUSTOMER",
     description: [
-      "Creates a CUSTOMER account and sets cookies:",
-      "- `nb_access` / `nb_refresh` (HttpOnly)",
-      "- `nb_csrf` (readable; used for double-submit CSRF on later mutations)",
+      "Creates a CUSTOMER account and returns a Bearer JWT in `data.token`.",
       "",
       "**Role:** Public (always registers as CUSTOMER — cannot self-register as ADMIN).",
-      "**Cookies:** Enable cookie jar. Add `{{baseUrl}}` origin to Cookies → Domains Allowlist.",
-      "**CSRF:** Origin required. Collection pre-request clears stale `nb_csrf` for `baseUrl` and strips",
-      "`x-csrf-token` (backend only requires double-submit when `nb_csrf` is present).",
-      "Tests capture the new `nb_csrf` into `csrfToken`.",
+      "**Auth:** None. Tests script captures `data.token` into collection variable `{{token}}`.",
       "",
       "Email uses `{{$timestamp}}` for uniqueness. Re-run with the same email to see 409.",
     ].join("\n"),
-    csrfMode: "bootstrap",
+    public: true,
+    captureToken: true,
     body: {
       email: "customer-{{$timestamp}}@example.com",
       password: "Password123!",
@@ -235,19 +101,14 @@ const EXAMPLES: Record<string, ExampleDef> = {
         status: "success",
         data: {
           user: {
-            id: SAMPLE_UUID.userId,
+            id: SAMPLE_ID.userId,
             email: "customer-demo@example.com",
             role: "CUSTOMER",
             status: "ACTIVE",
             createdAt: "2026-10-14T18:00:00.000Z",
             updatedAt: "2026-10-14T18:00:00.000Z",
-            profile: {
-              firstName: "Nesma",
-              lastName: "Bloom",
-              phone: null,
-              avatarUrl: null,
-            },
           },
+          token: "<JWT>",
         },
       },
     },
@@ -258,7 +119,6 @@ const EXAMPLES: Record<string, ExampleDef> = {
         status: "error",
         message:
           "An account with this email already exists. Please log in.",
-        code: "CONFLICT",
       },
     },
   },
@@ -266,16 +126,16 @@ const EXAMPLES: Record<string, ExampleDef> = {
   "POST /api/v1/auth/login": {
     name: "Login",
     description: [
-      "Logs in CUSTOMER or ADMIN. Sets session cookies.",
+      "Logs in CUSTOMER or ADMIN. Returns a Bearer JWT in `data.token`.",
       "",
       "**Role:** Public.",
-      "**Cookies:** Cookie jar + Domains Allowlist for `{{baseUrl}}`.",
-      "**CSRF:** Same as register — clear stale `nb_csrf` / strip CSRF headers; capture new token after success.",
+      "**Auth:** None. Tests script captures `data.token` into `{{token}}`.",
       "",
       "For ADMIN catalog mutations, log in with an existing ADMIN account (registration cannot create ADMIN).",
       "Replace the email with your registered customer (or ADMIN) address.",
     ].join("\n"),
-    csrfMode: "bootstrap",
+    public: true,
+    captureToken: true,
     body: {
       email: "customer-demo@example.com",
       password: "Password123!",
@@ -287,11 +147,12 @@ const EXAMPLES: Record<string, ExampleDef> = {
         status: "success",
         data: {
           user: {
-            id: SAMPLE_UUID.userId,
+            id: SAMPLE_ID.userId,
             email: "customer-demo@example.com",
             role: "CUSTOMER",
             status: "ACTIVE",
           },
+          token: "<JWT>",
         },
       },
     },
@@ -300,42 +161,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
       status: "Unauthorized",
       body: {
         status: "error",
-        message: "Invalid email or password",
-        code: "UNAUTHORIZED",
-      },
-    },
-  },
-
-  "POST /api/v1/auth/refresh": {
-    name: "Refresh session",
-    description: [
-      "Rotates the refresh cookie and issues a new access cookie.",
-      "",
-      "**Auth:** Requires `nb_refresh` cookie (cookie jar).",
-      "**CSRF:** Send Origin + `x-csrf-token: {{csrfToken}}` after login.",
-      "Do not store refresh tokens in variables.",
-    ].join("\n"),
-    successExample: {
-      code: 200,
-      status: "OK",
-      body: {
-        status: "success",
-        data: {
-          user: {
-            id: SAMPLE_UUID.userId,
-            email: "customer-demo@example.com",
-            role: "CUSTOMER",
-          },
-        },
-      },
-    },
-    errorExample: {
-      code: 401,
-      status: "Unauthorized",
-      body: {
-        status: "error",
-        message: "Authentication required",
-        code: "UNAUTHORIZED",
+        message: "Invalid email or password.",
       },
     },
   },
@@ -343,15 +169,15 @@ const EXAMPLES: Record<string, ExampleDef> = {
   "POST /api/v1/auth/logout": {
     name: "Logout",
     description: [
-      "Revokes the current session and clears auth cookies.",
+      "Revokes the current JWT jti server-side (Mode B). Idempotent: repeated logout with the same token returns 200.",
       "",
-      "**Auth:** Authenticated (access cookie).",
-      "**CSRF:** Origin + `x-csrf-token: {{csrfToken}}`.",
+      "**Auth:** `Authorization: Bearer {{token}}`.",
+      "Invalid, expired, or malformed JWT → 401.",
     ].join("\n"),
     successExample: {
       code: 200,
       status: "OK",
-      body: { status: "success", data: { ok: true } },
+      body: { status: "success", data: { message: "Logged out" } },
     },
   },
 
@@ -360,7 +186,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
     description: [
       "Returns the authenticated user. Never includes passwordHash.",
       "",
-      "**Auth:** CUSTOMER or ADMIN cookie session.",
+      "**Auth:** `Authorization: Bearer {{token}}`.",
     ].join("\n"),
     successExample: {
       code: 200,
@@ -369,7 +195,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
         status: "success",
         data: {
           user: {
-            id: SAMPLE_UUID.userId,
+            id: SAMPLE_ID.userId,
             email: "customer-demo@example.com",
             role: "CUSTOMER",
             status: "ACTIVE",
@@ -382,8 +208,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
       status: "Unauthorized",
       body: {
         status: "error",
-        message: "Authentication required",
-        code: "UNAUTHORIZED",
+        message: "Authentication required.",
       },
     },
   },
@@ -413,8 +238,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
     description: [
       "Partial profile update. At least one field required.",
       "",
-      "**Auth:** Authenticated.",
-      "**CSRF:** Origin + `x-csrf-token: {{csrfToken}}`.",
+      "**Auth:** `Authorization: Bearer {{token}}`.",
     ].join("\n"),
     body: {
       firstName: "Nesma",
@@ -441,11 +265,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
       status: "Bad Request",
       body: {
         status: "error",
-        message: "Validation failed",
-        code: "VALIDATION_ERROR",
-        details: [
-          { path: "(root)", message: "At least one profile field is required" },
-        ],
+        message: "At least one profile field is required.",
       },
     },
   },
@@ -473,7 +293,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
         data: {
           items: [
             {
-              id: SAMPLE_UUID.categoryId,
+              id: SAMPLE_ID.categoryId,
               name: "Skincare",
               slug: "skincare",
               status: "ACTIVE",
@@ -490,8 +310,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
     description: [
       "Creates a catalog category. Slug optional (generated from name).",
       "",
-      "**Auth:** ADMIN + cookies.",
-      "**CSRF:** Origin + `x-csrf-token: {{csrfToken}}`.",
+      "**Auth:** ADMIN — `Authorization: Bearer {{token}}`.",
       "",
       "After success, copy `data.category.id` into `{{categoryId}}`.",
     ].join("\n"),
@@ -508,7 +327,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
         status: "success",
         data: {
           category: {
-            id: SAMPLE_UUID.categoryId,
+            id: SAMPLE_ID.categoryId,
             name: "Skincare Demo",
             slug: "skincare-demo",
             description: "Face and body care",
@@ -524,8 +343,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
       status: "Conflict",
       body: {
         status: "error",
-        message: "Category slug already exists",
-        code: "CONFLICT",
+        message: "Category slug already exists.",
       },
     },
   },
@@ -541,7 +359,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
         status: "success",
         data: {
           category: {
-            id: SAMPLE_UUID.categoryId,
+            id: SAMPLE_ID.categoryId,
             name: "Skincare Demo",
             slug: "skincare-demo",
             status: "ACTIVE",
@@ -554,8 +372,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
       status: "Not Found",
       body: {
         status: "error",
-        message: "Category not found",
-        code: "NOT_FOUND",
+        message: "Category not found.",
       },
     },
   },
@@ -563,7 +380,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
   "PATCH /api/v1/categories/{id}": {
     name: "Update category",
     description:
-      "**Auth:** ADMIN. **CSRF** required. Name updates do not auto-change slug.",
+      "**Auth:** ADMIN Bearer JWT. Name updates do not auto-change slug.",
     body: {
       name: "Skincare Updated",
       description: "Updated description",
@@ -575,7 +392,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
         status: "success",
         data: {
           category: {
-            id: SAMPLE_UUID.categoryId,
+            id: SAMPLE_ID.categoryId,
             name: "Skincare Updated",
             slug: "skincare-demo",
             status: "ACTIVE",
@@ -588,7 +405,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
   "DELETE /api/v1/categories/{id}": {
     name: "Archive category",
     description:
-      "Soft-delete (status ARCHIVED). **Auth:** ADMIN. **CSRF** required. Idempotent.",
+      "Soft-delete (status ARCHIVED). **Auth:** ADMIN Bearer JWT. Idempotent.",
     successExample: {
       code: 200,
       status: "OK",
@@ -596,7 +413,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
         status: "success",
         data: {
           category: {
-            id: SAMPLE_UUID.categoryId,
+            id: SAMPLE_ID.categoryId,
             status: "ARCHIVED",
           },
         },
@@ -624,10 +441,10 @@ const EXAMPLES: Record<string, ExampleDef> = {
         data: {
           items: [
             {
-              id: SAMPLE_UUID.subcategoryId,
+              id: SAMPLE_ID.subcategoryId,
               name: "Serums",
               slug: "serums",
-              categoryId: SAMPLE_UUID.categoryId,
+              categoryId: SAMPLE_ID.categoryId,
               status: "ACTIVE",
             },
           ],
@@ -640,7 +457,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
   "POST /api/v1/subcategories": {
     name: "Create subcategory",
     description: [
-      "**Auth:** ADMIN. **CSRF** required.",
+      "**Auth:** ADMIN Bearer JWT.",
       "Set `categoryId` to `{{categoryId}}` from a created category.",
       "Copy response id into `{{subcategoryId}}`.",
     ].join("\n"),
@@ -658,13 +475,13 @@ const EXAMPLES: Record<string, ExampleDef> = {
         status: "success",
         data: {
           subcategory: {
-            id: SAMPLE_UUID.subcategoryId,
+            id: SAMPLE_ID.subcategoryId,
             name: "Serums Demo",
             slug: "serums-demo",
-            categoryId: SAMPLE_UUID.categoryId,
+            categoryId: SAMPLE_ID.categoryId,
             status: "ACTIVE",
             category: {
-              id: SAMPLE_UUID.categoryId,
+              id: SAMPLE_ID.categoryId,
               name: "Skincare Demo",
               slug: "skincare-demo",
               status: "ACTIVE",
@@ -678,8 +495,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
       status: "Conflict",
       body: {
         status: "error",
-        message: "Cannot place an ACTIVE subcategory under an archived category",
-        code: "CONFLICT",
+        message: "Cannot place an ACTIVE subcategory under an archived category.",
       },
     },
   },
@@ -694,7 +510,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
         status: "success",
         data: {
           subcategory: {
-            id: SAMPLE_UUID.subcategoryId,
+            id: SAMPLE_ID.subcategoryId,
             name: "Serums Demo",
             slug: "serums-demo",
             status: "ACTIVE",
@@ -706,7 +522,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
 
   "PATCH /api/v1/subcategories/{id}": {
     name: "Update subcategory",
-    description: "**Auth:** ADMIN. **CSRF** required.",
+    description: "**Auth:** ADMIN Bearer JWT.",
     body: {
       name: "Serums Updated",
     },
@@ -717,7 +533,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
         status: "success",
         data: {
           subcategory: {
-            id: SAMPLE_UUID.subcategoryId,
+            id: SAMPLE_ID.subcategoryId,
             name: "Serums Updated",
             slug: "serums-demo",
             status: "ACTIVE",
@@ -729,7 +545,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
 
   "DELETE /api/v1/subcategories/{id}": {
     name: "Archive subcategory",
-    description: "**Auth:** ADMIN. Soft archive. **CSRF** required.",
+    description: "**Auth:** ADMIN Bearer JWT. Soft archive.",
     successExample: {
       code: 200,
       status: "OK",
@@ -737,7 +553,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
         status: "success",
         data: {
           subcategory: {
-            id: SAMPLE_UUID.subcategoryId,
+            id: SAMPLE_ID.subcategoryId,
             status: "ARCHIVED",
           },
         },
@@ -772,7 +588,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
         data: {
           items: [
             {
-              id: SAMPLE_UUID.productId,
+              id: SAMPLE_ID.productId,
               name: "Rose Serum",
               sku: "SKU-ROSE-001",
               priceMinor: 25000,
@@ -791,7 +607,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
   "POST /api/v1/products": {
     name: "Create product",
     description: [
-      "**Auth:** ADMIN. **CSRF** required.",
+      "**Auth:** ADMIN Bearer JWT.",
       "Set `subcategoryId` to `{{subcategoryId}}`. SKU unique; use a unique value each run.",
       "Prices are integer EGP piastres (`25000` = 250.00 EGP).",
       "Copy response id into `{{productId}}`.",
@@ -814,7 +630,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
         status: "success",
         data: {
           product: {
-            id: SAMPLE_UUID.productId,
+            id: SAMPLE_ID.productId,
             name: "Rose Serum Demo",
             slug: "rose-serum-demo",
             sku: "SKU-ROSE-DEMO-001",
@@ -826,13 +642,13 @@ const EXAMPLES: Record<string, ExampleDef> = {
             status: "ACTIVE",
             images: [],
             subcategory: {
-              id: SAMPLE_UUID.subcategoryId,
+              id: SAMPLE_ID.subcategoryId,
               name: "Serums Demo",
               slug: "serums-demo",
               status: "ACTIVE",
             },
             category: {
-              id: SAMPLE_UUID.categoryId,
+              id: SAMPLE_ID.categoryId,
               name: "Skincare Demo",
               slug: "skincare-demo",
               status: "ACTIVE",
@@ -846,8 +662,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
       status: "Conflict",
       body: {
         status: "error",
-        message: "Product SKU already exists",
-        code: "CONFLICT",
+        message: "Product SKU already exists.",
       },
     },
   },
@@ -862,7 +677,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
         status: "success",
         data: {
           product: {
-            id: SAMPLE_UUID.productId,
+            id: SAMPLE_ID.productId,
             name: "Rose Serum Demo",
             sku: "SKU-ROSE-DEMO-001",
             priceMinor: 25000,
@@ -878,7 +693,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
 
   "PATCH /api/v1/products/{id}": {
     name: "Update product",
-    description: "**Auth:** ADMIN. **CSRF** required. Name does not auto-change slug.",
+    description: "**Auth:** ADMIN Bearer JWT. Name does not auto-change slug.",
     body: {
       stockQty: 8,
       description: "Updated product description",
@@ -890,7 +705,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
         status: "success",
         data: {
           product: {
-            id: SAMPLE_UUID.productId,
+            id: SAMPLE_ID.productId,
             stockQty: 8,
             inStock: true,
           },
@@ -901,7 +716,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
 
   "DELETE /api/v1/products/{id}": {
     name: "Archive product",
-    description: "**Auth:** ADMIN. Soft archive. **CSRF** required.",
+    description: "**Auth:** ADMIN Bearer JWT. Soft archive.",
     successExample: {
       code: 200,
       status: "OK",
@@ -909,7 +724,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
         status: "success",
         data: {
           product: {
-            id: SAMPLE_UUID.productId,
+            id: SAMPLE_ID.productId,
             status: "ARCHIVED",
           },
         },
@@ -920,7 +735,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
   "POST /api/v1/products/{id}/images": {
     name: "Add product image",
     description: [
-      "Adds an image URL (no file upload). **Auth:** ADMIN. **CSRF** required.",
+      "Adds an image URL (no file upload). **Auth:** ADMIN Bearer JWT.",
       "Uses `{{productId}}`. Copy image id into `{{imageId}}`.",
     ].join("\n"),
     body: {
@@ -936,10 +751,10 @@ const EXAMPLES: Record<string, ExampleDef> = {
         status: "success",
         data: {
           product: {
-            id: SAMPLE_UUID.productId,
+            id: SAMPLE_ID.productId,
             images: [
               {
-                id: SAMPLE_UUID.imageId,
+                id: SAMPLE_ID.imageId,
                 url: "https://cdn.example.com/products/rose-serum.jpg",
                 altText: "Rose serum bottle",
                 sortOrder: 0,
@@ -955,14 +770,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
       status: "Bad Request",
       body: {
         status: "error",
-        message: "Validation failed",
-        code: "VALIDATION_ERROR",
-        details: [
-          {
-            path: "url",
-            message: "Image URL must be http(s) without credentials",
-          },
-        ],
+        message: "Image URL must be http(s) without credentials.",
       },
     },
   },
@@ -970,7 +778,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
   "PATCH /api/v1/products/{id}/images/{imageId}": {
     name: "Update product image",
     description:
-      "**Auth:** ADMIN. **CSRF** required. Paths use `{{productId}}` and `{{imageId}}`.",
+      "**Auth:** ADMIN Bearer JWT. Paths use `{{productId}}` and `{{imageId}}`.",
     body: {
       altText: "Updated alt text",
       isPrimary: true,
@@ -982,10 +790,10 @@ const EXAMPLES: Record<string, ExampleDef> = {
         status: "success",
         data: {
           product: {
-            id: SAMPLE_UUID.productId,
+            id: SAMPLE_ID.productId,
             images: [
               {
-                id: SAMPLE_UUID.imageId,
+                id: SAMPLE_ID.imageId,
                 altText: "Updated alt text",
                 isPrimary: true,
               },
@@ -999,7 +807,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
   "DELETE /api/v1/products/{id}/images/{imageId}": {
     name: "Delete product image",
     description:
-      "**Auth:** ADMIN. Hard-deletes image; promotes next primary if needed. **CSRF** required.",
+      "**Auth:** ADMIN Bearer JWT. Hard-deletes image; promotes next primary if needed.",
     successExample: {
       code: 200,
       status: "OK",
@@ -1007,7 +815,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
         status: "success",
         data: {
           product: {
-            id: SAMPLE_UUID.productId,
+            id: SAMPLE_ID.productId,
             images: [],
           },
         },
@@ -1033,7 +841,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
         data: {
           items: [
             {
-              id: SAMPLE_UUID.orderId,
+              id: SAMPLE_ID.orderId,
               status: "PENDING",
               totalMinor: 50000,
               currency: "EGP",
@@ -1048,8 +856,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
       status: "Forbidden",
       body: {
         status: "error",
-        message: "Insufficient permissions",
-        code: "FORBIDDEN",
+        message: "Insufficient permissions.",
       },
     },
   },
@@ -1060,7 +867,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
       "Places an order. Stock is deducted; prices come from the database.",
       "",
       "**Auth:** CUSTOMER only (ADMIN gets 403).",
-      "**CSRF:** Origin + `x-csrf-token: {{csrfToken}}`.",
+      "**Auth:** `Authorization: Bearer {{token}}`.",
       "**Idempotency-Key:** Required. Use `{{idempotencyKey}}`.",
       "  - First success → HTTP 201",
       "  - Same key + same body → HTTP 200 (no second stock deduction)",
@@ -1079,14 +886,14 @@ const EXAMPLES: Record<string, ExampleDef> = {
         status: "success",
         data: {
           order: {
-            id: SAMPLE_UUID.orderId,
-            userId: SAMPLE_UUID.userId,
+            id: SAMPLE_ID.orderId,
+            userId: SAMPLE_ID.userId,
             status: "PENDING",
             totalMinor: 50000,
             currency: "EGP",
             items: [
               {
-                productId: SAMPLE_UUID.productId,
+                productId: SAMPLE_ID.productId,
                 productNameSnapshot: "Rose Serum Demo",
                 productSkuSnapshot: "SKU-ROSE-DEMO-001",
                 unitPriceMinor: 25000,
@@ -1103,8 +910,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
       status: "Conflict",
       body: {
         status: "error",
-        message: "Insufficient stock for one or more products",
-        code: "CONFLICT",
+        message: "Insufficient stock.",
       },
     },
   },
@@ -1126,7 +932,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
         data: {
           items: [
             {
-              id: SAMPLE_UUID.orderId,
+              id: SAMPLE_ID.orderId,
               status: "PENDING",
               totalMinor: 50000,
               currency: "EGP",
@@ -1149,7 +955,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
         status: "success",
         data: {
           order: {
-            id: SAMPLE_UUID.orderId,
+            id: SAMPLE_ID.orderId,
             status: "PENDING",
             totalMinor: 50000,
             currency: "EGP",
@@ -1163,8 +969,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
       status: "Not Found",
       body: {
         status: "error",
-        message: "Order not found",
-        code: "NOT_FOUND",
+        message: "Order not found.",
       },
     },
   },
@@ -1173,7 +978,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
     name: "Cancel order",
     description: [
       "CUSTOMER: PENDING only. ADMIN: PENDING or CONFIRMED. Restocks once.",
-      "**Auth** + **CSRF** required. Uses `{{orderId}}`.",
+      "**Auth:** `Authorization: Bearer {{token}}`. Uses `{{orderId}}`.",
     ].join("\n"),
     successExample: {
       code: 200,
@@ -1182,7 +987,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
         status: "success",
         data: {
           order: {
-            id: SAMPLE_UUID.orderId,
+            id: SAMPLE_ID.orderId,
             status: "CANCELLED",
             totalMinor: 50000,
             currency: "EGP",
@@ -1195,8 +1000,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
       status: "Conflict",
       body: {
         status: "error",
-        message: "Order cannot be cancelled in its current status",
-        code: "CONFLICT",
+        message: "Order cannot be cancelled in its current status.",
       },
     },
   },
@@ -1205,7 +1009,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
     name: "Update order status (ADMIN)",
     description: [
       "ADMIN only: PENDING→CONFIRMED or CONFIRMED→FULFILLED (no skip).",
-      "**CSRF** required. Uses `{{orderId}}`.",
+      "**Auth:** ADMIN Bearer JWT. Uses `{{orderId}}`.",
     ].join("\n"),
     body: {
       status: "CONFIRMED",
@@ -1217,7 +1021,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
         status: "success",
         data: {
           order: {
-            id: SAMPLE_UUID.orderId,
+            id: SAMPLE_ID.orderId,
             status: "CONFIRMED",
           },
         },
@@ -1228,8 +1032,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
       status: "Conflict",
       body: {
         status: "error",
-        message: "Invalid order status transition",
-        code: "CONFLICT",
+        message: "Invalid order status transition.",
       },
     },
   },
@@ -1267,49 +1070,58 @@ function resolvePathVars(
   return { pathSegments, rawPath: raw };
 }
 
-function resolveCsrfMode(
-  method: string,
-  example: ExampleDef | undefined,
-): CsrfMode {
-  if (example?.csrfMode) {
-    return example.csrfMode;
+function needsBearer(routePath: string, example: ExampleDef | undefined): boolean {
+  if (example?.public) return false;
+  if (example?.captureToken) return false;
+  if (
+    routePath === "/health" ||
+    routePath === "/api/v1/health" ||
+    routePath === "/api/v1/auth/register" ||
+    routePath === "/api/v1/auth/login"
+  ) {
+    return false;
   }
-  if (example?.csrf === false) {
-    return "bootstrap";
-  }
-  if (method === "get" || method === "head" || method === "options") {
-    return "none";
-  }
-  return "required";
+  // Catalog list/get are public by default; OpenAPI marks protected ops with security.
+  return true;
 }
 
 function buildHeaders(
   method: string,
   routePath: string,
   example: ExampleDef | undefined,
+  operationSecurity: unknown,
 ): Header[] {
   const headers: Header[] = [];
-  const needsMutationHeaders = method !== "get";
-  const csrfMode = resolveCsrfMode(method, example);
 
-  if (needsMutationHeaders) {
-    headers.push({
-      key: "Origin",
-      value: "{{origin}}",
-      description: "Must match CORS_ORIGIN (e.g. http://localhost:3000)",
-    });
-    // Bootstrap: header added/removed by pre-request script (never send empty).
-    // Required: header present; collection pre-request syncs value from cookie.
-    if (csrfMode === "required") {
-      headers.push({
-        key: "x-csrf-token",
-        value: "{{csrfToken}}",
-        description:
-          "Must equal nb_csrf. Synced automatically from the cookie jar.",
-      });
-    }
+  if (example?.body !== undefined || method !== "get") {
     if (example?.body !== undefined) {
       headers.push({ key: "Content-Type", value: "application/json" });
+    }
+  }
+
+  const secured =
+    Array.isArray(operationSecurity) && operationSecurity.length > 0;
+  if (secured || needsBearer(routePath, example)) {
+    // Skip bearer on public capture endpoints
+    if (!example?.public && !example?.captureToken) {
+      headers.push({
+        key: "Authorization",
+        value: "Bearer {{token}}",
+        description: "JWT from Login/Register (`data.token` → collection `token`).",
+      });
+    }
+  }
+
+  // Public catalog GETs should not force Authorization; strip if OpenAPI has no security
+  if (!secured && method === "get" && !example?.public) {
+    const idx = headers.findIndex((h) => h.key === "Authorization");
+    // Keep Authorization only when OpenAPI security is set or path is clearly protected
+    const protectedGet =
+      routePath.includes("/auth/me") ||
+      routePath.includes("/users/") ||
+      routePath.includes("/orders");
+    if (!protectedGet && idx >= 0) {
+      headers.splice(idx, 1);
     }
   }
 
@@ -1402,8 +1214,6 @@ for (const [routePath, methods] of Object.entries(openApiDocument.paths)) {
     const tag = operation.tags?.[0] ?? "API";
     const { pathSegments, rawPath } = resolvePathVars(routePath);
     const queryForUrl = example?.query;
-    const csrfMode = resolveCsrfMode(method, example);
-
     const rawUrl =
       queryForUrl && queryForUrl.length > 0
         ? `{{baseUrl}}${rawPath}?${queryForUrl
@@ -1413,9 +1223,8 @@ for (const [routePath, methods] of Object.entries(openApiDocument.paths)) {
         : `{{baseUrl}}${rawPath}`;
 
     const events: PostmanEvent[] = [];
-    if (csrfMode === "bootstrap") {
-      // Collection pre-request clears stale nb_csrf; Tests capture the new token.
-      events.push(scriptEvent("test", AUTH_SUCCESS_TEST));
+    if (example?.captureToken) {
+      events.push(scriptEvent("test", AUTH_CAPTURE_TOKEN_TEST));
     }
 
     const item: PostmanItem = {
@@ -1423,7 +1232,12 @@ for (const [routePath, methods] of Object.entries(openApiDocument.paths)) {
       ...(events.length > 0 ? { event: events } : {}),
       request: {
         method: method.toUpperCase(),
-        header: buildHeaders(method, routePath, example),
+        header: buildHeaders(
+          method,
+          routePath,
+          example,
+          (operation as { security?: unknown }).security,
+        ),
         url: {
           raw: rawUrl,
           host: ["{{baseUrl}}"],
@@ -1438,8 +1252,8 @@ for (const [routePath, methods] of Object.entries(openApiDocument.paths)) {
             operation.summary ??
             "",
           "",
-          "Tips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.",
-          "Do not paste access/refresh tokens into variables.",
+          "Tips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.",
+          "Never paste real JWTs into this collection file.",
         ].join("\n"),
       },
       response: [],
@@ -1490,22 +1304,20 @@ const collection = {
       "",
       "## Postman Desktop setup",
       "1. Delete any old copy of this collection (do not merge).",
-      "2. Cookies → Domains Allowlist → add your API origin (e.g. `http://localhost:4000`).",
-      "3. If register/login return CSRF 403: Cookies → delete `nb_csrf` for that host, then retry.",
-      "4. Import `apps/api/docs/postman/Nesma-Bloom-API.postman_collection.json`.",
-      "5. Collection variables: `baseUrl=http://localhost:4000`, `origin=http://localhost:3000`.",
-      "6. Prefer leaving Environment `csrfToken` unset (collection variable is enough).",
+      "2. Import `apps/api/docs/postman/Nesma-Bloom-API.postman_collection.json`.",
+      "3. Collection variables: `baseUrl=http://localhost:4000`, leave `token` empty.",
       "",
       "## Quick start",
-      "1. Register or Login — collection pre-request clears stale `nb_csrf`; Tests capture the new token.",
+      "1. Register or Login — Tests captures `data.token` into collection `{{token}}`.",
       "2. ADMIN catalog writes: login as an existing ADMIN (register cannot create ADMIN).",
       "3. Create Category → Subcategory → Product → Image; save IDs into variables.",
       "4. CUSTOMER → Create Order (idempotencyKey) → Get/Cancel.",
       "",
-      "## CSRF notes",
-      "- Backend: Origin required; double-submit (`nb_csrf` == `x-csrf-token`) when the cookie exists.",
-      "- Register/Login (Postman): clear only `nb_csrf` for `baseUrl` + strip CSRF headers (first-visit path).",
-      "- Other mutations: pre-request upserts a concrete `x-csrf-token` matching `nb_csrf`.",
+      "## Auth notes",
+      "- Register/Login return `{ status, data: { user, token } }` — property name is exactly `token`.",
+      "- Protected requests send `Authorization: Bearer {{token}}`.",
+      "- Logout revokes the jti (idempotent 200). Other protected routes reject revoked JWTs with 401.",
+      "- Never commit real JWTs into generated files.",
       "",
       "Regenerate: pnpm --filter @cosmetics/api docs:postman",
       "Source: apps/api/scripts/generate-postman.mts",
@@ -1513,11 +1325,9 @@ const collection = {
     schema:
       "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
   },
-  event: [scriptEvent("prerequest", COLLECTION_PREREQUEST)],
   variable: [
     { key: "baseUrl", value: "http://localhost:4000" },
-    { key: "origin", value: "http://localhost:3000" },
-    { key: "csrfToken", value: "" },
+    { key: "token", value: "" },
     { key: "categoryId", value: "" },
     { key: "subcategoryId", value: "" },
     { key: "productId", value: "" },

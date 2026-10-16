@@ -4,12 +4,9 @@ import type { Env } from "../../config/env.js";
 import type { Logger } from "../../config/logger.js";
 import { AppError } from "../errors/app-error.js";
 
-type ErrorBody = {
+type PublicErrorBody = {
   status: "error";
   message: string;
-  code: string;
-  details?: Array<{ path: string; message: string }>;
-  requestId?: string;
 };
 
 export function createErrorMiddleware(env: Env, logger: Logger) {
@@ -22,66 +19,62 @@ export function createErrorMiddleware(env: Env, logger: Logger) {
     const requestId = req.requestId;
 
     if (isJsonSyntaxError(err)) {
-      const body: ErrorBody = {
-        status: "error",
-        message: "Malformed JSON in request body",
-        code: "BAD_REQUEST",
-        requestId,
-      };
-      res.status(400).json(body);
+      logger.warn({ requestId, code: "BAD_REQUEST" }, "Malformed JSON in request body");
+      sendError(res, 400, "Malformed JSON in request body.");
       return;
     }
 
     if (err instanceof AppError) {
       if (!err.isOperational || err.statusCode >= 500) {
-        logger.error({ err, requestId }, err.message);
+        logger.error(
+          { err, requestId, code: err.code, details: err.details },
+          err.message,
+        );
       } else {
-        logger.warn({ err, requestId, code: err.code }, err.message);
+        logger.warn(
+          { err, requestId, code: err.code, details: err.details },
+          err.message,
+        );
       }
 
-      const body: ErrorBody = {
-        status: "error",
-        message: err.message,
-        code: err.code,
-        requestId,
-      };
-
-      if (err.details && err.details.length > 0) {
-        body.details = err.details;
-      }
-
-      res.status(err.statusCode).json(body);
+      sendError(res, err.statusCode, publicMessage(err));
       return;
     }
 
     if (isDatabaseUnavailableError(err)) {
-      logger.error({ err: sanitizeError(err), requestId }, "Database unavailable");
-      const body: ErrorBody = {
-        status: "error",
-        message: "Service temporarily unavailable",
-        code: "SERVICE_UNAVAILABLE",
-        requestId,
-      };
-      res.status(503).json(body);
+      logger.error({ err: sanitizeError(err), requestId, code: "SERVICE_UNAVAILABLE" }, "Database unavailable");
+      sendError(res, 503, "Service temporarily unavailable.");
       return;
     }
 
-    logger.error({ err: sanitizeError(err), requestId }, "Unhandled error");
+    logger.error(
+      { err: sanitizeError(err), requestId, code: "INTERNAL_SERVER_ERROR" },
+      "Unhandled error",
+    );
 
-    const body: ErrorBody = {
-      status: "error",
-      message:
-        env.NODE_ENV === "production"
-          ? "Internal server error"
-          : err instanceof Error
-            ? err.message
-            : "Internal server error",
-      code: "INTERNAL_SERVER_ERROR",
-      requestId,
-    };
-
-    res.status(500).json(body);
+    // Never leak internals (including development Error.message) to clients.
+    void env;
+    sendError(res, 500, "Internal server error.");
   };
+}
+
+function sendError(res: Response, statusCode: number, message: string): void {
+  const body: PublicErrorBody = {
+    status: "error",
+    message,
+  };
+  res.status(statusCode).json(body);
+}
+
+function publicMessage(err: AppError): string {
+  if (!err.isOperational || err.statusCode >= 500) {
+    return "Internal server error.";
+  }
+  const trimmed = err.message.trim();
+  if (!trimmed) {
+    return "Request failed.";
+  }
+  return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
 }
 
 function isJsonSyntaxError(err: unknown): boolean {

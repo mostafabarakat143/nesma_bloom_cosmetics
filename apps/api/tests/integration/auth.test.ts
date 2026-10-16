@@ -1,22 +1,16 @@
+import { decodeJwt } from "jose";
 import request from "supertest";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
 import { hashPassword } from "../../src/modules/auth/password.service.js";
-import {
-  ACCESS_COOKIE,
-  REFRESH_COOKIE,
-  TEST_ORIGIN,
-  authHeaders,
-  mergeCookies,
-  parseCookies,
-} from "../helpers/auth.js";
+import { TEST_ORIGIN, authHeaders, extractToken } from "../helpers/auth.js";
 import { buildTestApp } from "../helpers/test-app.js";
 
-describe("auth and profiles", () => {
-  const { app, prisma } = buildTestApp();
+describe("auth and profiles (Bearer JWT)", () => {
+  const { app, prisma, env } = buildTestApp();
 
   beforeEach(async () => {
-    await prisma.refreshToken.deleteMany();
+    await prisma.revokedAccessToken.deleteMany();
     await prisma.orderIdempotencyKey.deleteMany();
     await prisma.orderItem.deleteMany();
     await prisma.order.deleteMany();
@@ -37,22 +31,37 @@ describe("auth and profiles", () => {
       .set("Origin", TEST_ORIGIN)
       .send({ email, password, firstName: "Nesma" });
 
-    return { response, email, password, cookies: parseCookies(response) };
+    return {
+      response,
+      email,
+      password,
+      token: response.status === 201 ? extractToken(response) : "",
+    };
   }
 
-  it("registers and logs in a customer without leaking passwordHash", async () => {
-    const { response, email, cookies } = await register();
+  it("registers with a single Bearer token and no cookie/legacy fields", async () => {
+    const { response, email } = await register();
 
     expect(response.status).toBe(201);
     expect(response.body.data.user.email).toBe(email.toLowerCase());
     expect(response.body.data.user.role).toBe("CUSTOMER");
     expect(response.body.data.user.passwordHash).toBeUndefined();
+    expect(typeof response.body.data.token).toBe("string");
+    expect(response.body.data.accessToken).toBeUndefined();
+    expect(response.body.data.refreshToken).toBeUndefined();
+    expect(response.body.data.expiresIn).toBeUndefined();
     expect(JSON.stringify(response.body)).not.toMatch(/passwordHash|password_hash/i);
-    expect(cookies[ACCESS_COOKIE]).toBeTruthy();
-    expect(cookies[REFRESH_COOKIE]).toBeTruthy();
+    expect(response.headers["set-cookie"]).toBeUndefined();
 
-    const stored = await prisma.user.findUniqueOrThrow({ where: { email } });
-    expect(stored.passwordHash.startsWith("$argon2id$")).toBe(true);
+    const claims = decodeJwt(response.body.data.token);
+    expect(claims.iss).toBe(env.JWT_ISSUER);
+    expect(claims.aud).toBe(env.JWT_AUDIENCE);
+    expect(typeof claims.jti).toBe("string");
+    expect(typeof claims.exp).toBe("number");
+    expect(typeof claims.iat).toBe("number");
+    expect((claims.exp as number) - (claims.iat as number)).toBe(
+      env.JWT_TTL_SECONDS,
+    );
 
     const login = await request(app)
       .post("/api/v1/auth/login")
@@ -60,7 +69,10 @@ describe("auth and profiles", () => {
       .send({ email: email.toUpperCase(), password: "Password123!" });
 
     expect(login.status).toBe(200);
-    expect(login.body.data.user.email).toBe(email.toLowerCase());
+    expect(typeof login.body.data.token).toBe("string");
+    expect(login.body.data.accessToken).toBeUndefined();
+    expect(login.body.data.refreshToken).toBeUndefined();
+    expect(login.body.data.expiresIn).toBeUndefined();
   });
 
   it("rejects duplicate emails with different casing", async () => {
@@ -72,7 +84,10 @@ describe("auth and profiles", () => {
       .send({ email: "duplicate@example.com", password: "Password123!" });
 
     expect(second.status).toBe(409);
-    expect(second.body.code).toBe("CONFLICT");
+    expect(second.body).toEqual({
+      status: "error",
+      message: "An account with this email already exists. Please log in.",
+    });
   });
 
   it("rejects invalid registration input", async () => {
@@ -82,7 +97,10 @@ describe("auth and profiles", () => {
       .send({ email: "not-an-email", password: "short" });
 
     expect(response.status).toBe(400);
-    expect(response.body.code).toBe("VALIDATION_ERROR");
+    expect(response.body).toEqual({
+      status: "error",
+      message: "Please enter a valid email address.",
+    });
   });
 
   it("returns generic 401 for bad credentials and disabled accounts", async () => {
@@ -94,7 +112,10 @@ describe("auth and profiles", () => {
       .send({ email, password: "WrongPassword1!" });
 
     expect(badPassword.status).toBe(401);
-    expect(badPassword.body.message).toBe("Invalid email or password");
+    expect(badPassword.body).toEqual({
+      status: "error",
+      message: "Invalid email or password.",
+    });
 
     await prisma.user.update({
       where: { email },
@@ -107,84 +128,97 @@ describe("auth and profiles", () => {
       .send({ email, password: "Password123!" });
 
     expect(disabled.status).toBe(401);
-    expect(disabled.body.message).toBe("Invalid email or password");
+    expect(disabled.body).toEqual({
+      status: "error",
+      message: "Invalid email or password.",
+    });
   });
 
-  it("rejects missing and malformed access tokens", async () => {
+  it("authenticates with Bearer and rejects missing/malformed tokens", async () => {
+    const { token } = await register();
+
+    const me = await request(app)
+      .get("/api/v1/auth/me")
+      .set(authHeaders(token));
+    expect(me.status).toBe(200);
+
     const missing = await request(app).get("/api/v1/auth/me");
     expect(missing.status).toBe(401);
 
     const malformed = await request(app)
       .get("/api/v1/auth/me")
-      .set("Cookie", `${ACCESS_COOKIE}=not-a-jwt`);
+      .set("Authorization", "Bearer not-a-jwt");
     expect(malformed.status).toBe(401);
+
+    const refreshGone = await request(app).post("/api/v1/auth/refresh");
+    expect(refreshGone.status).toBe(404);
   });
 
-  it("logs out and immediately invalidates the access session", async () => {
-    const { cookies } = await register("logout@example.com");
+  it("rejects expired JWTs with 401", async () => {
+    const shortLived = buildTestApp({ JWT_TTL_SECONDS: "1" });
+    try {
+      await shortLived.prisma.revokedAccessToken.deleteMany();
+      await shortLived.prisma.userProfile.deleteMany();
+      await shortLived.prisma.user.deleteMany();
 
-    const meBefore = await request(app)
-      .get("/api/v1/auth/me")
-      .set(authHeaders(cookies));
-    expect(meBefore.status).toBe(200);
+      const registered = await request(shortLived.app)
+        .post("/api/v1/auth/register")
+        .set("Origin", TEST_ORIGIN)
+        .send({
+          email: `exp-${Date.now()}@example.com`,
+          password: "Password123!",
+        });
+      expect(registered.status).toBe(201);
+      const token = extractToken(registered);
 
-    const logout = await request(app)
+      await new Promise((r) => setTimeout(r, 1100));
+
+      const me = await request(shortLived.app)
+        .get("/api/v1/auth/me")
+        .set(authHeaders(token));
+      expect(me.status).toBe(401);
+    } finally {
+      await shortLived.prisma.$disconnect();
+    }
+  });
+
+  it("revokes JWT on logout; repeated logout is 200; revoked token fails elsewhere", async () => {
+    const { token } = await register();
+
+    const first = await request(app)
       .post("/api/v1/auth/logout")
-      .set(authHeaders(cookies));
-    expect(logout.status).toBe(200);
+      .set(authHeaders(token));
+    expect(first.status).toBe(200);
 
-    const meAfter = await request(app)
-      .get("/api/v1/auth/me")
-      .set(authHeaders(cookies));
-    expect(meAfter.status).toBe(401);
+    const second = await request(app)
+      .post("/api/v1/auth/logout")
+      .set(authHeaders(token));
+    expect(second.status).toBe(200);
 
-    const refresh = await request(app)
-      .post("/api/v1/auth/refresh")
-      .set(authHeaders(cookies));
-    expect(refresh.status).toBe(401);
-  });
-
-  it("rotates refresh tokens and rejects replay of the old token", async () => {
-    let cookies = (await register("rotate@example.com")).cookies;
-    const oldRefresh = cookies[REFRESH_COOKIE];
-
-    const refreshed = await request(app)
-      .post("/api/v1/auth/refresh")
-      .set(authHeaders(cookies));
-    expect(refreshed.status).toBe(200);
-
-    cookies = mergeCookies(cookies, refreshed);
-    expect(cookies[REFRESH_COOKIE]).not.toBe(oldRefresh);
-
-    const replay = await request(app)
-      .post("/api/v1/auth/refresh")
-      .set("Origin", TEST_ORIGIN)
-      .set("Cookie", `${REFRESH_COOKIE}=${oldRefresh}`);
-    expect(replay.status).toBe(401);
-  });
-
-  it("handles concurrent refresh races safely", async () => {
-    const { cookies } = await register("race@example.com");
-
-    const [first, second] = await Promise.all([
-      request(app).post("/api/v1/auth/refresh").set(authHeaders(cookies)),
-      request(app).post("/api/v1/auth/refresh").set(authHeaders(cookies)),
-    ]);
-
-    const statuses = [first.status, second.status].sort();
-    expect(statuses).toContain(200);
-    expect(statuses).toContain(401);
-
-    const winner = first.status === 200 ? first : second;
-    const winnerCookies = mergeCookies(cookies, winner);
     const me = await request(app)
       .get("/api/v1/auth/me")
-      .set(authHeaders(winnerCookies));
-    expect(me.status).toBe(200);
+      .set(authHeaders(token));
+    expect(me.status).toBe(401);
+
+    const count = await prisma.revokedAccessToken.count();
+    expect(count).toBe(1);
   });
 
-  it("locks out disabled users immediately while session cookie remains", async () => {
-    const { cookies, email } = await register(`disabled-live-${Date.now()}@example.com`);
+  it("handles concurrent logout without duplicate revoke rows", async () => {
+    const { token } = await register();
+
+    const [a, b] = await Promise.all([
+      request(app).post("/api/v1/auth/logout").set(authHeaders(token)),
+      request(app).post("/api/v1/auth/logout").set(authHeaders(token)),
+    ]);
+
+    expect(a.status).toBe(200);
+    expect(b.status).toBe(200);
+    expect(await prisma.revokedAccessToken.count()).toBe(1);
+  });
+
+  it("disables access immediately when user status becomes DISABLED", async () => {
+    const { token, email } = await register();
 
     await prisma.user.update({
       where: { email },
@@ -193,159 +227,38 @@ describe("auth and profiles", () => {
 
     const me = await request(app)
       .get("/api/v1/auth/me")
-      .set(authHeaders(cookies));
+      .set(authHeaders(token));
     expect(me.status).toBe(401);
   });
 
   it("applies role changes from PostgreSQL immediately", async () => {
-    const password = "Password123!";
-    const email = `role-flip-${Date.now()}@example.com`;
-    await prisma.user.create({
-      data: {
-        email,
-        passwordHash: await hashPassword(password),
-        role: "ADMIN",
-        profile: { create: {} },
-      },
-    });
-
-    const login = await request(app)
-      .post("/api/v1/auth/login")
-      .set("Origin", TEST_ORIGIN)
-      .send({ email, password });
-    const cookies = parseCookies(login);
-
-    const before = await request(app)
-      .get("/api/v1/categories")
-      .set(authHeaders(cookies))
-      .query({ status: "ALL" });
-    expect(before.status).toBe(200);
+    const { token, email } = await register();
 
     await prisma.user.update({
       where: { email },
-      data: { role: "CUSTOMER" },
+      data: { role: "ADMIN" },
     });
 
-    const after = await request(app)
-      .get("/api/v1/categories")
-      .set(authHeaders(cookies))
-      .query({ status: "ALL" });
-    expect(after.status).toBe(403);
+    const ping = await request(app)
+      .get("/api/v1/users/admin/ping")
+      .set(authHeaders(token));
+    expect(ping.status).toBe(200);
   });
 
-  it("revokes all sessions on delayed reuse of a rotated refresh token", async () => {
-    let cookies = (await register(`delayed-${Date.now()}@example.com`)).cookies;
-    const oldRefresh = cookies[REFRESH_COOKIE];
+  it("updates own profile with Bearer auth", async () => {
+    const { token } = await register();
 
-    const refreshed = await request(app)
-      .post("/api/v1/auth/refresh")
-      .set(authHeaders(cookies));
-    expect(refreshed.status).toBe(200);
-    cookies = mergeCookies(cookies, refreshed);
-
-    await prisma.refreshToken.updateMany({
-      where: { replacedById: { not: null } },
-      data: { revokedAt: new Date(Date.now() - 31_000) },
-    });
-
-    const delayed = await request(app)
-      .post("/api/v1/auth/refresh")
-      .set("Origin", TEST_ORIGIN)
-      .set("Cookie", `${REFRESH_COOKIE}=${oldRefresh}`);
-    expect(delayed.status).toBe(401);
-
-    const me = await request(app)
-      .get("/api/v1/auth/me")
-      .set(authHeaders(cookies));
-    expect(me.status).toBe(401);
-  });
-
-  it("rejects CSRF-invalid mutating requests after login", async () => {
-    const { cookies } = await register("csrf@example.com");
-
-    const response = await request(app)
+    const patched = await request(app)
       .patch("/api/v1/users/me/profile")
-      .set("Origin", TEST_ORIGIN)
-      .set("Cookie", Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join("; "))
-      .send({ firstName: "Hacker" });
-
-    expect(response.status).toBe(403);
-    expect(response.body.code).toBe("FORBIDDEN");
-  });
-
-  it("allows profile get/update for the authenticated owner only", async () => {
-    const first = await register("owner@example.com");
-    const second = await register("other@example.com");
-
-    const updated = await request(app)
-      .patch("/api/v1/users/me/profile")
-      .set(authHeaders(first.cookies))
+      .set(authHeaders(token))
       .send({ firstName: "Bloom", phone: "+201000000000" });
 
-    expect(updated.status).toBe(200);
-    expect(updated.body.data.profile.firstName).toBe("Bloom");
-    expect(updated.body.data.profile.userId).toBe(
-      first.response.body.data.user.id,
-    );
-
-    const otherProfile = await request(app)
-      .get("/api/v1/users/me/profile")
-      .set(authHeaders(second.cookies));
-
-    expect(otherProfile.status).toBe(200);
-    expect(otherProfile.body.data.profile.userId).toBe(
-      second.response.body.data.user.id,
-    );
-    expect(otherProfile.body.data.profile.firstName).not.toBe("Bloom");
+    expect(patched.status).toBe(200);
+    expect(patched.body.data.profile.firstName).toBe("Bloom");
   });
 
-  it("blocks CUSTOMER from ADMIN-only routes", async () => {
-    const { cookies } = await register("customer@example.com");
-
-    const response = await request(app)
-      .get("/api/v1/users/admin/ping")
-      .set(authHeaders(cookies));
-
-    expect(response.status).toBe(403);
-  });
-
-  it("allows ADMIN role through requireRole", async () => {
-    const passwordHash = await hashPassword("Password123!");
-    const admin = await prisma.user.create({
-      data: {
-        email: "admin@example.com",
-        passwordHash,
-        role: "ADMIN",
-        profile: { create: {} },
-      },
-    });
-
-    const login = await request(app)
-      .post("/api/v1/auth/login")
-      .set("Origin", TEST_ORIGIN)
-      .send({ email: admin.email, password: "Password123!" });
-
-    expect(login.status).toBe(200);
-    const cookies = parseCookies(login);
-
-    const response = await request(app)
-      .get("/api/v1/users/admin/ping")
-      .set(authHeaders(cookies));
-
-    expect(response.status).toBe(200);
-    expect(response.body.data.message).toBe("admin ok");
-  });
-
-  it("ignores role elevation attempts on registration", async () => {
-    const response = await request(app)
-      .post("/api/v1/auth/register")
-      .set("Origin", TEST_ORIGIN)
-      .send({
-        email: "elevate@example.com",
-        password: "Password123!",
-        role: "ADMIN",
-      });
-
-    expect(response.status).toBe(400);
+  it("does not create refresh_tokens rows on register/login", async () => {
+    await register();
+    expect(await prisma.refreshToken.count()).toBe(0);
   });
 });

@@ -10,7 +10,7 @@ export const updateProfileBodySchema = z
   .strict()
   .refine(
     (value) => Object.keys(value).length > 0,
-    "At least one profile field is required",
+    "At least one profile field is required.",
   );
 
 export type UpdateProfileBody = z.infer<typeof updateProfileBodySchema>;

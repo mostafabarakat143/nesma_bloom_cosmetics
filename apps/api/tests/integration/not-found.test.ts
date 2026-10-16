@@ -15,8 +15,9 @@ describe("not found handling", () => {
 
     expect(response.status).toBe(404);
     expect(response.body.status).toBe("error");
-    expect(response.body.code).toBe("NOT_FOUND");
     expect(response.body.message).toMatch(/not found/i);
-    expect(response.body.requestId).toBeTruthy();
+    expect(response.body).not.toHaveProperty("code");
+    expect(response.body).not.toHaveProperty("requestId");
+    expect(Object.keys(response.body).sort()).toEqual(["message", "status"]);
   });
 });

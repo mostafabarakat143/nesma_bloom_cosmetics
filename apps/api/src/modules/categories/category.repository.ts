@@ -64,7 +64,7 @@ export async function findCategoriesPage(
 
 export async function findCategoryById(
   prisma: Database,
-  id: string,
+  id: number,
 ): Promise<Category | null> {
   return prisma.category.findUnique({ where: { id } });
 }
@@ -90,7 +90,7 @@ export async function createCategory(
 
 export async function updateCategory(
   prisma: Database,
-  id: string,
+  id: number,
   data: Prisma.CategoryUpdateInput,
 ): Promise<Category> {
   return prisma.category.update({

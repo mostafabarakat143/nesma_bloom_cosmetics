@@ -1,6 +1,10 @@
 import { z } from "zod";
 
 import { normalizeSlug } from "../../common/utils/slug.js";
+import {
+  positiveIntIdField,
+  positiveIntIdSchema,
+} from "../../common/validation/ids.js";
 
 const slugSchema = z
   .string()
@@ -15,7 +19,7 @@ const slugSchema = z
 
 export const subcategoryIdParamsSchema = z
   .object({
-    id: z.string().uuid(),
+    id: positiveIntIdSchema,
   })
   .strict();
 
@@ -27,14 +31,18 @@ export const listSubcategoriesQuerySchema = z
     sortBy: z.enum(["name", "createdAt"]).default("name"),
     sortOrder: z.enum(["asc", "desc"]).default("asc"),
     status: z.enum(["ACTIVE", "ARCHIVED", "ALL"]).default("ACTIVE"),
-    categoryId: z.string().uuid().optional(),
+    categoryId: positiveIntIdSchema.optional(),
   })
   .strict();
 
 export const createSubcategoryBodySchema = z
   .object({
-    name: z.string().trim().min(1).max(120),
-    categoryId: z.string().uuid(),
+    name: z
+      .string({ error: () => "Subcategory name is required." })
+      .trim()
+      .min(1, "Subcategory name is required.")
+      .max(120),
+    categoryId: positiveIntIdField("Category ID"),
     slug: slugSchema.optional(),
     description: z.string().trim().max(5000).nullable().optional(),
     status: z.enum(["ACTIVE", "ARCHIVED"]).optional(),
@@ -44,7 +52,7 @@ export const createSubcategoryBodySchema = z
 export const updateSubcategoryBodySchema = z
   .object({
     name: z.string().trim().min(1).max(120).optional(),
-    categoryId: z.string().uuid().optional(),
+    categoryId: positiveIntIdSchema.optional(),
     slug: slugSchema.optional(),
     description: z.string().trim().max(5000).nullable().optional(),
     status: z.enum(["ACTIVE", "ARCHIVED"]).optional(),
@@ -52,7 +60,7 @@ export const updateSubcategoryBodySchema = z
   .strict()
   .refine(
     (value) => Object.keys(value).length > 0,
-    "At least one field is required",
+    "At least one field is required.",
   );
 
 export type ListSubcategoriesQuery = z.infer<

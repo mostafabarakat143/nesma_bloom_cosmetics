@@ -175,7 +175,7 @@ export async function listProducts(
 
 export async function getProductById(
   prisma: Database,
-  id: string,
+  id: number,
   user?: AuthUser,
 ): Promise<ProductDto> {
   const product = await findProductById(prisma, id);
@@ -242,7 +242,7 @@ export async function createProductService(
 
 export async function updateProductService(
   prisma: Database,
-  id: string,
+  id: number,
   input: UpdateProductBody,
 ): Promise<ProductDto> {
   const existing = await findProductById(prisma, id);
@@ -294,7 +294,7 @@ export async function updateProductService(
  */
 export async function archiveProductService(
   prisma: Database,
-  id: string,
+  id: number,
 ): Promise<ProductDto> {
   const existing = await findProductById(prisma, id);
   if (!existing) {
@@ -311,7 +311,7 @@ export async function archiveProductService(
 
 export async function addProductImageService(
   prisma: Database,
-  productId: string,
+  productId: number,
   input: CreateProductImageBody,
 ): Promise<ProductDto> {
   const product = await findProductById(prisma, productId);
@@ -357,8 +357,8 @@ export async function addProductImageService(
 
 export async function updateProductImageService(
   prisma: Database,
-  productId: string,
-  imageId: string,
+  productId: number,
+  imageId: number,
   input: UpdateProductImageBody,
 ): Promise<ProductDto> {
   const product = await findProductById(prisma, productId);
@@ -404,8 +404,8 @@ export async function updateProductImageService(
 
 export async function deleteProductImageService(
   prisma: Database,
-  productId: string,
-  imageId: string,
+  productId: number,
+  imageId: number,
 ): Promise<ProductDto> {
   const product = await findProductById(prisma, productId);
   if (!product) {

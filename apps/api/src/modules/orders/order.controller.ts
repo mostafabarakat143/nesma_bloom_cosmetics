@@ -73,7 +73,7 @@ export function createOrderController(prisma: Database) {
       next: NextFunction,
     ): Promise<void> {
       try {
-        const { id } = req.params as { id: string };
+        const { id } = req.params as unknown as { id: number };
         const order = await getOrderById(prisma, id, req.user!);
         res.status(200).json({ status: "success", data: { order } });
       } catch (error) {
@@ -87,7 +87,7 @@ export function createOrderController(prisma: Database) {
       next: NextFunction,
     ): Promise<void> {
       try {
-        const { id } = req.params as { id: string };
+        const { id } = req.params as unknown as { id: number };
         const order = await cancelOrderService(prisma, id, req.user!);
         res.status(200).json({ status: "success", data: { order } });
       } catch (error) {
@@ -101,7 +101,7 @@ export function createOrderController(prisma: Database) {
       next: NextFunction,
     ): Promise<void> {
       try {
-        const { id } = req.params as { id: string };
+        const { id } = req.params as unknown as { id: number };
         const body = req.body as UpdateOrderStatusBody;
         const order = await updateOrderStatusService(prisma, id, body);
         res.status(200).json({ status: "success", data: { order } });

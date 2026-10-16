@@ -19,7 +19,7 @@ export type SubcategoryListFilters = {
   status: CatalogStatus | "ALL";
   /** When true, require parent Category.status = ACTIVE (public storefront). */
   requireActiveParent: boolean;
-  categoryId?: string;
+  categoryId?: number;
   search?: string;
   sortBy: ListSubcategoriesQuery["sortBy"];
   sortOrder: ListSubcategoriesQuery["sortOrder"];
@@ -88,7 +88,7 @@ export async function findSubcategoriesPage(
 
 export async function findSubcategoryById(
   prisma: Database,
-  id: string,
+  id: number,
 ): Promise<SubcategoryWithCategory | null> {
   return prisma.subcategory.findUnique({
     where: { id },
@@ -98,7 +98,7 @@ export async function findSubcategoryById(
 
 export async function findParentCategory(
   prisma: Database,
-  categoryId: string,
+  categoryId: number,
 ): Promise<Pick<Category, "id" | "name" | "slug" | "status"> | null> {
   return prisma.category.findUnique({
     where: { id: categoryId },
@@ -111,7 +111,7 @@ export async function createSubcategory(
   data: {
     name: string;
     slug: string;
-    categoryId: string;
+    categoryId: number;
     description?: string | null;
     status?: CatalogStatus;
   },
@@ -130,7 +130,7 @@ export async function createSubcategory(
 
 export async function updateSubcategory(
   prisma: Database,
-  id: string,
+  id: number,
   data: Prisma.SubcategoryUpdateInput,
 ): Promise<SubcategoryWithCategory> {
   return prisma.subcategory.update({

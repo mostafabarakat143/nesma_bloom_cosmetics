@@ -31,10 +31,10 @@ const subcategoryInclude = {
 } satisfies Prisma.ProductInclude;
 
 export type ParentSubcategory = {
-  id: string;
+  id: number;
   status: CatalogStatus;
   category: {
-    id: string;
+    id: number;
     status: CatalogStatus;
   };
 };
@@ -44,8 +44,8 @@ export type ProductListFilters = {
   /** When true, require ACTIVE subcategory and ACTIVE category. */
   requireActiveParents: boolean;
   availability: ListProductsQuery["availability"];
-  categoryId?: string;
-  subcategoryId?: string;
+  categoryId?: number;
+  subcategoryId?: number;
   search?: string;
   minPriceMinor?: number;
   maxPriceMinor?: number;
@@ -144,7 +144,7 @@ export async function findProductsPage(
 
 export async function findProductById(
   prisma: Database,
-  id: string,
+  id: number,
 ): Promise<ProductWithRelations | null> {
   return prisma.product.findUnique({
     where: { id },
@@ -154,7 +154,7 @@ export async function findProductById(
 
 export async function findParentSubcategory(
   prisma: Database,
-  subcategoryId: string,
+  subcategoryId: number,
 ): Promise<ParentSubcategory | null> {
   return prisma.subcategory.findUnique({
     where: { id: subcategoryId },
@@ -177,7 +177,7 @@ export async function createProduct(
     name: string;
     slug: string;
     sku: string;
-    subcategoryId: string;
+    subcategoryId: number;
     description?: string | null;
     priceMinor: number;
     stockQty: number;
@@ -204,7 +204,7 @@ export async function createProduct(
 
 export async function updateProduct(
   prisma: Database,
-  id: string,
+  id: number,
   data: Prisma.ProductUpdateInput,
 ): Promise<ProductWithRelations> {
   return prisma.product.update({
@@ -216,8 +216,8 @@ export async function updateProduct(
 
 export async function findProductImage(
   prisma: Database,
-  productId: string,
-  imageId: string,
+  productId: number,
+  imageId: number,
 ): Promise<ProductImage | null> {
   return prisma.productImage.findFirst({
     where: { id: imageId, productId },
@@ -226,7 +226,7 @@ export async function findProductImage(
 
 export async function getMaxImageSortOrder(
   prisma: Database | Prisma.TransactionClient,
-  productId: string,
+  productId: number,
 ): Promise<number | null> {
   const result = await prisma.productImage.aggregate({
     where: { productId },
@@ -238,7 +238,7 @@ export async function getMaxImageSortOrder(
 export async function createProductImage(
   prisma: Database | Prisma.TransactionClient,
   data: {
-    productId: string;
+    productId: number;
     url: string;
     altText?: string | null;
     sortOrder: number;
@@ -258,7 +258,7 @@ export async function createProductImage(
 
 export async function updateProductImageRecord(
   prisma: Database | Prisma.TransactionClient,
-  imageId: string,
+  imageId: number,
   data: Prisma.ProductImageUpdateInput,
 ): Promise<ProductImage> {
   return prisma.productImage.update({
@@ -269,8 +269,8 @@ export async function updateProductImageRecord(
 
 export async function clearPrimaryImages(
   prisma: Database | Prisma.TransactionClient,
-  productId: string,
-  exceptImageId?: string,
+  productId: number,
+  exceptImageId?: number,
 ): Promise<void> {
   await prisma.productImage.updateMany({
     where: {
@@ -284,14 +284,14 @@ export async function clearPrimaryImages(
 
 export async function deleteProductImageRecord(
   prisma: Database | Prisma.TransactionClient,
-  imageId: string,
+  imageId: number,
 ): Promise<void> {
   await prisma.productImage.delete({ where: { id: imageId } });
 }
 
 export async function findNextImageBySortOrder(
   prisma: Database | Prisma.TransactionClient,
-  productId: string,
+  productId: number,
 ): Promise<ProductImage | null> {
   return prisma.productImage.findFirst({
     where: { productId },

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { normalizeSlug } from "../../common/utils/slug.js";
+import { positiveIntIdSchema } from "../../common/validation/ids.js";
 
 const slugSchema = z
   .string()
@@ -15,7 +16,7 @@ const slugSchema = z
 
 export const categoryIdParamsSchema = z
   .object({
-    id: z.string().uuid(),
+    id: positiveIntIdSchema,
   })
   .strict();
 
@@ -32,7 +33,11 @@ export const listCategoriesQuerySchema = z
 
 export const createCategoryBodySchema = z
   .object({
-    name: z.string().trim().min(1).max(120),
+    name: z
+      .string({ error: () => "Category name is required." })
+      .trim()
+      .min(1, "Category name is required.")
+      .max(120),
     slug: slugSchema.optional(),
     description: z.string().trim().max(5000).nullable().optional(),
     status: z.enum(["ACTIVE", "ARCHIVED"]).optional(),
@@ -49,7 +54,7 @@ export const updateCategoryBodySchema = z
   .strict()
   .refine(
     (value) => Object.keys(value).length > 0,
-    "At least one field is required",
+    "At least one field is required.",
   );
 
 export type ListCategoriesQuery = z.infer<typeof listCategoriesQuerySchema>;

@@ -32,7 +32,7 @@ export function createCategoryController(prisma: Database) {
       next: NextFunction,
     ): Promise<void> {
       try {
-        const { id } = req.params as { id: string };
+        const { id } = req.params as unknown as { id: number };
         const category = await getCategoryById(prisma, id, req.user);
         res.status(200).json({ status: "success", data: { category } });
       } catch (error) {
@@ -60,7 +60,7 @@ export function createCategoryController(prisma: Database) {
       next: NextFunction,
     ): Promise<void> {
       try {
-        const { id } = req.params as { id: string };
+        const { id } = req.params as unknown as { id: number };
         const body = req.body as UpdateCategoryBody;
         const category = await updateCategoryService(prisma, id, body);
         res.status(200).json({ status: "success", data: { category } });
@@ -75,7 +75,7 @@ export function createCategoryController(prisma: Database) {
       next: NextFunction,
     ): Promise<void> {
       try {
-        const { id } = req.params as { id: string };
+        const { id } = req.params as unknown as { id: number };
         const category = await archiveCategoryService(prisma, id);
         res.status(200).json({ status: "success", data: { category } });
       } catch (error) {

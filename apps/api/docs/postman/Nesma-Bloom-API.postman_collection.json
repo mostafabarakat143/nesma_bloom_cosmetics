@@ -1,127 +1,16 @@
 {
   "info": {
     "name": "Nesma Bloom Cosmetics API",
-    "description": "Ready-to-use examples for local manual testing.\n\n## Postman Desktop setup\n1. Delete any old copy of this collection (do not merge).\n2. Cookies → Domains Allowlist → add your API origin (e.g. `http://localhost:4000`).\n3. If register/login return CSRF 403: Cookies → delete `nb_csrf` for that host, then retry.\n4. Import `apps/api/docs/postman/Nesma-Bloom-API.postman_collection.json`.\n5. Collection variables: `baseUrl=http://localhost:4000`, `origin=http://localhost:3000`.\n6. Prefer leaving Environment `csrfToken` unset (collection variable is enough).\n\n## Quick start\n1. Register or Login — collection pre-request clears stale `nb_csrf`; Tests capture the new token.\n2. ADMIN catalog writes: login as an existing ADMIN (register cannot create ADMIN).\n3. Create Category → Subcategory → Product → Image; save IDs into variables.\n4. CUSTOMER → Create Order (idempotencyKey) → Get/Cancel.\n\n## CSRF notes\n- Backend: Origin required; double-submit (`nb_csrf` == `x-csrf-token`) when the cookie exists.\n- Register/Login (Postman): clear only `nb_csrf` for `baseUrl` + strip CSRF headers (first-visit path).\n- Other mutations: pre-request upserts a concrete `x-csrf-token` matching `nb_csrf`.\n\nRegenerate: pnpm --filter @cosmetics/api docs:postman\nSource: apps/api/scripts/generate-postman.mts",
+    "description": "Ready-to-use examples for local manual testing.\n\n## Postman Desktop setup\n1. Delete any old copy of this collection (do not merge).\n2. Import `apps/api/docs/postman/Nesma-Bloom-API.postman_collection.json`.\n3. Collection variables: `baseUrl=http://localhost:4000`, leave `token` empty.\n\n## Quick start\n1. Register or Login — Tests captures `data.token` into collection `{{token}}`.\n2. ADMIN catalog writes: login as an existing ADMIN (register cannot create ADMIN).\n3. Create Category → Subcategory → Product → Image; save IDs into variables.\n4. CUSTOMER → Create Order (idempotencyKey) → Get/Cancel.\n\n## Auth notes\n- Register/Login return `{ status, data: { user, token } }` — property name is exactly `token`.\n- Protected requests send `Authorization: Bearer {{token}}`.\n- Logout revokes the jti (idempotent 200). Other protected routes reject revoked JWTs with 401.\n- Never commit real JWTs into generated files.\n\nRegenerate: pnpm --filter @cosmetics/api docs:postman\nSource: apps/api/scripts/generate-postman.mts",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "type": "text/javascript",
-        "exec": [
-          "function stripCsrfHeaders() {",
-          "  ['x-csrf-token', 'X-CSRF-Token', 'X-CSRF-TOKEN'].forEach(function (key) {",
-          "    pm.request.headers.remove(key);",
-          "  });",
-          "}",
-          "",
-          "function requestUrlString() {",
-          "  try {",
-          "    return pm.variables.replaceIn(pm.request.url.toString());",
-          "  } catch (e) {",
-          "    return pm.request.url.toString();",
-          "  }",
-          "}",
-          "",
-          "function baseOrigin() {",
-          "  try {",
-          "    return new URL(requestUrlString()).origin;",
-          "  } catch (e) {",
-          "    var fromVar = pm.collectionVariables.get('baseUrl');",
-          "    return fromVar ? String(fromVar).replace(/\\/$/, '') : '';",
-          "  }",
-          "}",
-          "",
-          "function requestPath() {",
-          "  try {",
-          "    return new URL(requestUrlString()).pathname;",
-          "  } catch (e) {",
-          "    return pm.request.url.getPath ? pm.request.url.getPath() : '';",
-          "  }",
-          "}",
-          "",
-          "function isAuthBootstrapPath(pathname) {",
-          "  return /\\/api\\/v1\\/auth\\/(register|login)\\/?$/.test(pathname || '');",
-          "}",
-          "",
-          "function unsetNbCsrf(jar, origin) {",
-          "  return new Promise(function (resolve) {",
-          "    if (!origin) return resolve();",
-          "    try {",
-          "      jar.unset(origin, 'nb_csrf', function () { resolve(); });",
-          "    } catch (e) {",
-          "      resolve();",
-          "    }",
-          "  });",
-          "}",
-          "",
-          "function getNbCsrf(jar, origin) {",
-          "  return new Promise(function (resolve) {",
-          "    if (!origin) return resolve(null);",
-          "    try {",
-          "      jar.get(origin, 'nb_csrf', function (err, value) {",
-          "        resolve(!err && value ? String(value) : null);",
-          "      });",
-          "    } catch (e) {",
-          "      resolve(null);",
-          "    }",
-          "  });",
-          "}",
-          "",
-          "return (async function () {",
-          "  var jar = pm.cookies.jar();",
-          "  var origin = baseOrigin();",
-          "  var pathname = requestPath();",
-          "  var method = String(pm.request.method || '').toUpperCase();",
-          "",
-          "  if (isAuthBootstrapPath(pathname)) {",
-          "    await unsetNbCsrf(jar, origin);",
-          "    pm.collectionVariables.set('csrfToken', '');",
-          "    stripCsrfHeaders();",
-          "    return;",
-          "  }",
-          "",
-          "  var csrf = await getNbCsrf(jar, origin);",
-          "  if (!csrf) {",
-          "    try {",
-          "      var direct = pm.cookies.get('nb_csrf');",
-          "      if (direct) csrf = String(direct);",
-          "    } catch (e) {}",
-          "  }",
-          "  if (!csrf) {",
-          "    var fromVar = pm.collectionVariables.get('csrfToken');",
-          "    if (fromVar && String(fromVar).trim()) csrf = String(fromVar).trim();",
-          "  }",
-          "",
-          "  if (csrf) {",
-          "    pm.collectionVariables.set('csrfToken', csrf);",
-          "    if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {",
-          "      pm.request.headers.upsert({ key: 'x-csrf-token', value: csrf });",
-          "    }",
-          "  } else {",
-          "    pm.collectionVariables.set('csrfToken', '');",
-          "    var existing = pm.request.headers.get('x-csrf-token');",
-          "    if (existing === null || existing === undefined || !String(existing).trim() || String(existing).indexOf('{{') !== -1) {",
-          "      stripCsrfHeaders();",
-          "    }",
-          "  }",
-          "})();"
-        ]
-      }
-    }
-  ],
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:4000"
     },
     {
-      "key": "origin",
-      "value": "http://localhost:3000"
-    },
-    {
-      "key": "csrfToken",
+      "key": "token",
       "value": ""
     },
     {
@@ -172,7 +61,7 @@
                 "health"
               ]
             },
-            "description": "Liveness probe. No authentication.\n\nPublic — no cookies or CSRF.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+            "description": "Liveness probe. No authentication.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
           },
           "response": [
             {
@@ -204,19 +93,12 @@
                 "type": "text/javascript",
                 "exec": [
                   "(function () {",
-                  "  var headers = pm.response.headers.all();",
-                  "  for (var i = 0; i < headers.length; i++) {",
-                  "    if (String(headers[i].key).toLowerCase() !== 'set-cookie') continue;",
-                  "    var raw = String(headers[i].value || '');",
-                  "    var match = raw.match(/^nb_csrf=([^;]+)/i);",
-                  "    if (match && match[1]) {",
-                  "      pm.collectionVariables.set('csrfToken', decodeURIComponent(match[1]));",
-                  "      return;",
-                  "    }",
-                  "  }",
                   "  try {",
-                  "    var cookie = pm.cookies.get('nb_csrf');",
-                  "    if (cookie) pm.collectionVariables.set('csrfToken', cookie);",
+                  "    var json = pm.response.json();",
+                  "    var token = json && json.data && json.data.token;",
+                  "    if (typeof token === 'string' && token.length > 0) {",
+                  "      pm.collectionVariables.set('token', token);",
+                  "    }",
                   "  } catch (e) {}",
                   "})();"
                 ]
@@ -226,11 +108,6 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Origin",
-                "value": "{{origin}}",
-                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
-              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -248,7 +125,7 @@
                 "register"
               ]
             },
-            "description": "Creates a CUSTOMER account and sets cookies:\n- `nb_access` / `nb_refresh` (HttpOnly)\n- `nb_csrf` (readable; used for double-submit CSRF on later mutations)\n\n**Role:** Public (always registers as CUSTOMER — cannot self-register as ADMIN).\n**Cookies:** Enable cookie jar. Add `{{baseUrl}}` origin to Cookies → Domains Allowlist.\n**CSRF:** Origin required. Collection pre-request clears stale `nb_csrf` for `baseUrl` and strips\n`x-csrf-token` (backend only requires double-submit when `nb_csrf` is present).\nTests capture the new `nb_csrf` into `csrfToken`.\n\nEmail uses `{{$timestamp}}` for uniqueness. Re-run with the same email to see 409.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
+            "description": "Creates a CUSTOMER account and returns a Bearer JWT in `data.token`.\n\n**Role:** Public (always registers as CUSTOMER — cannot self-register as ADMIN).\n**Auth:** None. Tests script captures `data.token` into collection variable `{{token}}`.\n\nEmail uses `{{$timestamp}}` for uniqueness. Re-run with the same email to see 409.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"customer-{{$timestamp}}@example.com\",\n  \"password\": \"Password123!\",\n  \"firstName\": \"Nesma\",\n  \"lastName\": \"Bloom\"\n}",
@@ -270,7 +147,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"user\": {\n      \"id\": \"66666666-6666-4666-8666-666666666666\",\n      \"email\": \"customer-demo@example.com\",\n      \"role\": \"CUSTOMER\",\n      \"status\": \"ACTIVE\",\n      \"createdAt\": \"2026-10-14T18:00:00.000Z\",\n      \"updatedAt\": \"2026-10-14T18:00:00.000Z\",\n      \"profile\": {\n        \"firstName\": \"Nesma\",\n        \"lastName\": \"Bloom\",\n        \"phone\": null,\n        \"avatarUrl\": null\n      }\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"user\": {\n      \"id\": 1,\n      \"email\": \"customer-demo@example.com\",\n      \"role\": \"CUSTOMER\",\n      \"status\": \"ACTIVE\",\n      \"createdAt\": \"2026-10-14T18:00:00.000Z\",\n      \"updatedAt\": \"2026-10-14T18:00:00.000Z\"\n    },\n    \"token\": \"<JWT>\"\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {
@@ -283,7 +160,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"error\",\n  \"message\": \"An account with this email already exists. Please log in.\",\n  \"code\": \"CONFLICT\"\n}",
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"An account with this email already exists. Please log in.\"\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -297,19 +174,12 @@
                 "type": "text/javascript",
                 "exec": [
                   "(function () {",
-                  "  var headers = pm.response.headers.all();",
-                  "  for (var i = 0; i < headers.length; i++) {",
-                  "    if (String(headers[i].key).toLowerCase() !== 'set-cookie') continue;",
-                  "    var raw = String(headers[i].value || '');",
-                  "    var match = raw.match(/^nb_csrf=([^;]+)/i);",
-                  "    if (match && match[1]) {",
-                  "      pm.collectionVariables.set('csrfToken', decodeURIComponent(match[1]));",
-                  "      return;",
-                  "    }",
-                  "  }",
                   "  try {",
-                  "    var cookie = pm.cookies.get('nb_csrf');",
-                  "    if (cookie) pm.collectionVariables.set('csrfToken', cookie);",
+                  "    var json = pm.response.json();",
+                  "    var token = json && json.data && json.data.token;",
+                  "    if (typeof token === 'string' && token.length > 0) {",
+                  "      pm.collectionVariables.set('token', token);",
+                  "    }",
                   "  } catch (e) {}",
                   "})();"
                 ]
@@ -319,11 +189,6 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Origin",
-                "value": "{{origin}}",
-                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
-              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -341,7 +206,7 @@
                 "login"
               ]
             },
-            "description": "Logs in CUSTOMER or ADMIN. Sets session cookies.\n\n**Role:** Public.\n**Cookies:** Cookie jar + Domains Allowlist for `{{baseUrl}}`.\n**CSRF:** Same as register — clear stale `nb_csrf` / strip CSRF headers; capture new token after success.\n\nFor ADMIN catalog mutations, log in with an existing ADMIN account (registration cannot create ADMIN).\nReplace the email with your registered customer (or ADMIN) address.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
+            "description": "Logs in CUSTOMER or ADMIN. Returns a Bearer JWT in `data.token`.\n\n**Role:** Public.\n**Auth:** None. Tests script captures `data.token` into `{{token}}`.\n\nFor ADMIN catalog mutations, log in with an existing ADMIN account (registration cannot create ADMIN).\nReplace the email with your registered customer (or ADMIN) address.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"customer-demo@example.com\",\n  \"password\": \"Password123!\"\n}",
@@ -363,7 +228,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"user\": {\n      \"id\": \"66666666-6666-4666-8666-666666666666\",\n      \"email\": \"customer-demo@example.com\",\n      \"role\": \"CUSTOMER\",\n      \"status\": \"ACTIVE\"\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"user\": {\n      \"id\": 1,\n      \"email\": \"customer-demo@example.com\",\n      \"role\": \"CUSTOMER\",\n      \"status\": \"ACTIVE\"\n    },\n    \"token\": \"<JWT>\"\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {
@@ -376,66 +241,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Invalid email or password\",\n  \"code\": \"UNAUTHORIZED\"\n}",
-              "_postman_previewlanguage": "json"
-            }
-          ]
-        },
-        {
-          "name": "Refresh session",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Origin",
-                "value": "{{origin}}",
-                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
-              },
-              {
-                "key": "x-csrf-token",
-                "value": "{{csrfToken}}",
-                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/auth/refresh",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "auth",
-                "refresh"
-              ]
-            },
-            "description": "Rotates the refresh cookie and issues a new access cookie.\n\n**Auth:** Requires `nb_refresh` cookie (cookie jar).\n**CSRF:** Send Origin + `x-csrf-token: {{csrfToken}}` after login.\nDo not store refresh tokens in variables.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
-          },
-          "response": [
-            {
-              "name": "Success 200",
-              "status": "OK",
-              "code": 200,
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"user\": {\n      \"id\": \"66666666-6666-4666-8666-666666666666\",\n      \"email\": \"customer-demo@example.com\",\n      \"role\": \"CUSTOMER\"\n    }\n  }\n}",
-              "_postman_previewlanguage": "json"
-            },
-            {
-              "name": "Error 401",
-              "status": "Unauthorized",
-              "code": 401,
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Authentication required\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Invalid email or password.\"\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -446,14 +252,9 @@
             "method": "POST",
             "header": [
               {
-                "key": "Origin",
-                "value": "{{origin}}",
-                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
-              },
-              {
-                "key": "x-csrf-token",
-                "value": "{{csrfToken}}",
-                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
               }
             ],
             "url": {
@@ -468,7 +269,7 @@
                 "logout"
               ]
             },
-            "description": "Revokes the current session and clears auth cookies.\n\n**Auth:** Authenticated (access cookie).\n**CSRF:** Origin + `x-csrf-token: {{csrfToken}}`.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+            "description": "Revokes the current JWT jti server-side (Mode B). Idempotent: repeated logout with the same token returns 200.\n\n**Auth:** `Authorization: Bearer {{token}}`.\nInvalid, expired, or malformed JWT → 401.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
           },
           "response": [
             {
@@ -481,7 +282,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"ok\": true\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"message\": \"Logged out\"\n  }\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -490,7 +291,13 @@
           "name": "Current user (me)",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/me",
               "host": [
@@ -503,7 +310,7 @@
                 "me"
               ]
             },
-            "description": "Returns the authenticated user. Never includes passwordHash.\n\n**Auth:** CUSTOMER or ADMIN cookie session.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+            "description": "Returns the authenticated user. Never includes passwordHash.\n\n**Auth:** `Authorization: Bearer {{token}}`.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
           },
           "response": [
             {
@@ -516,7 +323,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"user\": {\n      \"id\": \"66666666-6666-4666-8666-666666666666\",\n      \"email\": \"customer-demo@example.com\",\n      \"role\": \"CUSTOMER\",\n      \"status\": \"ACTIVE\"\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"user\": {\n      \"id\": 1,\n      \"email\": \"customer-demo@example.com\",\n      \"role\": \"CUSTOMER\",\n      \"status\": \"ACTIVE\"\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {
@@ -529,7 +336,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Authentication required\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Authentication required.\"\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -543,7 +350,13 @@
           "name": "Get own profile",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/users/me/profile",
               "host": [
@@ -557,7 +370,7 @@
                 "profile"
               ]
             },
-            "description": "**Auth:** CUSTOMER or ADMIN (own profile only).\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+            "description": "**Auth:** CUSTOMER or ADMIN (own profile only).\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
           },
           "response": [
             {
@@ -581,18 +394,13 @@
             "method": "PATCH",
             "header": [
               {
-                "key": "Origin",
-                "value": "{{origin}}",
-                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
-              },
-              {
-                "key": "x-csrf-token",
-                "value": "{{csrfToken}}",
-                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
               }
             ],
             "url": {
@@ -608,7 +416,7 @@
                 "profile"
               ]
             },
-            "description": "Partial profile update. At least one field required.\n\n**Auth:** Authenticated.\n**CSRF:** Origin + `x-csrf-token: {{csrfToken}}`.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
+            "description": "Partial profile update. At least one field required.\n\n**Auth:** `Authorization: Bearer {{token}}`.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"firstName\": \"Nesma\",\n  \"lastName\": \"Bloom\",\n  \"phone\": \"+201000000000\"\n}",
@@ -643,7 +451,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Validation failed\",\n  \"code\": \"VALIDATION_ERROR\",\n  \"details\": [\n    {\n      \"path\": \"(root)\",\n      \"message\": \"At least one profile field is required\"\n    }\n  ]\n}",
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"At least one profile field is required.\"\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -696,7 +504,7 @@
                 }
               ]
             },
-            "description": "Public list defaults to ACTIVE. `status=ALL` or `ARCHIVED` requires ADMIN.\n\n**Auth:** Optional for ACTIVE; ADMIN for archived/all filters.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+            "description": "Public list defaults to ACTIVE. `status=ALL` or `ARCHIVED` requires ADMIN.\n\n**Auth:** Optional for ACTIVE; ADMIN for archived/all filters.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
           },
           "response": [
             {
@@ -709,7 +517,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": \"11111111-1111-4111-8111-111111111111\",\n        \"name\": \"Skincare\",\n        \"slug\": \"skincare\",\n        \"status\": \"ACTIVE\"\n      }\n    ],\n    \"meta\": {\n      \"page\": 1,\n      \"pageSize\": 20,\n      \"totalItems\": 1,\n      \"totalPages\": 1\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 1,\n        \"name\": \"Skincare\",\n        \"slug\": \"skincare\",\n        \"status\": \"ACTIVE\"\n      }\n    ],\n    \"meta\": {\n      \"page\": 1,\n      \"pageSize\": 20,\n      \"totalItems\": 1,\n      \"totalPages\": 1\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -720,18 +528,13 @@
             "method": "POST",
             "header": [
               {
-                "key": "Origin",
-                "value": "{{origin}}",
-                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
-              },
-              {
-                "key": "x-csrf-token",
-                "value": "{{csrfToken}}",
-                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
               }
             ],
             "url": {
@@ -745,7 +548,7 @@
                 "categories"
               ]
             },
-            "description": "Creates a catalog category. Slug optional (generated from name).\n\n**Auth:** ADMIN + cookies.\n**CSRF:** Origin + `x-csrf-token: {{csrfToken}}`.\n\nAfter success, copy `data.category.id` into `{{categoryId}}`.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
+            "description": "Creates a catalog category. Slug optional (generated from name).\n\n**Auth:** ADMIN — `Authorization: Bearer {{token}}`.\n\nAfter success, copy `data.category.id` into `{{categoryId}}`.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Skincare Demo\",\n  \"slug\": \"skincare-demo\",\n  \"description\": \"Face and body care\",\n  \"status\": \"ACTIVE\"\n}",
@@ -767,7 +570,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"category\": {\n      \"id\": \"11111111-1111-4111-8111-111111111111\",\n      \"name\": \"Skincare Demo\",\n      \"slug\": \"skincare-demo\",\n      \"description\": \"Face and body care\",\n      \"status\": \"ACTIVE\",\n      \"createdAt\": \"2026-10-14T18:00:00.000Z\",\n      \"updatedAt\": \"2026-10-14T18:00:00.000Z\"\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"category\": {\n      \"id\": 1,\n      \"name\": \"Skincare Demo\",\n      \"slug\": \"skincare-demo\",\n      \"description\": \"Face and body care\",\n      \"status\": \"ACTIVE\",\n      \"createdAt\": \"2026-10-14T18:00:00.000Z\",\n      \"updatedAt\": \"2026-10-14T18:00:00.000Z\"\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {
@@ -780,7 +583,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Category slug already exists\",\n  \"code\": \"CONFLICT\"\n}",
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Category slug already exists.\"\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -802,7 +605,7 @@
                 "{{categoryId}}"
               ]
             },
-            "description": "Public if ACTIVE; ADMIN can view ARCHIVED. Uses `{{categoryId}}`.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+            "description": "Public if ACTIVE; ADMIN can view ARCHIVED. Uses `{{categoryId}}`.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
           },
           "response": [
             {
@@ -815,7 +618,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"category\": {\n      \"id\": \"11111111-1111-4111-8111-111111111111\",\n      \"name\": \"Skincare Demo\",\n      \"slug\": \"skincare-demo\",\n      \"status\": \"ACTIVE\"\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"category\": {\n      \"id\": 1,\n      \"name\": \"Skincare Demo\",\n      \"slug\": \"skincare-demo\",\n      \"status\": \"ACTIVE\"\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {
@@ -828,7 +631,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Category not found\",\n  \"code\": \"NOT_FOUND\"\n}",
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Category not found.\"\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -839,18 +642,13 @@
             "method": "PATCH",
             "header": [
               {
-                "key": "Origin",
-                "value": "{{origin}}",
-                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
-              },
-              {
-                "key": "x-csrf-token",
-                "value": "{{csrfToken}}",
-                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
               }
             ],
             "url": {
@@ -865,7 +663,7 @@
                 "{{categoryId}}"
               ]
             },
-            "description": "**Auth:** ADMIN. **CSRF** required. Name updates do not auto-change slug.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
+            "description": "**Auth:** ADMIN Bearer JWT. Name updates do not auto-change slug.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Skincare Updated\",\n  \"description\": \"Updated description\"\n}",
@@ -887,7 +685,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"category\": {\n      \"id\": \"11111111-1111-4111-8111-111111111111\",\n      \"name\": \"Skincare Updated\",\n      \"slug\": \"skincare-demo\",\n      \"status\": \"ACTIVE\"\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"category\": {\n      \"id\": 1,\n      \"name\": \"Skincare Updated\",\n      \"slug\": \"skincare-demo\",\n      \"status\": \"ACTIVE\"\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -898,14 +696,9 @@
             "method": "DELETE",
             "header": [
               {
-                "key": "Origin",
-                "value": "{{origin}}",
-                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
-              },
-              {
-                "key": "x-csrf-token",
-                "value": "{{csrfToken}}",
-                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
               }
             ],
             "url": {
@@ -920,7 +713,7 @@
                 "{{categoryId}}"
               ]
             },
-            "description": "Soft-delete (status ARCHIVED). **Auth:** ADMIN. **CSRF** required. Idempotent.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+            "description": "Soft-delete (status ARCHIVED). **Auth:** ADMIN Bearer JWT. Idempotent.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
           },
           "response": [
             {
@@ -933,7 +726,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"category\": {\n      \"id\": \"11111111-1111-4111-8111-111111111111\",\n      \"status\": \"ARCHIVED\"\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"category\": {\n      \"id\": 1,\n      \"status\": \"ARCHIVED\"\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -985,7 +778,7 @@
                 }
               ]
             },
-            "description": "Public ACTIVE + ACTIVE parent. Filter by `categoryId`. ADMIN for status ALL/ARCHIVED.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+            "description": "Public ACTIVE + ACTIVE parent. Filter by `categoryId`. ADMIN for status ALL/ARCHIVED.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
           },
           "response": [
             {
@@ -998,7 +791,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": \"22222222-2222-4222-8222-222222222222\",\n        \"name\": \"Serums\",\n        \"slug\": \"serums\",\n        \"categoryId\": \"11111111-1111-4111-8111-111111111111\",\n        \"status\": \"ACTIVE\"\n      }\n    ],\n    \"meta\": {\n      \"page\": 1,\n      \"pageSize\": 20,\n      \"totalItems\": 1,\n      \"totalPages\": 1\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 1,\n        \"name\": \"Serums\",\n        \"slug\": \"serums\",\n        \"categoryId\": 1,\n        \"status\": \"ACTIVE\"\n      }\n    ],\n    \"meta\": {\n      \"page\": 1,\n      \"pageSize\": 20,\n      \"totalItems\": 1,\n      \"totalPages\": 1\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -1009,18 +802,13 @@
             "method": "POST",
             "header": [
               {
-                "key": "Origin",
-                "value": "{{origin}}",
-                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
-              },
-              {
-                "key": "x-csrf-token",
-                "value": "{{csrfToken}}",
-                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
               }
             ],
             "url": {
@@ -1034,7 +822,7 @@
                 "subcategories"
               ]
             },
-            "description": "**Auth:** ADMIN. **CSRF** required.\nSet `categoryId` to `{{categoryId}}` from a created category.\nCopy response id into `{{subcategoryId}}`.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
+            "description": "**Auth:** ADMIN Bearer JWT.\nSet `categoryId` to `{{categoryId}}` from a created category.\nCopy response id into `{{subcategoryId}}`.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Serums Demo\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"slug\": \"serums-demo\",\n  \"description\": \"Concentrated treatments\",\n  \"status\": \"ACTIVE\"\n}",
@@ -1056,7 +844,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"subcategory\": {\n      \"id\": \"22222222-2222-4222-8222-222222222222\",\n      \"name\": \"Serums Demo\",\n      \"slug\": \"serums-demo\",\n      \"categoryId\": \"11111111-1111-4111-8111-111111111111\",\n      \"status\": \"ACTIVE\",\n      \"category\": {\n        \"id\": \"11111111-1111-4111-8111-111111111111\",\n        \"name\": \"Skincare Demo\",\n        \"slug\": \"skincare-demo\",\n        \"status\": \"ACTIVE\"\n      }\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"subcategory\": {\n      \"id\": 1,\n      \"name\": \"Serums Demo\",\n      \"slug\": \"serums-demo\",\n      \"categoryId\": 1,\n      \"status\": \"ACTIVE\",\n      \"category\": {\n        \"id\": 1,\n        \"name\": \"Skincare Demo\",\n        \"slug\": \"skincare-demo\",\n        \"status\": \"ACTIVE\"\n      }\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {
@@ -1069,7 +857,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Cannot place an ACTIVE subcategory under an archived category\",\n  \"code\": \"CONFLICT\"\n}",
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Cannot place an ACTIVE subcategory under an archived category.\"\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -1091,7 +879,7 @@
                 "{{subcategoryId}}"
               ]
             },
-            "description": "Uses `{{subcategoryId}}`. Public if visible; else 404.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+            "description": "Uses `{{subcategoryId}}`. Public if visible; else 404.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
           },
           "response": [
             {
@@ -1104,7 +892,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"subcategory\": {\n      \"id\": \"22222222-2222-4222-8222-222222222222\",\n      \"name\": \"Serums Demo\",\n      \"slug\": \"serums-demo\",\n      \"status\": \"ACTIVE\"\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"subcategory\": {\n      \"id\": 1,\n      \"name\": \"Serums Demo\",\n      \"slug\": \"serums-demo\",\n      \"status\": \"ACTIVE\"\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -1115,18 +903,13 @@
             "method": "PATCH",
             "header": [
               {
-                "key": "Origin",
-                "value": "{{origin}}",
-                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
-              },
-              {
-                "key": "x-csrf-token",
-                "value": "{{csrfToken}}",
-                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
               }
             ],
             "url": {
@@ -1141,7 +924,7 @@
                 "{{subcategoryId}}"
               ]
             },
-            "description": "**Auth:** ADMIN. **CSRF** required.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
+            "description": "**Auth:** ADMIN Bearer JWT.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Serums Updated\"\n}",
@@ -1163,7 +946,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"subcategory\": {\n      \"id\": \"22222222-2222-4222-8222-222222222222\",\n      \"name\": \"Serums Updated\",\n      \"slug\": \"serums-demo\",\n      \"status\": \"ACTIVE\"\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"subcategory\": {\n      \"id\": 1,\n      \"name\": \"Serums Updated\",\n      \"slug\": \"serums-demo\",\n      \"status\": \"ACTIVE\"\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -1174,14 +957,9 @@
             "method": "DELETE",
             "header": [
               {
-                "key": "Origin",
-                "value": "{{origin}}",
-                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
-              },
-              {
-                "key": "x-csrf-token",
-                "value": "{{csrfToken}}",
-                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
               }
             ],
             "url": {
@@ -1196,7 +974,7 @@
                 "{{subcategoryId}}"
               ]
             },
-            "description": "**Auth:** ADMIN. Soft archive. **CSRF** required.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+            "description": "**Auth:** ADMIN Bearer JWT. Soft archive.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
           },
           "response": [
             {
@@ -1209,7 +987,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"subcategory\": {\n      \"id\": \"22222222-2222-4222-8222-222222222222\",\n      \"status\": \"ARCHIVED\"\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"subcategory\": {\n      \"id\": 1,\n      \"status\": \"ARCHIVED\"\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -1286,7 +1064,7 @@
                 }
               ]
             },
-            "description": "Public: ACTIVE + available + ACTIVE parents. Out-of-stock still listed (`inStock: false`).\nADMIN may use `status` / `availability` filters beyond defaults.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+            "description": "Public: ACTIVE + available + ACTIVE parents. Out-of-stock still listed (`inStock: false`).\nADMIN may use `status` / `availability` filters beyond defaults.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
           },
           "response": [
             {
@@ -1299,7 +1077,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": \"33333333-3333-4333-8333-333333333333\",\n        \"name\": \"Rose Serum\",\n        \"sku\": \"SKU-ROSE-001\",\n        \"priceMinor\": 25000,\n        \"currency\": \"EGP\",\n        \"stockQty\": 10,\n        \"inStock\": true,\n        \"status\": \"ACTIVE\"\n      }\n    ],\n    \"meta\": {\n      \"page\": 1,\n      \"pageSize\": 20,\n      \"totalItems\": 1,\n      \"totalPages\": 1\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 1,\n        \"name\": \"Rose Serum\",\n        \"sku\": \"SKU-ROSE-001\",\n        \"priceMinor\": 25000,\n        \"currency\": \"EGP\",\n        \"stockQty\": 10,\n        \"inStock\": true,\n        \"status\": \"ACTIVE\"\n      }\n    ],\n    \"meta\": {\n      \"page\": 1,\n      \"pageSize\": 20,\n      \"totalItems\": 1,\n      \"totalPages\": 1\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -1310,18 +1088,13 @@
             "method": "POST",
             "header": [
               {
-                "key": "Origin",
-                "value": "{{origin}}",
-                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
-              },
-              {
-                "key": "x-csrf-token",
-                "value": "{{csrfToken}}",
-                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
               }
             ],
             "url": {
@@ -1335,7 +1108,7 @@
                 "products"
               ]
             },
-            "description": "**Auth:** ADMIN. **CSRF** required.\nSet `subcategoryId` to `{{subcategoryId}}`. SKU unique; use a unique value each run.\nPrices are integer EGP piastres (`25000` = 250.00 EGP).\nCopy response id into `{{productId}}`.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
+            "description": "**Auth:** ADMIN Bearer JWT.\nSet `subcategoryId` to `{{subcategoryId}}`. SKU unique; use a unique value each run.\nPrices are integer EGP piastres (`25000` = 250.00 EGP).\nCopy response id into `{{productId}}`.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Rose Serum Demo\",\n  \"subcategoryId\": \"{{subcategoryId}}\",\n  \"sku\": \"SKU-ROSE-DEMO-001\",\n  \"priceMinor\": 25000,\n  \"stockQty\": 10,\n  \"slug\": \"rose-serum-demo\",\n  \"description\": \"Hydrating rose serum\",\n  \"isAvailable\": true,\n  \"status\": \"ACTIVE\"\n}",
@@ -1357,7 +1130,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": \"33333333-3333-4333-8333-333333333333\",\n      \"name\": \"Rose Serum Demo\",\n      \"slug\": \"rose-serum-demo\",\n      \"sku\": \"SKU-ROSE-DEMO-001\",\n      \"priceMinor\": 25000,\n      \"currency\": \"EGP\",\n      \"stockQty\": 10,\n      \"isAvailable\": true,\n      \"inStock\": true,\n      \"status\": \"ACTIVE\",\n      \"images\": [],\n      \"subcategory\": {\n        \"id\": \"22222222-2222-4222-8222-222222222222\",\n        \"name\": \"Serums Demo\",\n        \"slug\": \"serums-demo\",\n        \"status\": \"ACTIVE\"\n      },\n      \"category\": {\n        \"id\": \"11111111-1111-4111-8111-111111111111\",\n        \"name\": \"Skincare Demo\",\n        \"slug\": \"skincare-demo\",\n        \"status\": \"ACTIVE\"\n      }\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": 1,\n      \"name\": \"Rose Serum Demo\",\n      \"slug\": \"rose-serum-demo\",\n      \"sku\": \"SKU-ROSE-DEMO-001\",\n      \"priceMinor\": 25000,\n      \"currency\": \"EGP\",\n      \"stockQty\": 10,\n      \"isAvailable\": true,\n      \"inStock\": true,\n      \"status\": \"ACTIVE\",\n      \"images\": [],\n      \"subcategory\": {\n        \"id\": 1,\n        \"name\": \"Serums Demo\",\n        \"slug\": \"serums-demo\",\n        \"status\": \"ACTIVE\"\n      },\n      \"category\": {\n        \"id\": 1,\n        \"name\": \"Skincare Demo\",\n        \"slug\": \"skincare-demo\",\n        \"status\": \"ACTIVE\"\n      }\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {
@@ -1370,7 +1143,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Product SKU already exists\",\n  \"code\": \"CONFLICT\"\n}",
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Product SKU already exists.\"\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -1392,7 +1165,7 @@
                 "{{productId}}"
               ]
             },
-            "description": "Uses `{{productId}}`. Public if storefront-visible.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+            "description": "Uses `{{productId}}`. Public if storefront-visible.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
           },
           "response": [
             {
@@ -1405,7 +1178,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": \"33333333-3333-4333-8333-333333333333\",\n      \"name\": \"Rose Serum Demo\",\n      \"sku\": \"SKU-ROSE-DEMO-001\",\n      \"priceMinor\": 25000,\n      \"currency\": \"EGP\",\n      \"stockQty\": 10,\n      \"inStock\": true,\n      \"images\": []\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": 1,\n      \"name\": \"Rose Serum Demo\",\n      \"sku\": \"SKU-ROSE-DEMO-001\",\n      \"priceMinor\": 25000,\n      \"currency\": \"EGP\",\n      \"stockQty\": 10,\n      \"inStock\": true,\n      \"images\": []\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -1416,18 +1189,13 @@
             "method": "PATCH",
             "header": [
               {
-                "key": "Origin",
-                "value": "{{origin}}",
-                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
-              },
-              {
-                "key": "x-csrf-token",
-                "value": "{{csrfToken}}",
-                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
               }
             ],
             "url": {
@@ -1442,7 +1210,7 @@
                 "{{productId}}"
               ]
             },
-            "description": "**Auth:** ADMIN. **CSRF** required. Name does not auto-change slug.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
+            "description": "**Auth:** ADMIN Bearer JWT. Name does not auto-change slug.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"stockQty\": 8,\n  \"description\": \"Updated product description\"\n}",
@@ -1464,7 +1232,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": \"33333333-3333-4333-8333-333333333333\",\n      \"stockQty\": 8,\n      \"inStock\": true\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": 1,\n      \"stockQty\": 8,\n      \"inStock\": true\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -1475,14 +1243,9 @@
             "method": "DELETE",
             "header": [
               {
-                "key": "Origin",
-                "value": "{{origin}}",
-                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
-              },
-              {
-                "key": "x-csrf-token",
-                "value": "{{csrfToken}}",
-                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
               }
             ],
             "url": {
@@ -1497,7 +1260,7 @@
                 "{{productId}}"
               ]
             },
-            "description": "**Auth:** ADMIN. Soft archive. **CSRF** required.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+            "description": "**Auth:** ADMIN Bearer JWT. Soft archive.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
           },
           "response": [
             {
@@ -1510,7 +1273,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": \"33333333-3333-4333-8333-333333333333\",\n      \"status\": \"ARCHIVED\"\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": 1,\n      \"status\": \"ARCHIVED\"\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -1521,18 +1284,13 @@
             "method": "POST",
             "header": [
               {
-                "key": "Origin",
-                "value": "{{origin}}",
-                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
-              },
-              {
-                "key": "x-csrf-token",
-                "value": "{{csrfToken}}",
-                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
               }
             ],
             "url": {
@@ -1548,7 +1306,7 @@
                 "images"
               ]
             },
-            "description": "Adds an image URL (no file upload). **Auth:** ADMIN. **CSRF** required.\nUses `{{productId}}`. Copy image id into `{{imageId}}`.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
+            "description": "Adds an image URL (no file upload). **Auth:** ADMIN Bearer JWT.\nUses `{{productId}}`. Copy image id into `{{imageId}}`.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"url\": \"https://cdn.example.com/products/rose-serum.jpg\",\n  \"altText\": \"Rose serum bottle\",\n  \"sortOrder\": 0,\n  \"isPrimary\": true\n}",
@@ -1570,7 +1328,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": \"33333333-3333-4333-8333-333333333333\",\n      \"images\": [\n        {\n          \"id\": \"44444444-4444-4444-8444-444444444444\",\n          \"url\": \"https://cdn.example.com/products/rose-serum.jpg\",\n          \"altText\": \"Rose serum bottle\",\n          \"sortOrder\": 0,\n          \"isPrimary\": true\n        }\n      ]\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": 1,\n      \"images\": [\n        {\n          \"id\": 1,\n          \"url\": \"https://cdn.example.com/products/rose-serum.jpg\",\n          \"altText\": \"Rose serum bottle\",\n          \"sortOrder\": 0,\n          \"isPrimary\": true\n        }\n      ]\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {
@@ -1583,7 +1341,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Validation failed\",\n  \"code\": \"VALIDATION_ERROR\",\n  \"details\": [\n    {\n      \"path\": \"url\",\n      \"message\": \"Image URL must be http(s) without credentials\"\n    }\n  ]\n}",
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Image URL must be http(s) without credentials.\"\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -1594,18 +1352,13 @@
             "method": "PATCH",
             "header": [
               {
-                "key": "Origin",
-                "value": "{{origin}}",
-                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
-              },
-              {
-                "key": "x-csrf-token",
-                "value": "{{csrfToken}}",
-                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
               }
             ],
             "url": {
@@ -1622,7 +1375,7 @@
                 "{{{imageId}}}"
               ]
             },
-            "description": "**Auth:** ADMIN. **CSRF** required. Paths use `{{productId}}` and `{{imageId}}`.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
+            "description": "**Auth:** ADMIN Bearer JWT. Paths use `{{productId}}` and `{{imageId}}`.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"altText\": \"Updated alt text\",\n  \"isPrimary\": true\n}",
@@ -1644,7 +1397,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": \"33333333-3333-4333-8333-333333333333\",\n      \"images\": [\n        {\n          \"id\": \"44444444-4444-4444-8444-444444444444\",\n          \"altText\": \"Updated alt text\",\n          \"isPrimary\": true\n        }\n      ]\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": 1,\n      \"images\": [\n        {\n          \"id\": 1,\n          \"altText\": \"Updated alt text\",\n          \"isPrimary\": true\n        }\n      ]\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -1655,14 +1408,9 @@
             "method": "DELETE",
             "header": [
               {
-                "key": "Origin",
-                "value": "{{origin}}",
-                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
-              },
-              {
-                "key": "x-csrf-token",
-                "value": "{{csrfToken}}",
-                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
               }
             ],
             "url": {
@@ -1679,7 +1427,7 @@
                 "{{{imageId}}}"
               ]
             },
-            "description": "**Auth:** ADMIN. Hard-deletes image; promotes next primary if needed. **CSRF** required.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+            "description": "**Auth:** ADMIN Bearer JWT. Hard-deletes image; promotes next primary if needed.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
           },
           "response": [
             {
@@ -1692,7 +1440,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": \"33333333-3333-4333-8333-333333333333\",\n      \"images\": []\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": 1,\n      \"images\": []\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -1706,7 +1454,13 @@
           "name": "List all orders (ADMIN)",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/orders?page=1&pageSize=20&status=ALL&sortOrder=desc",
               "host": [
@@ -1741,7 +1495,7 @@
                 }
               ]
             },
-            "description": "**Auth:** ADMIN only.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+            "description": "**Auth:** ADMIN only.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
           },
           "response": [
             {
@@ -1754,7 +1508,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": \"55555555-5555-4555-8555-555555555555\",\n        \"status\": \"PENDING\",\n        \"totalMinor\": 50000,\n        \"currency\": \"EGP\"\n      }\n    ],\n    \"meta\": {\n      \"page\": 1,\n      \"pageSize\": 20,\n      \"totalItems\": 1,\n      \"totalPages\": 1\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 1,\n        \"status\": \"PENDING\",\n        \"totalMinor\": 50000,\n        \"currency\": \"EGP\"\n      }\n    ],\n    \"meta\": {\n      \"page\": 1,\n      \"pageSize\": 20,\n      \"totalItems\": 1,\n      \"totalPages\": 1\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {
@@ -1767,7 +1521,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Insufficient permissions\",\n  \"code\": \"FORBIDDEN\"\n}",
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Insufficient permissions.\"\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -1778,18 +1532,13 @@
             "method": "POST",
             "header": [
               {
-                "key": "Origin",
-                "value": "{{origin}}",
-                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
-              },
-              {
-                "key": "x-csrf-token",
-                "value": "{{csrfToken}}",
-                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
               },
               {
                 "key": "Idempotency-Key",
@@ -1808,7 +1557,7 @@
                 "orders"
               ]
             },
-            "description": "Places an order. Stock is deducted; prices come from the database.\n\n**Auth:** CUSTOMER only (ADMIN gets 403).\n**CSRF:** Origin + `x-csrf-token: {{csrfToken}}`.\n**Idempotency-Key:** Required. Use `{{idempotencyKey}}`.\n  - First success → HTTP 201\n  - Same key + same body → HTTP 200 (no second stock deduction)\n  - Same key + different body → HTTP 409\n\nSet `productId` to `{{productId}}`. Copy order id into `{{orderId}}`.\nGenerate a new idempotency key (or change `idempotencyKey`) for a fresh order.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
+            "description": "Places an order. Stock is deducted; prices come from the database.\n\n**Auth:** CUSTOMER only (ADMIN gets 403).\n**Auth:** `Authorization: Bearer {{token}}`.\n**Idempotency-Key:** Required. Use `{{idempotencyKey}}`.\n  - First success → HTTP 201\n  - Same key + same body → HTTP 200 (no second stock deduction)\n  - Same key + different body → HTTP 409\n\nSet `productId` to `{{productId}}`. Copy order id into `{{orderId}}`.\nGenerate a new idempotency key (or change `idempotencyKey`) for a fresh order.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 2\n    }\n  ]\n}",
@@ -1830,7 +1579,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"order\": {\n      \"id\": \"55555555-5555-4555-8555-555555555555\",\n      \"userId\": \"66666666-6666-4666-8666-666666666666\",\n      \"status\": \"PENDING\",\n      \"totalMinor\": 50000,\n      \"currency\": \"EGP\",\n      \"items\": [\n        {\n          \"productId\": \"33333333-3333-4333-8333-333333333333\",\n          \"productNameSnapshot\": \"Rose Serum Demo\",\n          \"productSkuSnapshot\": \"SKU-ROSE-DEMO-001\",\n          \"unitPriceMinor\": 25000,\n          \"quantity\": 2,\n          \"lineTotalMinor\": 50000\n        }\n      ]\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"order\": {\n      \"id\": 1,\n      \"userId\": 1,\n      \"status\": \"PENDING\",\n      \"totalMinor\": 50000,\n      \"currency\": \"EGP\",\n      \"items\": [\n        {\n          \"productId\": 1,\n          \"productNameSnapshot\": \"Rose Serum Demo\",\n          \"productSkuSnapshot\": \"SKU-ROSE-DEMO-001\",\n          \"unitPriceMinor\": 25000,\n          \"quantity\": 2,\n          \"lineTotalMinor\": 50000\n        }\n      ]\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {
@@ -1843,7 +1592,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Insufficient stock for one or more products\",\n  \"code\": \"CONFLICT\"\n}",
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Insufficient stock.\"\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -1852,7 +1601,13 @@
           "name": "List my orders",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/orders/my?page=1&pageSize=20&status=ALL&sortOrder=desc",
               "host": [
@@ -1883,7 +1638,7 @@
                 }
               ]
             },
-            "description": "**Auth:** Authenticated (own orders only).\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+            "description": "**Auth:** Authenticated (own orders only).\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
           },
           "response": [
             {
@@ -1896,7 +1651,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": \"55555555-5555-4555-8555-555555555555\",\n        \"status\": \"PENDING\",\n        \"totalMinor\": 50000,\n        \"currency\": \"EGP\"\n      }\n    ],\n    \"meta\": {\n      \"page\": 1,\n      \"pageSize\": 20,\n      \"totalItems\": 1,\n      \"totalPages\": 1\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 1,\n        \"status\": \"PENDING\",\n        \"totalMinor\": 50000,\n        \"currency\": \"EGP\"\n      }\n    ],\n    \"meta\": {\n      \"page\": 1,\n      \"pageSize\": 20,\n      \"totalItems\": 1,\n      \"totalPages\": 1\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -1905,7 +1660,13 @@
           "name": "Get order by ID",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/orders/{{orderId}}",
               "host": [
@@ -1918,7 +1679,7 @@
                 "{{orderId}}"
               ]
             },
-            "description": "Owner or ADMIN. Others get 404. Uses `{{orderId}}`.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+            "description": "Owner or ADMIN. Others get 404. Uses `{{orderId}}`.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
           },
           "response": [
             {
@@ -1931,7 +1692,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"order\": {\n      \"id\": \"55555555-5555-4555-8555-555555555555\",\n      \"status\": \"PENDING\",\n      \"totalMinor\": 50000,\n      \"currency\": \"EGP\",\n      \"items\": []\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"order\": {\n      \"id\": 1,\n      \"status\": \"PENDING\",\n      \"totalMinor\": 50000,\n      \"currency\": \"EGP\",\n      \"items\": []\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {
@@ -1944,7 +1705,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Order not found\",\n  \"code\": \"NOT_FOUND\"\n}",
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Order not found.\"\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -1955,14 +1716,9 @@
             "method": "POST",
             "header": [
               {
-                "key": "Origin",
-                "value": "{{origin}}",
-                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
-              },
-              {
-                "key": "x-csrf-token",
-                "value": "{{csrfToken}}",
-                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
               }
             ],
             "url": {
@@ -1978,7 +1734,7 @@
                 "cancel"
               ]
             },
-            "description": "CUSTOMER: PENDING only. ADMIN: PENDING or CONFIRMED. Restocks once.\n**Auth** + **CSRF** required. Uses `{{orderId}}`.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables."
+            "description": "CUSTOMER: PENDING only. ADMIN: PENDING or CONFIRMED. Restocks once.\n**Auth:** `Authorization: Bearer {{token}}`. Uses `{{orderId}}`.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
           },
           "response": [
             {
@@ -1991,7 +1747,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"order\": {\n      \"id\": \"55555555-5555-4555-8555-555555555555\",\n      \"status\": \"CANCELLED\",\n      \"totalMinor\": 50000,\n      \"currency\": \"EGP\"\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"order\": {\n      \"id\": 1,\n      \"status\": \"CANCELLED\",\n      \"totalMinor\": 50000,\n      \"currency\": \"EGP\"\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {
@@ -2004,7 +1760,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Order cannot be cancelled in its current status\",\n  \"code\": \"CONFLICT\"\n}",
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Order cannot be cancelled in its current status.\"\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -2015,18 +1771,13 @@
             "method": "PATCH",
             "header": [
               {
-                "key": "Origin",
-                "value": "{{origin}}",
-                "description": "Must match CORS_ORIGIN (e.g. http://localhost:3000)"
-              },
-              {
-                "key": "x-csrf-token",
-                "value": "{{csrfToken}}",
-                "description": "Must equal nb_csrf. Synced automatically from the cookie jar."
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
               }
             ],
             "url": {
@@ -2042,7 +1793,7 @@
                 "status"
               ]
             },
-            "description": "ADMIN only: PENDING→CONFIRMED or CONFIRMED→FULFILLED (no skip).\n**CSRF** required. Uses `{{orderId}}`.\n\nTips: Enable cookie jar. csrfToken syncs from nb_csrf automatically.\nDo not paste access/refresh tokens into variables.",
+            "description": "ADMIN only: PENDING→CONFIRMED or CONFIRMED→FULFILLED (no skip).\n**Auth:** ADMIN Bearer JWT. Uses `{{orderId}}`.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"status\": \"CONFIRMED\"\n}",
@@ -2064,7 +1815,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"order\": {\n      \"id\": \"55555555-5555-4555-8555-555555555555\",\n      \"status\": \"CONFIRMED\"\n    }\n  }\n}",
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"order\": {\n      \"id\": 1,\n      \"status\": \"CONFIRMED\"\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {
@@ -2077,7 +1828,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Invalid order status transition\",\n  \"code\": \"CONFLICT\"\n}",
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Invalid order status transition.\"\n}",
               "_postman_previewlanguage": "json"
             }
           ]

@@ -12,7 +12,9 @@ describe("loadEnv", () => {
     expect(env.PORT).toBe(4000);
     expect(env.LOG_LEVEL).toBe("info");
     expect(env.BODY_SIZE_LIMIT).toBe("100kb");
-    expect(env.JWT_ACCESS_TTL_SECONDS).toBe(900);
+    expect(env.JWT_TTL_SECONDS).toBe(604_800);
+    expect(env.JWT_ISSUER).toBe("nesma-bloom-api");
+    expect(env.JWT_AUDIENCE).toBe("nesma-bloom-clients");
   });
 
   it("fails fast on invalid configuration", () => {
@@ -50,21 +52,10 @@ describe("loadEnv", () => {
     expect(getCorsOrigins("")).toBe(false);
   });
 
-  it("requires COOKIE_SECURE in production", () => {
-    expect(() =>
-      loadEnv({
-        ...baseTestEnvVars,
-        NODE_ENV: "production",
-        COOKIE_SECURE: "false",
-      }),
-    ).toThrow(/COOKIE_SECURE/);
-  });
-
   it("disables API docs by default in production", () => {
     const env = loadEnv({
       ...baseTestEnvVars,
       NODE_ENV: "production",
-      COOKIE_SECURE: "true",
     });
     expect(env.ENABLE_API_DOCS).toBe(false);
   });

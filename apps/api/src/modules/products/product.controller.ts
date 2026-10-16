@@ -37,7 +37,7 @@ export function createProductController(prisma: Database) {
       next: NextFunction,
     ): Promise<void> {
       try {
-        const { id } = req.params as { id: string };
+        const { id } = req.params as unknown as { id: number };
         const product = await getProductById(prisma, id, req.user);
         res.status(200).json({ status: "success", data: { product } });
       } catch (error) {
@@ -65,7 +65,7 @@ export function createProductController(prisma: Database) {
       next: NextFunction,
     ): Promise<void> {
       try {
-        const { id } = req.params as { id: string };
+        const { id } = req.params as unknown as { id: number };
         const body = req.body as UpdateProductBody;
         const product = await updateProductService(prisma, id, body);
         res.status(200).json({ status: "success", data: { product } });
@@ -80,7 +80,7 @@ export function createProductController(prisma: Database) {
       next: NextFunction,
     ): Promise<void> {
       try {
-        const { id } = req.params as { id: string };
+        const { id } = req.params as unknown as { id: number };
         const product = await archiveProductService(prisma, id);
         res.status(200).json({ status: "success", data: { product } });
       } catch (error) {
@@ -94,7 +94,7 @@ export function createProductController(prisma: Database) {
       next: NextFunction,
     ): Promise<void> {
       try {
-        const { id } = req.params as { id: string };
+        const { id } = req.params as unknown as { id: number };
         const body = req.body as CreateProductImageBody;
         const product = await addProductImageService(prisma, id, body);
         res.status(201).json({ status: "success", data: { product } });
@@ -109,7 +109,7 @@ export function createProductController(prisma: Database) {
       next: NextFunction,
     ): Promise<void> {
       try {
-        const { id, imageId } = req.params as { id: string; imageId: string };
+        const { id, imageId } = req.params as unknown as { id: number; imageId: number };
         const body = req.body as UpdateProductImageBody;
         const product = await updateProductImageService(
           prisma,
@@ -129,7 +129,7 @@ export function createProductController(prisma: Database) {
       next: NextFunction,
     ): Promise<void> {
       try {
-        const { id, imageId } = req.params as { id: string; imageId: string };
+        const { id, imageId } = req.params as unknown as { id: number; imageId: number };
         const product = await deleteProductImageService(prisma, id, imageId);
         res.status(200).json({ status: "success", data: { product } });
       } catch (error) {

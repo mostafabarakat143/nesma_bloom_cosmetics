@@ -6,21 +6,21 @@ import type {
 } from "../../generated/prisma/client.js";
 
 export type ProductCategorySummary = {
-  id: string;
+  id: number;
   name: string;
   slug: string;
   status: Category["status"];
 };
 
 export type ProductSubcategorySummary = {
-  id: string;
+  id: number;
   name: string;
   slug: string;
   status: Subcategory["status"];
 };
 
 export type ProductImageDto = {
-  id: string;
+  id: number;
   url: string;
   altText: string | null;
   sortOrder: number;
@@ -30,8 +30,8 @@ export type ProductImageDto = {
 };
 
 export type ProductDto = {
-  id: string;
-  subcategoryId: string;
+  id: number;
+  subcategoryId: number;
   name: string;
   slug: string;
   sku: string;

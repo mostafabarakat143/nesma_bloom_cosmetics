@@ -2,23 +2,14 @@ import type { Request, Response, NextFunction } from "express";
 
 import type { Database } from "../../config/database.js";
 import type { Env } from "../../config/env.js";
-import { REFRESH_COOKIE } from "../../common/constants/cookies.js";
-import { clearAuthCookies, setAuthCookies } from "./cookie.service.js";
+import { AppError } from "../../common/errors/app-error.js";
 import type { LoginBody, RegisterBody } from "./auth.schema.js";
 import {
   getCurrentUser,
   loginUser,
   logoutUser,
-  refreshAuthSession,
   registerUser,
 } from "./auth.service.js";
-
-function requestMeta(req: Request) {
-  return {
-    userAgent: req.get("user-agent") ?? undefined,
-    ipAddress: req.ip,
-  };
-}
 
 export function createAuthController(env: Env, prisma: Database) {
   return {
@@ -29,9 +20,11 @@ export function createAuthController(env: Env, prisma: Database) {
     ): Promise<void> {
       try {
         const body = req.body as RegisterBody;
-        const result = await registerUser(prisma, env, body, requestMeta(req));
-        setAuthCookies(res, env, result.tokens);
-        res.status(201).json({ status: "success", data: { user: result.user } });
+        const result = await registerUser(prisma, env, body);
+        res.status(201).json({
+          status: "success",
+          data: { user: result.user, token: result.token },
+        });
       } catch (error) {
         next(error);
       }
@@ -44,9 +37,11 @@ export function createAuthController(env: Env, prisma: Database) {
     ): Promise<void> {
       try {
         const body = req.body as LoginBody;
-        const result = await loginUser(prisma, env, body, requestMeta(req));
-        setAuthCookies(res, env, result.tokens);
-        res.status(200).json({ status: "success", data: { user: result.user } });
+        const result = await loginUser(prisma, env, body);
+        res.status(200).json({
+          status: "success",
+          data: { user: result.user, token: result.token },
+        });
       } catch (error) {
         next(error);
       }
@@ -58,38 +53,22 @@ export function createAuthController(env: Env, prisma: Database) {
       next: NextFunction,
     ): Promise<void> {
       try {
-        const refreshToken = req.cookies?.[REFRESH_COOKIE] as string | undefined;
+        const user = req.user;
+        if (!user?.jti || user.exp === undefined) {
+          throw AppError.unauthorized("Authentication required");
+        }
+
         await logoutUser(prisma, {
-          rawRefreshToken: refreshToken,
-          sessionId: req.user?.sessionId,
+          userId: user.id,
+          jti: user.jti,
+          exp: user.exp,
         });
-        clearAuthCookies(res, env);
+
         res.status(200).json({
           status: "success",
           data: { message: "Logged out" },
         });
       } catch (error) {
-        next(error);
-      }
-    },
-
-    async refresh(
-      req: Request,
-      res: Response,
-      next: NextFunction,
-    ): Promise<void> {
-      try {
-        const refreshToken = req.cookies?.[REFRESH_COOKIE] as string | undefined;
-        const result = await refreshAuthSession(
-          prisma,
-          env,
-          refreshToken,
-          requestMeta(req),
-        );
-        setAuthCookies(res, env, result.tokens);
-        res.status(200).json({ status: "success", data: { user: result.user } });
-      } catch (error) {
-        clearAuthCookies(res, env);
         next(error);
       }
     },

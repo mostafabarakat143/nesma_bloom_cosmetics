@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 
 import type { Request } from "express";
 
@@ -170,19 +170,19 @@ export function hashOrderCreateRequest(
       productId: item.productId,
       quantity: item.quantity,
     }))
-    .sort((a, b) => a.productId.localeCompare(b.productId));
+    .sort((a, b) => a.productId - b.productId);
   return createHash("sha256").update(JSON.stringify(canonical)).digest("hex");
 }
 
 async function executeCheckout(
   tx: TxClient,
-  userId: string,
+  userId: number,
   items: CreateOrderBody["items"],
 ): Promise<OrderDto> {
   const quantityByProductId = new Map(
     items.map((item) => [item.productId, item.quantity]),
   );
-  const sortedProductIds = [...quantityByProductId.keys()].sort();
+  const sortedProductIds = [...quantityByProductId.keys()].sort((a, b) => a - b);
 
   await lockProductsForUpdate(tx, sortedProductIds);
 
@@ -193,10 +193,10 @@ async function executeCheckout(
 
   const subcategoryIds = [
     ...new Set(products.map((p) => p.subcategory.id)),
-  ].sort();
+  ].sort((a, b) => a - b);
   const categoryIds = [
     ...new Set(products.map((p) => p.subcategory.category.id)),
-  ].sort();
+  ].sort((a, b) => a - b);
 
   await lockSubcategoriesForUpdate(tx, subcategoryIds);
   await lockCategoriesForUpdate(tx, categoryIds);
@@ -234,7 +234,7 @@ async function executeCheckout(
     const quantity = quantityByProductId.get(productId)!;
     const count = await decrementStockIfAvailable(tx, productId, quantity);
     if (count !== 1) {
-      throw AppError.conflict("Insufficient stock for one or more products");
+      throw AppError.conflict("Insufficient stock.");
     }
   }
 
@@ -258,7 +258,7 @@ export type CreateOrderResult = {
  */
 async function createOrderInTransaction(
   prisma: Database,
-  userId: string,
+  userId: number,
   items: CreateOrderBody["items"],
   idempotencyKey: string,
 ): Promise<CreateOrderResult> {
@@ -268,10 +268,8 @@ async function createOrderInTransaction(
     for (let attempt = 0; attempt < MAX_IDEMPOTENCY_INSERT_ATTEMPTS; attempt += 1) {
       const createdAt = new Date();
       const expiresAt = new Date(createdAt.getTime() + IDEMPOTENCY_TTL_MS);
-      const keyId = randomUUID();
 
-      const inserted = await tryInsertOrderIdempotencyKey(tx, {
-        id: keyId,
+      const keyId = await tryInsertOrderIdempotencyKey(tx, {
         userId,
         key: idempotencyKey,
         requestHash,
@@ -279,7 +277,7 @@ async function createOrderInTransaction(
         expiresAt,
       });
 
-      if (inserted) {
+      if (keyId !== null) {
         const order = await executeCheckout(tx, userId, items);
         await completeOrderIdempotencyKey(tx, keyId, order.id);
         return { order, created: true };
@@ -399,7 +397,7 @@ export async function listAllOrders(
 
 export async function getOrderById(
   prisma: Database,
-  id: string,
+  id: number,
   user: AuthUser,
 ): Promise<OrderDto> {
   const order = await findOrderById(prisma, id);
@@ -416,7 +414,7 @@ export async function getOrderById(
 
 async function cancelOrderInTransaction(
   prisma: Database,
-  id: string,
+  id: number,
   allowedFrom: OrderStatus[],
 ): Promise<OrderDto> {
   return prisma.$transaction(async (tx) => {
@@ -435,8 +433,8 @@ async function cancelOrderInTransaction(
 
       const restockIds = [...order.items]
         .map((item) => item.productId)
-        .sort();
-      const quantityByProduct = new Map<string, number>();
+        .sort((a, b) => a - b);
+      const quantityByProduct = new Map<number, number>();
       for (const item of order.items) {
         quantityByProduct.set(
           item.productId,
@@ -471,7 +469,7 @@ async function cancelOrderInTransaction(
 
 export async function cancelOrderService(
   prisma: Database,
-  id: string,
+  id: number,
   user: AuthUser,
 ): Promise<OrderDto> {
   const existing = await findOrderById(prisma, id);
@@ -506,7 +504,7 @@ export async function cancelOrderService(
 
 export async function updateOrderStatusService(
   prisma: Database,
-  id: string,
+  id: number,
   input: UpdateOrderStatusBody,
 ): Promise<OrderDto> {
   const existing = await findOrderById(prisma, id);

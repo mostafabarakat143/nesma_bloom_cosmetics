@@ -21,6 +21,12 @@ Next.js storefront is not implemented yet.
 - Vitest + Supertest against `nesma_bloom_test`
 - OpenAPI 3.1 + Swagger UI + generated Postman collection
 
+## API conventions
+
+- **IDs:** positive integers (`1`, `2`, …), one PostgreSQL `IDENTITY` sequence per table. Path/query/body IDs reject non-integers and unsafe values.
+- **Errors:** client JSON is only `{ "status": "error", "message": "..." }` (no `code`, `details`, or `requestId`).
+- **Money:** integer EGP piastres (`priceMinor`, `totalMinor`, etc.).
+
 ## Prerequisites
 
 - Node.js 22+ recommended
@@ -63,6 +69,25 @@ Important variables:
 
 ## Migrations
 
+Prisma reads `DATABASE_URL` from the process environment **before** `apps/api/.env`. A leftover shell variable (for example from a rehearsal DB) will override `.env` and can migrate the wrong database.
+
+**Before every `migrate deploy`:**
+
+```powershell
+# 1) See what the shell will force (should be empty for normal local work)
+echo $env:DATABASE_URL
+
+# 2) Clear accidental overrides, then use .env
+Remove-Item Env:DATABASE_URL -ErrorAction SilentlyContinue
+
+# 3) Confirm the target Prisma will use
+cd apps/api
+pnpm exec prisma migrate status
+# Expect: Datasource "db": PostgreSQL database "nesma_bloom" ... (or nesma_bloom_test when deploying tests)
+```
+
+Only then:
+
 ```powershell
 cd apps/api
 pnpm db:migrate          # prisma migrate deploy (uses DATABASE_URL)
@@ -70,7 +95,7 @@ pnpm db:validate
 pnpm db:generate
 ```
 
-Apply the same migrations to the test database by pointing `DATABASE_URL` at `DATABASE_URL_TEST` for one deploy, or use your usual ops process. Integration tests expect the schema on `nesma_bloom_test`.
+Apply the same migrations to the **test** database by setting `DATABASE_URL` explicitly to the `DATABASE_URL_TEST` value for one deploy (never point either URL at production). Integration tests expect the schema on `nesma_bloom_test`.
 
 ## Development commands
 

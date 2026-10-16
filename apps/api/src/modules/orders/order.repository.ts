@@ -14,20 +14,20 @@ const orderInclude = {
 } satisfies Prisma.OrderInclude;
 
 export type CheckoutProduct = {
-  id: string;
+  id: number;
   name: string;
   sku: string;
   priceMinor: number;
   stockQty: number;
   status: "ACTIVE" | "ARCHIVED";
   isAvailable: boolean;
-  subcategoryId: string;
+  subcategoryId: number;
   subcategory: {
-    id: string;
+    id: number;
     status: "ACTIVE" | "ARCHIVED";
-    categoryId: string;
+    categoryId: number;
     category: {
-      id: string;
+      id: number;
       status: "ACTIVE" | "ARCHIVED";
     };
   };
@@ -39,7 +39,7 @@ export type CheckoutProduct = {
  */
 export async function lockProductsForUpdate(
   tx: TxClient,
-  productIds: string[],
+  productIds: number[],
 ): Promise<void> {
   if (productIds.length === 0) {
     return;
@@ -56,7 +56,7 @@ export async function lockProductsForUpdate(
 
 export async function lockSubcategoriesForUpdate(
   tx: TxClient,
-  subcategoryIds: string[],
+  subcategoryIds: number[],
 ): Promise<void> {
   if (subcategoryIds.length === 0) {
     return;
@@ -73,7 +73,7 @@ export async function lockSubcategoriesForUpdate(
 
 export async function lockCategoriesForUpdate(
   tx: TxClient,
-  categoryIds: string[],
+  categoryIds: number[],
 ): Promise<void> {
   if (categoryIds.length === 0) {
     return;
@@ -90,7 +90,7 @@ export async function lockCategoriesForUpdate(
 
 export async function findCheckoutProducts(
   tx: TxClient,
-  productIds: string[],
+  productIds: number[],
 ): Promise<CheckoutProduct[]> {
   return tx.product.findMany({
     where: { id: { in: productIds } },
@@ -122,7 +122,7 @@ export async function findCheckoutProducts(
 
 export async function decrementStockIfAvailable(
   tx: TxClient,
-  productId: string,
+  productId: number,
   quantity: number,
 ): Promise<number> {
   const result = await tx.product.updateMany({
@@ -147,7 +147,7 @@ const PG_INT_MAX = 2_147_483_647;
  */
 export async function incrementStockIfSafe(
   tx: TxClient,
-  productId: string,
+  productId: number,
   quantity: number,
 ): Promise<number> {
   const product = await tx.product.findUnique({
@@ -176,20 +176,18 @@ export async function incrementStockIfSafe(
 export async function tryInsertOrderIdempotencyKey(
   tx: TxClient,
   data: {
-    id: string;
-    userId: string;
+    userId: number;
     key: string;
     requestHash: string;
     createdAt: Date;
     expiresAt: Date;
   },
-): Promise<boolean> {
-  const rows = await tx.$queryRaw<Array<{ id: string }>>`
+): Promise<number | null> {
+  const rows = await tx.$queryRaw<Array<{ id: number }>>`
     INSERT INTO order_idempotency_keys (
-      id, user_id, key, request_hash, status, order_id, expires_at, created_at, updated_at
+      user_id, key, request_hash, status, order_id, expires_at, created_at, updated_at
     ) VALUES (
-      ${data.id}::uuid,
-      ${data.userId}::uuid,
+      ${data.userId},
       ${data.key},
       ${data.requestHash},
       'PROCESSING'::idempotency_record_status,
@@ -201,12 +199,12 @@ export async function tryInsertOrderIdempotencyKey(
     ON CONFLICT (user_id, key) DO NOTHING
     RETURNING id
   `;
-  return rows.length === 1;
+  return rows[0]?.id ?? null;
 }
 
 export async function findOrderIdempotencyKey(
   tx: TxClient,
-  userId: string,
+  userId: number,
   key: string,
 ) {
   return tx.orderIdempotencyKey.findUnique({
@@ -218,7 +216,7 @@ export async function findOrderIdempotencyKey(
 
 export async function deleteExpiredOrderIdempotencyKey(
   tx: TxClient,
-  userId: string,
+  userId: number,
   key: string,
 ): Promise<number> {
   const result = await tx.orderIdempotencyKey.deleteMany({
@@ -233,8 +231,8 @@ export async function deleteExpiredOrderIdempotencyKey(
 
 export async function completeOrderIdempotencyKey(
   tx: TxClient,
-  id: string,
-  orderId: string,
+  id: number,
+  orderId: number,
 ): Promise<void> {
   await tx.orderIdempotencyKey.update({
     where: { id },
@@ -248,10 +246,10 @@ export async function completeOrderIdempotencyKey(
 export async function createOrderWithItems(
   tx: TxClient,
   data: {
-    userId: string;
+    userId: number;
     totalMinor: number;
     items: Array<{
-      productId: string;
+      productId: number;
       productNameSnapshot: string;
       productSkuSnapshot: string;
       unitPriceMinor: number;
@@ -276,7 +274,7 @@ export async function createOrderWithItems(
 
 export async function findOrderById(
   prisma: Database | TxClient,
-  id: string,
+  id: number,
 ): Promise<OrderWithItems | null> {
   return prisma.order.findUnique({
     where: { id },
@@ -285,7 +283,7 @@ export async function findOrderById(
 }
 
 export type OrderListFilters = {
-  userId?: string;
+  userId?: number;
   status: OrderStatus | "ALL";
   sortOrder: "asc" | "desc";
   page: number;
@@ -322,7 +320,7 @@ export async function findOrdersPage(
 
 export async function transitionOrderStatus(
   tx: TxClient,
-  id: string,
+  id: number,
   from: OrderStatus | OrderStatus[],
   to: OrderStatus,
 ): Promise<number> {
@@ -338,7 +336,7 @@ export async function transitionOrderStatus(
 
 export async function findUserStatus(
   prisma: Database,
-  userId: string,
+  userId: number,
 ): Promise<"ACTIVE" | "DISABLED" | null> {
   const user = await prisma.user.findUnique({
     where: { id: userId },

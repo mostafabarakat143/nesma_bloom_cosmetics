@@ -8,7 +8,7 @@ import type { UpdateProfileBody } from "./user.schema.js";
 
 export async function getOwnProfile(
   prisma: Database,
-  userId: string,
+  userId: number,
 ): Promise<PublicProfileDto> {
   const profile = await prisma.userProfile.findUnique({ where: { userId } });
   if (!profile) {
@@ -19,7 +19,7 @@ export async function getOwnProfile(
 
 export async function updateOwnProfile(
   prisma: Database,
-  userId: string,
+  userId: number,
   input: UpdateProfileBody,
 ): Promise<PublicProfileDto> {
   const existing = await prisma.userProfile.findUnique({ where: { userId } });

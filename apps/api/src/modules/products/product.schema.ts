@@ -1,6 +1,10 @@
 import { z } from "zod";
 
 import { normalizeSlug } from "../../common/utils/slug.js";
+import {
+  positiveIntIdField,
+  positiveIntIdSchema,
+} from "../../common/validation/ids.js";
 
 /** PostgreSQL INTEGER upper bound (signed 32-bit). */
 const PG_INT_MAX = 2_147_483_647;
@@ -73,14 +77,14 @@ const imageUrlSchema = z
 
 export const productIdParamsSchema = z
   .object({
-    id: z.string().uuid(),
+    id: positiveIntIdSchema,
   })
   .strict();
 
 export const productImageParamsSchema = z
   .object({
-    id: z.string().uuid(),
-    imageId: z.string().uuid(),
+    id: positiveIntIdSchema,
+    imageId: positiveIntIdSchema,
   })
   .strict();
 
@@ -89,8 +93,8 @@ export const listProductsQuerySchema = z
     page: z.coerce.number().int().min(1).default(1),
     pageSize: z.coerce.number().int().min(1).max(100).default(20),
     search: z.string().trim().max(100).optional(),
-    categoryId: z.string().uuid().optional(),
-    subcategoryId: z.string().uuid().optional(),
+    categoryId: positiveIntIdSchema.optional(),
+    subcategoryId: positiveIntIdSchema.optional(),
     minPriceMinor: nonNegativeInt.optional(),
     maxPriceMinor: nonNegativeInt.optional(),
     availability: z
@@ -114,8 +118,12 @@ export const listProductsQuerySchema = z
 
 export const createProductBodySchema = z
   .object({
-    name: z.string().trim().min(1).max(200),
-    subcategoryId: z.string().uuid(),
+    name: z
+      .string({ error: () => "Product name is required." })
+      .trim()
+      .min(1, "Product name is required.")
+      .max(200),
+    subcategoryId: positiveIntIdField("Subcategory ID"),
     sku: skuSchema,
     priceMinor: priceMinorSchema,
     stockQty: stockQtySchema,
@@ -129,7 +137,7 @@ export const createProductBodySchema = z
 export const updateProductBodySchema = z
   .object({
     name: z.string().trim().min(1).max(200).optional(),
-    subcategoryId: z.string().uuid().optional(),
+    subcategoryId: positiveIntIdSchema.optional(),
     sku: skuSchema.optional(),
     priceMinor: priceMinorSchema.optional(),
     stockQty: stockQtySchema.optional(),
@@ -141,7 +149,7 @@ export const updateProductBodySchema = z
   .strict()
   .refine(
     (value) => Object.keys(value).length > 0,
-    "At least one field is required",
+    "At least one field is required.",
   );
 
 export const createProductImageBodySchema = z
@@ -163,7 +171,7 @@ export const updateProductImageBodySchema = z
   .strict()
   .refine(
     (value) => Object.keys(value).length > 0,
-    "At least one field is required",
+    "At least one field is required.",
   );
 
 export type ListProductsQuery = z.infer<typeof listProductsQuerySchema>;

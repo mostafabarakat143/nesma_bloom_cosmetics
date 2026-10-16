@@ -1,8 +1,8 @@
 import type { Order, OrderItem } from "../../generated/prisma/client.js";
 
 export type OrderItemDto = {
-  id: string;
-  productId: string;
+  id: number;
+  productId: number;
   productNameSnapshot: string;
   productSkuSnapshot: string;
   unitPriceMinor: number;
@@ -11,8 +11,8 @@ export type OrderItemDto = {
 };
 
 export type OrderDto = {
-  id: string;
-  userId: string;
+  id: number;
+  userId: number;
   status: Order["status"];
   totalMinor: number;
   currency: string;

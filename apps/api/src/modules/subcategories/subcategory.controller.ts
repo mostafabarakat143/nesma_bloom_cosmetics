@@ -32,7 +32,7 @@ export function createSubcategoryController(prisma: Database) {
       next: NextFunction,
     ): Promise<void> {
       try {
-        const { id } = req.params as { id: string };
+        const { id } = req.params as unknown as { id: number };
         const subcategory = await getSubcategoryById(prisma, id, req.user);
         res.status(200).json({ status: "success", data: { subcategory } });
       } catch (error) {
@@ -60,7 +60,7 @@ export function createSubcategoryController(prisma: Database) {
       next: NextFunction,
     ): Promise<void> {
       try {
-        const { id } = req.params as { id: string };
+        const { id } = req.params as unknown as { id: number };
         const body = req.body as UpdateSubcategoryBody;
         const subcategory = await updateSubcategoryService(prisma, id, body);
         res.status(200).json({ status: "success", data: { subcategory } });
@@ -75,7 +75,7 @@ export function createSubcategoryController(prisma: Database) {
       next: NextFunction,
     ): Promise<void> {
       try {
-        const { id } = req.params as { id: string };
+        const { id } = req.params as unknown as { id: number };
         const subcategory = await archiveSubcategoryService(prisma, id);
         res.status(200).json({ status: "success", data: { subcategory } });
       } catch (error) {

@@ -11,7 +11,7 @@ import { requestIdMiddleware } from "../../src/common/middlewares/request-id.mid
 import { baseTestEnvVars } from "../helpers/test-env.js";
 
 describe("validate middleware", () => {
-  it("rejects invalid bodies with HTTP 400 and field details", async () => {
+  it("rejects invalid bodies with HTTP 400 and a clear two-field error", async () => {
     const env = loadEnv({
       ...baseTestEnvVars,
       LOG_LEVEL: "silent",
@@ -24,7 +24,11 @@ describe("validate middleware", () => {
     app.post(
       "/demo",
       validate({
-        body: z.object({ name: z.string().min(1) }).strict(),
+        body: z
+          .object({
+            name: z.string({ error: () => "Name is required." }).min(1),
+          })
+          .strict(),
       }),
       (_req, res) => {
         res.status(200).json({ status: "success" });
@@ -35,12 +39,12 @@ describe("validate middleware", () => {
     const response = await request(app).post("/demo").send({});
 
     expect(response.status).toBe(400);
-    expect(response.body.status).toBe("error");
-    expect(response.body.code).toBe("VALIDATION_ERROR");
-    expect(response.body.details).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ path: "name" }),
-      ]),
-    );
+    expect(response.body).toEqual({
+      status: "error",
+      message: "Name is required.",
+    });
+    expect(response.body).not.toHaveProperty("code");
+    expect(response.body).not.toHaveProperty("details");
+    expect(response.body).not.toHaveProperty("requestId");
   });
 });

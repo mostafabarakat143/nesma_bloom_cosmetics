@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import type { ZodType } from "zod";
 
 import { AppError } from "../errors/app-error.js";
+import { formatZodErrorMessage } from "../errors/zod-message.js";
 
 type RequestSchemas = {
   body?: ZodType;
@@ -15,7 +16,7 @@ export function validate(schemas: RequestSchemas) {
       if (schemas.body) {
         const parsed = schemas.body.safeParse(req.body);
         if (!parsed.success) {
-          throw AppError.badRequest("Validation failed", formatIssues(parsed.error), "VALIDATION_ERROR");
+          throw validationError(parsed.error);
         }
         req.body = parsed.data;
       }
@@ -23,7 +24,7 @@ export function validate(schemas: RequestSchemas) {
       if (schemas.params) {
         const parsed = schemas.params.safeParse(req.params);
         if (!parsed.success) {
-          throw AppError.badRequest("Validation failed", formatIssues(parsed.error), "VALIDATION_ERROR");
+          throw validationError(parsed.error);
         }
         Object.assign(req.params, parsed.data);
       }
@@ -31,7 +32,7 @@ export function validate(schemas: RequestSchemas) {
       if (schemas.query) {
         const parsed = schemas.query.safeParse(req.query);
         if (!parsed.success) {
-          throw AppError.badRequest("Validation failed", formatIssues(parsed.error), "VALIDATION_ERROR");
+          throw validationError(parsed.error);
         }
         Object.defineProperty(req, "query", {
           value: parsed.data,
@@ -48,11 +49,17 @@ export function validate(schemas: RequestSchemas) {
   };
 }
 
-function formatIssues(error: {
-  issues: Array<{ path: PropertyKey[]; message: string }>;
-}): Array<{ path: string; message: string }> {
-  return error.issues.map((issue) => ({
+function validationError(error: {
+  issues: Array<{ path: PropertyKey[]; message: string; code: string }>;
+}): AppError {
+  const details = error.issues.map((issue) => ({
     path: issue.path.map(String).join(".") || "(root)",
     message: issue.message,
   }));
+
+  return AppError.badRequest(
+    formatZodErrorMessage(error),
+    details,
+    "VALIDATION_ERROR",
+  );
 }

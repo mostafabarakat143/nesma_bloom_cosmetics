@@ -1,30 +1,41 @@
 import { z } from "zod";
 
+import {
+  positiveIntIdField,
+  positiveIntIdSchema,
+} from "../../common/validation/ids.js";
+
 const PG_INT_MAX = 2_147_483_647;
 
 const orderItemInputSchema = z
   .object({
-    productId: z.string().uuid(),
-    quantity: z.number().int().min(1).max(100),
+    productId: positiveIntIdField("Product ID"),
+    quantity: z
+      .number({ error: () => "Quantity is required." })
+      .int("Quantity must be a whole number.")
+      .min(1, "Quantity must be at least 1.")
+      .max(100, "Quantity may be at most 100."),
   })
   .strict();
 
 export const createOrderBodySchema = z
   .object({
     items: z
-      .array(orderItemInputSchema)
-      .min(1, "Order must include at least one item")
-      .max(50, "Order may include at most 50 distinct products"),
+      .array(orderItemInputSchema, {
+        error: () => "Items are required.",
+      })
+      .min(1, "Order must include at least one item.")
+      .max(50, "Order may include at most 50 distinct products."),
   })
   .strict()
   .superRefine((value, ctx) => {
-    const seen = new Set<string>();
+    const seen = new Set<number>();
     for (let i = 0; i < value.items.length; i += 1) {
       const id = value.items[i].productId;
       if (seen.has(id)) {
         ctx.addIssue({
           code: "custom",
-          message: "Duplicate product IDs are not allowed",
+          message: "Duplicate product IDs are not allowed.",
           path: ["items", i, "productId"],
         });
         return;
@@ -35,7 +46,7 @@ export const createOrderBodySchema = z
 
 export const orderIdParamsSchema = z
   .object({
-    id: z.string().uuid(),
+    id: positiveIntIdSchema,
   })
   .strict();
 
@@ -46,7 +57,7 @@ export const listOrdersQuerySchema = z
     status: z
       .enum(["PENDING", "CONFIRMED", "FULFILLED", "CANCELLED", "ALL"])
       .default("ALL"),
-    userId: z.string().uuid().optional(),
+    userId: positiveIntIdSchema.optional(),
     sortOrder: z.enum(["asc", "desc"]).default("desc"),
   })
   .strict();

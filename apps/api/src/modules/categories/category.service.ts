@@ -86,7 +86,7 @@ export async function listCategories(
 
 export async function getCategoryById(
   prisma: Database,
-  id: string,
+  id: number,
   user?: AuthUser,
 ): Promise<CategoryDto> {
   const category = await findCategoryById(prisma, id);
@@ -133,7 +133,7 @@ export async function createCategoryService(
 
 export async function updateCategoryService(
   prisma: Database,
-  id: string,
+  id: number,
   input: UpdateCategoryBody,
 ): Promise<CategoryDto> {
   const existing = await findCategoryById(prisma, id);
@@ -166,7 +166,7 @@ export async function updateCategoryService(
  */
 export async function archiveCategoryService(
   prisma: Database,
-  id: string,
+  id: number,
 ): Promise<CategoryDto> {
   const existing = await findCategoryById(prisma, id);
   if (!existing) {

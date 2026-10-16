@@ -18,13 +18,23 @@ describe("request validation", () => {
       .send({ message: "" });
 
     expect(response.status).toBe(400);
-    expect(response.body.status).toBe("error");
-    expect(response.body.code).toBe("VALIDATION_ERROR");
-    expect(response.body.details).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ path: "message" }),
-      ]),
-    );
+    expect(response.body).toEqual({
+      status: "error",
+      message: "Message is required.",
+    });
+  });
+
+  it("rejects missing auth fields with field-specific messages", async () => {
+    const response = await request(app)
+      .post("/api/v1/auth/register")
+      .set("Origin", TEST_ORIGIN)
+      .send({});
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      status: "error",
+      message: "Email is required.",
+    });
   });
 
   it("accepts valid echo bodies", async () => {

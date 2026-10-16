@@ -1,7 +1,7 @@
 import type { User, UserProfile } from "../../generated/prisma/client.js";
 
 export type PublicUserDto = {
-  id: string;
+  id: number;
   email: string;
   role: User["role"];
   status: User["status"];
@@ -10,8 +10,8 @@ export type PublicUserDto = {
 };
 
 export type PublicProfileDto = {
-  id: string;
-  userId: string;
+  id: number;
+  userId: number;
   firstName: string | null;
   lastName: string | null;
   phone: string | null;

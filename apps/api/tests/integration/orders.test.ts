@@ -2,7 +2,7 @@ import request from "supertest";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
 import { hashPassword } from "../../src/modules/auth/password.service.js";
-import { authHeaders, parseCookies, TEST_ORIGIN } from "../helpers/auth.js";
+import { authHeaders, TEST_ORIGIN, extractToken } from "../helpers/auth.js";
 import { createAdminUser, loginAsAdmin } from "../helpers/admin.js";
 import { buildTestApp } from "../helpers/test-app.js";
 
@@ -10,6 +10,7 @@ describe("orders management", () => {
   const { app, prisma } = buildTestApp();
 
   beforeEach(async () => {
+    await prisma.revokedAccessToken.deleteMany();
     await prisma.refreshToken.deleteMany();
     await prisma.orderIdempotencyKey.deleteMany();
     await prisma.orderItem.deleteMany();
@@ -34,8 +35,8 @@ describe("orders management", () => {
 
   async function asAdmin() {
     const admin = await createAdminUser(prisma);
-    const cookies = await loginAsAdmin(app, admin.email, admin.password);
-    return { cookies, admin };
+    const token = await loginAsAdmin(app, admin.email, admin.password);
+    return { token, admin };
   }
 
   async function asCustomer(email = `customer-${Date.now()}@example.com`) {
@@ -52,7 +53,7 @@ describe("orders management", () => {
       .post("/api/v1/auth/login")
       .set("Origin", TEST_ORIGIN)
       .send({ email, password });
-    return { cookies: parseCookies(login), user, password, email };
+    return { token: extractToken(login), user, password, email };
   }
 
   async function seedCatalog(stockQty = 10, priceMinor = 25_000) {
@@ -104,12 +105,12 @@ describe("orders management", () => {
   }
 
   it("creates an order with snapshots, totals and stock deduction", async () => {
-    const { cookies } = await asCustomer();
+    const { token } = await asCustomer();
     const { product } = await seedCatalog(10, 25_000);
 
     const response = await request(app)
       .post("/api/v1/orders")
-      .set(authHeaders(cookies))
+      .set(authHeaders(token))
       .set("Idempotency-Key", nextIdempotencyKey())
       .send({ items: [{ productId: product.id, quantity: 2 }] });
 
@@ -140,7 +141,7 @@ describe("orders management", () => {
 
     const detail = await request(app)
       .get(`/api/v1/orders/${order.id}`)
-      .set(authHeaders(cookies));
+      .set(authHeaders(token));
     expect(detail.body.data.order.items[0].unitPriceMinor).toBe(25_000);
     expect(detail.body.data.order.items[0].productNameSnapshot).toBe(
       "Rose Serum",
@@ -148,14 +149,14 @@ describe("orders management", () => {
   });
 
   it("rejects empty, duplicate, invalid quantity and overflow", async () => {
-    const { cookies } = await asCustomer();
+    const { token } = await asCustomer();
     const { product } = await seedCatalog();
 
     expect(
       (
         await request(app)
           .post("/api/v1/orders")
-          .set(authHeaders(cookies))
+          .set(authHeaders(token))
           .set("Idempotency-Key", nextIdempotencyKey())
           .send({ items: [] })
       ).status,
@@ -165,7 +166,7 @@ describe("orders management", () => {
       (
         await request(app)
           .post("/api/v1/orders")
-          .set(authHeaders(cookies))
+          .set(authHeaders(token))
           .set("Idempotency-Key", nextIdempotencyKey())
           .send({
             items: [
@@ -180,7 +181,7 @@ describe("orders management", () => {
       (
         await request(app)
           .post("/api/v1/orders")
-          .set(authHeaders(cookies))
+          .set(authHeaders(token))
           .set("Idempotency-Key", nextIdempotencyKey())
           .send({ items: [{ productId: product.id, quantity: 0 }] })
       ).status,
@@ -193,7 +194,7 @@ describe("orders management", () => {
 
     const overflow = await request(app)
       .post("/api/v1/orders")
-      .set(authHeaders(cookies))
+      .set(authHeaders(token))
       .set("Idempotency-Key", nextIdempotencyKey())
       .send({ items: [{ productId: product.id, quantity: 2 }] });
     expect(overflow.status).toBe(400);
@@ -205,19 +206,19 @@ describe("orders management", () => {
   });
 
   it("rejects missing, unavailable and archived-parent products", async () => {
-    const { cookies } = await asCustomer();
+    const { token } = await asCustomer();
     const { product, archivedSub, subcategory } = await seedCatalog();
 
     expect(
       (
         await request(app)
           .post("/api/v1/orders")
-          .set(authHeaders(cookies))
+          .set(authHeaders(token))
           .set("Idempotency-Key", nextIdempotencyKey())
           .send({
             items: [
               {
-                productId: "00000000-0000-4000-8000-000000000099",
+                productId: 999_999_999,
                 quantity: 1,
               },
             ],
@@ -233,7 +234,7 @@ describe("orders management", () => {
       (
         await request(app)
           .post("/api/v1/orders")
-          .set(authHeaders(cookies))
+          .set(authHeaders(token))
           .set("Idempotency-Key", nextIdempotencyKey())
           .send({ items: [{ productId: product.id, quantity: 1 }] })
       ).status,
@@ -247,7 +248,7 @@ describe("orders management", () => {
       (
         await request(app)
           .post("/api/v1/orders")
-          .set(authHeaders(cookies))
+          .set(authHeaders(token))
           .set("Idempotency-Key", nextIdempotencyKey())
           .send({ items: [{ productId: product.id, quantity: 1 }] })
       ).status,
@@ -261,7 +262,7 @@ describe("orders management", () => {
       (
         await request(app)
           .post("/api/v1/orders")
-          .set(authHeaders(cookies))
+          .set(authHeaders(token))
           .set("Idempotency-Key", nextIdempotencyKey())
           .send({ items: [{ productId: product.id, quantity: 1 }] })
       ).status,
@@ -269,7 +270,7 @@ describe("orders management", () => {
   });
 
   it("rejects insufficient stock and rolls back multi-item failure", async () => {
-    const { cookies } = await asCustomer();
+    const { token } = await asCustomer();
     const { subcategory } = await seedCatalog(1);
     const a = await prisma.product.findFirstOrThrow({
       where: { subcategoryId: subcategory.id },
@@ -289,7 +290,7 @@ describe("orders management", () => {
 
     const insufficient = await request(app)
       .post("/api/v1/orders")
-      .set(authHeaders(cookies))
+      .set(authHeaders(token))
       .set("Idempotency-Key", nextIdempotencyKey())
       .send({ items: [{ productId: a.id, quantity: 2 }] });
     expect(insufficient.status).toBe(409);
@@ -303,7 +304,7 @@ describe("orders management", () => {
 
     const multi = await request(app)
       .post("/api/v1/orders")
-      .set(authHeaders(cookies))
+      .set(authHeaders(token))
       .set("Idempotency-Key", nextIdempotencyKey())
       .send({ items });
     expect(multi.status).toBe(409);
@@ -322,12 +323,12 @@ describe("orders management", () => {
     const [r1, r2] = await Promise.all([
       request(app)
         .post("/api/v1/orders")
-        .set(authHeaders(customerA.cookies))
+        .set(authHeaders(customerA.token))
         .set("Idempotency-Key", nextIdempotencyKey())
         .send({ items: [{ productId: product.id, quantity: 1 }] }),
       request(app)
         .post("/api/v1/orders")
-        .set(authHeaders(customerB.cookies))
+        .set(authHeaders(customerB.token))
         .set("Idempotency-Key", nextIdempotencyKey())
         .send({ items: [{ productId: product.id, quantity: 1 }] }),
     ]);
@@ -347,12 +348,12 @@ describe("orders management", () => {
   it("enforces ownership and ADMIN listing", async () => {
     const customerA = await asCustomer(`own-a-${Date.now()}@example.com`);
     const customerB = await asCustomer(`own-b-${Date.now()}@example.com`);
-    const { cookies: adminCookies } = await asAdmin();
+    const { token: adminToken } = await asAdmin();
     const { product } = await seedCatalog();
 
     const created = await request(app)
       .post("/api/v1/orders")
-      .set(authHeaders(customerA.cookies))
+      .set(authHeaders(customerA.token))
       .set("Idempotency-Key", nextIdempotencyKey())
       .send({ items: [{ productId: product.id, quantity: 1 }] });
     const orderId = created.body.data.order.id;
@@ -361,19 +362,19 @@ describe("orders management", () => {
       (
         await request(app)
           .get(`/api/v1/orders/${orderId}`)
-          .set(authHeaders(customerB.cookies))
+          .set(authHeaders(customerB.token))
       ).status,
     ).toBe(404);
 
     const mine = await request(app)
       .get("/api/v1/orders/my")
-      .set(authHeaders(customerA.cookies));
+      .set(authHeaders(customerA.token));
     expect(mine.status).toBe(200);
     expect(mine.body.data.items).toHaveLength(1);
 
     const adminList = await request(app)
       .get("/api/v1/orders")
-      .set(authHeaders(adminCookies))
+      .set(authHeaders(adminToken))
       .query({ userId: customerA.user.id });
     expect(adminList.status).toBe(200);
     expect(adminList.body.data.items).toHaveLength(1);
@@ -382,57 +383,57 @@ describe("orders management", () => {
       (
         await request(app)
           .get("/api/v1/orders")
-          .set(authHeaders(customerA.cookies))
+          .set(authHeaders(customerA.token))
       ).status,
     ).toBe(403);
   });
 
   it("applies status transitions and blocks invalid ones", async () => {
-    const { cookies: customerCookies } = await asCustomer();
-    const { cookies: adminCookies } = await asAdmin();
+    const { token: customerToken } = await asCustomer();
+    const { token: adminToken } = await asAdmin();
     const { product } = await seedCatalog();
 
     const created = await request(app)
       .post("/api/v1/orders")
-      .set(authHeaders(customerCookies))
+      .set(authHeaders(customerToken))
       .set("Idempotency-Key", nextIdempotencyKey())
       .send({ items: [{ productId: product.id, quantity: 1 }] });
     const orderId = created.body.data.order.id;
 
     const skip = await request(app)
       .patch(`/api/v1/orders/${orderId}/status`)
-      .set(authHeaders(adminCookies))
+      .set(authHeaders(adminToken))
       .send({ status: "FULFILLED" });
     expect(skip.status).toBe(409);
 
     const confirmed = await request(app)
       .patch(`/api/v1/orders/${orderId}/status`)
-      .set(authHeaders(adminCookies))
+      .set(authHeaders(adminToken))
       .send({ status: "CONFIRMED" });
     expect(confirmed.status).toBe(200);
     expect(confirmed.body.data.order.status).toBe("CONFIRMED");
 
     const fulfilled = await request(app)
       .patch(`/api/v1/orders/${orderId}/status`)
-      .set(authHeaders(adminCookies))
+      .set(authHeaders(adminToken))
       .send({ status: "FULFILLED" });
     expect(fulfilled.status).toBe(200);
     expect(fulfilled.body.data.order.status).toBe("FULFILLED");
 
     const again = await request(app)
       .patch(`/api/v1/orders/${orderId}/status`)
-      .set(authHeaders(adminCookies))
+      .set(authHeaders(adminToken))
       .send({ status: "CONFIRMED" });
     expect(again.status).toBe(409);
   });
 
   it("cancels with single restock and supports idempotent repeat cancel", async () => {
-    const { cookies } = await asCustomer();
+    const { token } = await asCustomer();
     const { product } = await seedCatalog(5);
 
     const created = await request(app)
       .post("/api/v1/orders")
-      .set(authHeaders(cookies))
+      .set(authHeaders(token))
       .set("Idempotency-Key", nextIdempotencyKey())
       .send({ items: [{ productId: product.id, quantity: 3 }] });
     const orderId = created.body.data.order.id;
@@ -444,7 +445,7 @@ describe("orders management", () => {
 
     const cancel = await request(app)
       .post(`/api/v1/orders/${orderId}/cancel`)
-      .set(authHeaders(cookies));
+      .set(authHeaders(token));
     expect(cancel.status).toBe(200);
     expect(cancel.body.data.order.status).toBe("CANCELLED");
     expect(
@@ -454,7 +455,7 @@ describe("orders management", () => {
 
     const again = await request(app)
       .post(`/api/v1/orders/${orderId}/cancel`)
-      .set(authHeaders(cookies));
+      .set(authHeaders(token));
     expect(again.status).toBe(200);
     expect(
       (await prisma.product.findUniqueOrThrow({ where: { id: product.id } }))
@@ -463,13 +464,13 @@ describe("orders management", () => {
   });
 
   it("handles concurrent cancellation with a single restock", async () => {
-    const { cookies: customerCookies } = await asCustomer();
-    const { cookies: adminCookies } = await asAdmin();
+    const { token: customerToken } = await asCustomer();
+    const { token: adminToken } = await asAdmin();
     const { product } = await seedCatalog(4);
 
     const created = await request(app)
       .post("/api/v1/orders")
-      .set(authHeaders(customerCookies))
+      .set(authHeaders(customerToken))
       .set("Idempotency-Key", nextIdempotencyKey())
       .send({ items: [{ productId: product.id, quantity: 2 }] });
     const orderId = created.body.data.order.id;
@@ -477,10 +478,10 @@ describe("orders management", () => {
     const [c1, c2] = await Promise.all([
       request(app)
         .post(`/api/v1/orders/${orderId}/cancel`)
-        .set(authHeaders(customerCookies)),
+        .set(authHeaders(customerToken)),
       request(app)
         .post(`/api/v1/orders/${orderId}/cancel`)
-        .set(authHeaders(adminCookies)),
+        .set(authHeaders(adminToken)),
     ]);
 
     expect([c1.status, c2.status].every((s) => s === 200)).toBe(true);
@@ -491,29 +492,29 @@ describe("orders management", () => {
   });
 
   it("resolves cancel versus fulfill races without double restock", async () => {
-    const { cookies: customerCookies } = await asCustomer();
-    const { cookies: adminCookies } = await asAdmin();
+    const { token: customerToken } = await asCustomer();
+    const { token: adminToken } = await asAdmin();
     const { product } = await seedCatalog(3);
 
     const created = await request(app)
       .post("/api/v1/orders")
-      .set(authHeaders(customerCookies))
+      .set(authHeaders(customerToken))
       .set("Idempotency-Key", nextIdempotencyKey())
       .send({ items: [{ productId: product.id, quantity: 1 }] });
     const orderId = created.body.data.order.id;
 
     await request(app)
       .patch(`/api/v1/orders/${orderId}/status`)
-      .set(authHeaders(adminCookies))
+      .set(authHeaders(adminToken))
       .send({ status: "CONFIRMED" });
 
     const [cancel, fulfill] = await Promise.all([
       request(app)
         .post(`/api/v1/orders/${orderId}/cancel`)
-        .set(authHeaders(adminCookies)),
+        .set(authHeaders(adminToken)),
       request(app)
         .patch(`/api/v1/orders/${orderId}/status`)
-        .set(authHeaders(adminCookies))
+        .set(authHeaders(adminToken))
         .send({ status: "FULFILLED" }),
     ]);
 
@@ -536,26 +537,26 @@ describe("orders management", () => {
   it("blocks customer cancel of CONFIRMED and foreign cancel with 404", async () => {
     const customerA = await asCustomer(`c1-${Date.now()}@example.com`);
     const customerB = await asCustomer(`c2-${Date.now()}@example.com`);
-    const { cookies: adminCookies } = await asAdmin();
+    const { token: adminToken } = await asAdmin();
     const { product } = await seedCatalog();
 
     const created = await request(app)
       .post("/api/v1/orders")
-      .set(authHeaders(customerA.cookies))
+      .set(authHeaders(customerA.token))
       .set("Idempotency-Key", nextIdempotencyKey())
       .send({ items: [{ productId: product.id, quantity: 1 }] });
     const orderId = created.body.data.order.id;
 
     await request(app)
       .patch(`/api/v1/orders/${orderId}/status`)
-      .set(authHeaders(adminCookies))
+      .set(authHeaders(adminToken))
       .send({ status: "CONFIRMED" });
 
     expect(
       (
         await request(app)
           .post(`/api/v1/orders/${orderId}/cancel`)
-          .set(authHeaders(customerA.cookies))
+          .set(authHeaders(customerA.token))
       ).status,
     ).toBe(409);
 
@@ -563,15 +564,15 @@ describe("orders management", () => {
       (
         await request(app)
           .post(`/api/v1/orders/${orderId}/cancel`)
-          .set(authHeaders(customerB.cookies))
+          .set(authHeaders(customerB.token))
       ).status,
     ).toBe(404);
   });
 
-  it("enforces auth, role and CSRF on mutations", async () => {
+  it("enforces auth, role and Bearer auth on mutations", async () => {
     const { product } = await seedCatalog();
-    const { cookies: customer } = await asCustomer();
-    const { cookies: admin } = await asAdmin();
+    const { token: customer } = await asCustomer();
+    const { token: admin } = await asAdmin();
 
     expect(
       (
@@ -597,33 +598,27 @@ describe("orders management", () => {
       (
         await request(app)
           .post("/api/v1/orders")
-          .set("Origin", TEST_ORIGIN)
+          .set(authHeaders(customer))
           .set("Idempotency-Key", nextIdempotencyKey())
-          .set(
-            "Cookie",
-            Object.entries(customer)
-              .map(([k, v]) => `${k}=${v}`)
-              .join("; "),
-          )
           .send({ items: [{ productId: product.id, quantity: 1 }] })
       ).status,
-    ).toBe(403);
+    ).toBe(201);
   });
 
   it("requires Idempotency-Key and replays same payload with 200", async () => {
-    const { cookies } = await asCustomer();
+    const { token } = await asCustomer();
     const { product } = await seedCatalog(5);
     const key = nextIdempotencyKey("idem");
 
     const missing = await request(app)
       .post("/api/v1/orders")
-      .set(authHeaders(cookies))
+      .set(authHeaders(token))
       .send({ items: [{ productId: product.id, quantity: 1 }] });
     expect(missing.status).toBe(400);
 
     const first = await request(app)
       .post("/api/v1/orders")
-      .set(authHeaders(cookies))
+      .set(authHeaders(token))
       .set("Idempotency-Key", key)
       .send({ items: [{ productId: product.id, quantity: 1 }] });
     expect(first.status).toBe(201);
@@ -631,7 +626,7 @@ describe("orders management", () => {
 
     const replay = await request(app)
       .post("/api/v1/orders")
-      .set(authHeaders(cookies))
+      .set(authHeaders(token))
       .set("Idempotency-Key", key)
       .send({ items: [{ productId: product.id, quantity: 1 }] });
     expect(replay.status).toBe(200);
@@ -645,26 +640,26 @@ describe("orders management", () => {
   });
 
   it("rejects same Idempotency-Key with different payload", async () => {
-    const { cookies } = await asCustomer();
+    const { token } = await asCustomer();
     const { product } = await seedCatalog(5);
     const key = nextIdempotencyKey("conflict");
 
     await request(app)
       .post("/api/v1/orders")
-      .set(authHeaders(cookies))
+      .set(authHeaders(token))
       .set("Idempotency-Key", key)
       .send({ items: [{ productId: product.id, quantity: 1 }] });
 
     const conflict = await request(app)
       .post("/api/v1/orders")
-      .set(authHeaders(cookies))
+      .set(authHeaders(token))
       .set("Idempotency-Key", key)
       .send({ items: [{ productId: product.id, quantity: 2 }] });
     expect(conflict.status).toBe(409);
   });
 
   it("handles concurrent duplicate Idempotency-Key submissions safely", async () => {
-    const { cookies } = await asCustomer();
+    const { token } = await asCustomer();
     const { product } = await seedCatalog(5);
     const key = nextIdempotencyKey("conc");
     const body = { items: [{ productId: product.id, quantity: 1 }] };
@@ -672,12 +667,12 @@ describe("orders management", () => {
     const [a, b] = await Promise.all([
       request(app)
         .post("/api/v1/orders")
-        .set(authHeaders(cookies))
+        .set(authHeaders(token))
         .set("Idempotency-Key", key)
         .send(body),
       request(app)
         .post("/api/v1/orders")
-        .set(authHeaders(cookies))
+        .set(authHeaders(token))
         .set("Idempotency-Key", key)
         .send(body),
     ]);

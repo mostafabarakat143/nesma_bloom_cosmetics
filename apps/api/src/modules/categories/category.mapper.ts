@@ -1,7 +1,7 @@
 import type { Category } from "../../generated/prisma/client.js";
 
 export type CategoryDto = {
-  id: string;
+  id: number;
   name: string;
   slug: string;
   description: string | null;

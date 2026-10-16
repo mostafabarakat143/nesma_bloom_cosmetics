@@ -7,5 +7,17 @@ dist/
 .turbo/
 coverage/
 
+# Local credentials / secrets (also covered by .env patterns above)
+**/credentials.json
+**/secrets/
+
+# PostgreSQL dumps and local DB backups (never commit)
+backups/
+*.dump
+*.sql.gz
+
 # Prisma generated client (regenerate with `pnpm --filter @cosmetics/api db:generate`)
 apps/api/src/generated/
+
+# Migration rehearsal / scratch (official SQL lives under prisma/migrations/)
+apps/api/prisma/proposed/

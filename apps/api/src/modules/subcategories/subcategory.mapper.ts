@@ -1,15 +1,15 @@
 import type { Category, Subcategory } from "../../generated/prisma/client.js";
 
 export type SubcategoryCategorySummary = {
-  id: string;
+  id: number;
   name: string;
   slug: string;
   status: Category["status"];
 };
 
 export type SubcategoryDto = {
-  id: string;
-  categoryId: string;
+  id: number;
+  categoryId: number;
   name: string;
   slug: string;
   description: string | null;

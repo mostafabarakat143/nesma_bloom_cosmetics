@@ -9,30 +9,15 @@ import {
 import { toPublicUser, type PublicUserDto } from "./auth.mapper.js";
 import { hashPassword, verifyPassword } from "./password.service.js";
 import {
-  createRefreshSession,
-  generateCsrfToken,
-  revokeRefreshSessionByHash,
-  revokeSessionById,
-  rotateRefreshSession,
-  signAccessToken,
+  revokeAccessToken,
+  signBearerToken,
 } from "./token.service.js";
 
-const GENERIC_AUTH_ERROR = "Invalid email or password";
-
-type RequestMeta = {
-  userAgent?: string;
-  ipAddress?: string;
-};
-
-export type AuthTokens = {
-  accessToken: string;
-  refreshToken: string;
-  csrfToken: string;
-};
+const GENERIC_AUTH_ERROR = "Invalid email or password.";
 
 export type AuthResult = {
   user: PublicUserDto;
-  tokens: AuthTokens;
+  token: string;
 };
 
 function isUniqueConstraintError(error: unknown): boolean {
@@ -48,7 +33,6 @@ export async function registerUser(
   prisma: Database,
   env: Env,
   input: RegisterBody,
-  meta: RequestMeta,
 ): Promise<AuthResult> {
   const email = normalizeEmail(input.email);
   const passwordHash = await hashPassword(input.password);
@@ -81,14 +65,13 @@ export async function registerUser(
     throw error;
   }
 
-  return issueAuthSession(prisma, env, user, meta);
+  return issueBearerAuth(env, user);
 }
 
 export async function loginUser(
   prisma: Database,
   env: Env,
   input: LoginBody,
-  meta: RequestMeta,
 ): Promise<AuthResult> {
   const email = normalizeEmail(input.email);
 
@@ -105,63 +88,24 @@ export async function loginUser(
     throw AppError.unauthorized(GENERIC_AUTH_ERROR);
   }
 
-  return issueAuthSession(prisma, env, user, meta);
+  return issueBearerAuth(env, user);
 }
 
-export async function refreshAuthSession(
-  prisma: Database,
-  env: Env,
-  rawRefreshToken: string | undefined,
-  meta: RequestMeta,
-): Promise<AuthResult> {
-  if (!rawRefreshToken) {
-    throw AppError.unauthorized("Authentication required");
-  }
-
-  const rotated = await rotateRefreshSession(
-    prisma,
-    env,
-    rawRefreshToken,
-    meta,
-  );
-
-  const user = await prisma.user.findUniqueOrThrow({
-    where: { id: rotated.userId },
-  });
-
-  const accessToken = await signAccessToken(env, {
-    sub: user.id,
-    role: user.role,
-    sid: rotated.sessionId,
-  });
-
-  return {
-    user: toPublicUser(user),
-    tokens: {
-      accessToken,
-      refreshToken: rotated.rawRefreshToken,
-      csrfToken: generateCsrfToken(),
-    },
-  };
-}
-
+/** Idempotent Mode B revoke by jti. */
 export async function logoutUser(
   prisma: Database,
-  options: {
-    rawRefreshToken?: string;
-    sessionId?: string;
-  },
+  options: { userId: number; jti: string; exp: number },
 ): Promise<void> {
-  if (options.rawRefreshToken) {
-    await revokeRefreshSessionByHash(prisma, options.rawRefreshToken);
-  } else if (options.sessionId) {
-    await revokeSessionById(prisma, options.sessionId);
-  }
+  await revokeAccessToken(prisma, {
+    jti: options.jti,
+    userId: options.userId,
+    expiresAt: new Date(options.exp * 1000),
+  });
 }
 
 export async function getCurrentUser(
   prisma: Database,
-  userId: string,
+  userId: number,
 ): Promise<PublicUserDto> {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user || user.status !== "ACTIVE") {
@@ -170,11 +114,10 @@ export async function getCurrentUser(
   return toPublicUser(user);
 }
 
-async function issueAuthSession(
-  prisma: Database,
+async function issueBearerAuth(
   env: Env,
   user: {
-    id: string;
+    id: number;
     email: string;
     role: "CUSTOMER" | "ADMIN";
     status: "ACTIVE" | "DISABLED";
@@ -182,22 +125,11 @@ async function issueAuthSession(
     updatedAt: Date;
     passwordHash: string;
   },
-  meta: RequestMeta,
 ): Promise<AuthResult> {
-  const session = await createRefreshSession(prisma, env, user.id, meta);
-  const accessToken = await signAccessToken(env, {
-    sub: user.id,
-    role: user.role,
-    sid: session.sessionId,
-  });
-
+  const token = await signBearerToken(env, user.id);
   return {
     user: toPublicUser(user),
-    tokens: {
-      accessToken,
-      refreshToken: session.rawRefreshToken,
-      csrfToken: generateCsrfToken(),
-    },
+    token,
   };
 }
 

@@ -2,10 +2,14 @@ import { z } from "zod";
 
 export const registerBodySchema = z
   .object({
-    email: z.string().trim().email().max(255),
+    email: z
+      .string({ error: () => "Email is required." })
+      .trim()
+      .email("Please enter a valid email address.")
+      .max(255),
     password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
+      .string({ error: () => "Password is required." })
+      .min(8, "Password must be at least 8 characters.")
       .max(128),
     firstName: z.string().trim().min(1).max(100).optional(),
     lastName: z.string().trim().min(1).max(100).optional(),
@@ -14,8 +18,15 @@ export const registerBodySchema = z
 
 export const loginBodySchema = z
   .object({
-    email: z.string().trim().email().max(255),
-    password: z.string().min(1).max(128),
+    email: z
+      .string({ error: () => "Email is required." })
+      .trim()
+      .email("Please enter a valid email address.")
+      .max(255),
+    password: z
+      .string({ error: () => "Password is required." })
+      .min(1, "Password is required.")
+      .max(128),
   })
   .strict();
 

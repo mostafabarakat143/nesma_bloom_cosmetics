@@ -24,16 +24,10 @@ const envSchema = z
     JWT_ACCESS_SECRET: z
       .string()
       .min(32, "JWT_ACCESS_SECRET must be at least 32 characters"),
-    JWT_ACCESS_TTL_SECONDS: z.coerce.number().int().positive().default(900),
-    REFRESH_TOKEN_TTL_SECONDS: z.coerce
-      .number()
-      .int()
-      .positive()
-      .default(604_800),
-    COOKIE_SECURE: z
-      .enum(["true", "false"])
-      .default("false")
-      .transform((value) => value === "true"),
+    /** Bearer JWT lifetime in seconds (default 7 days). */
+    JWT_TTL_SECONDS: z.coerce.number().int().positive().default(604_800),
+    JWT_ISSUER: z.string().min(1).default("nesma-bloom-api"),
+    JWT_AUDIENCE: z.string().min(1).default("nesma-bloom-clients"),
     AUTH_RATE_LIMIT_WINDOW_MS: z.coerce
       .number()
       .int()
@@ -45,15 +39,6 @@ const envSchema = z
      * Defaults: enabled outside production; disabled in production unless set.
      */
     ENABLE_API_DOCS: z.enum(["true", "false"]).optional(),
-  })
-  .superRefine((value, ctx) => {
-    if (value.NODE_ENV === "production" && value.COOKIE_SECURE !== true) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["COOKIE_SECURE"],
-        message: "COOKIE_SECURE must be true when NODE_ENV=production",
-      });
-    }
   })
   .transform((value) => {
     const docsDefault = value.NODE_ENV === "production" ? false : true;

@@ -1,16 +1,15 @@
 import type { NextFunction, Request, Response } from "express";
 
-import { ACCESS_COOKIE } from "../constants/cookies.js";
 import { AppError } from "../errors/app-error.js";
 import type { Database } from "../../config/database.js";
 import type { Env } from "../../config/env.js";
 import {
-  assertSessionActive,
-  verifyAccessToken,
+  authenticateBearerRequest,
+  extractBearerToken,
 } from "../../modules/auth/token.service.js";
 
 /**
- * If an access cookie is present, fully verify JWT + session + live user.
+ * If Authorization Bearer is present, fully verify JWT + revocation + live user.
  * Role comes from PostgreSQL. If absent, continue as anonymous.
  */
 export function createOptionalAuth(env: Env, prisma: Database) {
@@ -20,19 +19,18 @@ export function createOptionalAuth(env: Env, prisma: Database) {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const token = req.cookies?.[ACCESS_COOKIE] as string | undefined;
+      const token = extractBearerToken(req.get("authorization"));
       if (!token) {
         next();
         return;
       }
 
-      const claims = await verifyAccessToken(env, token);
-      const session = await assertSessionActive(prisma, claims.sid, claims.sub);
-
+      const principal = await authenticateBearerRequest(env, prisma, token);
       req.user = {
-        id: claims.sub,
-        role: session.role,
-        sessionId: claims.sid,
+        id: principal.id,
+        role: principal.role,
+        jti: principal.jti,
+        exp: principal.exp,
       };
 
       next();
