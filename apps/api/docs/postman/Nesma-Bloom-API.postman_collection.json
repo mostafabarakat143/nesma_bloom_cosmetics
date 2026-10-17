@@ -1,0 +1,2017 @@
+{
+  "info": {
+    "name": "Nesma Bloom Cosmetics API",
+    "description": "Ready-to-use examples for local manual testing.\n\n## Postman Desktop setup\n1. Delete any old copy of this collection (do not merge).\n2. Import `apps/api/docs/postman/Nesma-Bloom-API.postman_collection.json`.\n3. Collection variables: `baseUrl=http://localhost:4000`, leave `token` empty.\n\n## Quick start\n1. Register or Login — Tests captures `data.token` into collection `{{token}}`.\n2. ADMIN catalog writes: login as an existing ADMIN (register cannot create ADMIN).\n3. Create Category → Subcategory → Product → Image; save IDs into variables.\n4. CUSTOMER → Create Order (idempotencyKey) → Get/Cancel.\n\n## Auth notes\n- Register/Login return `{ status, data: { user, token } }` — property name is exactly `token`.\n- Protected requests send `Authorization: Bearer {{token}}`.\n- Logout revokes the jti (idempotent 200). Other protected routes reject revoked JWTs with 401.\n- Never commit real JWTs into generated files.\n\nRegenerate: pnpm --filter @cosmetics/api docs:postman\nSource: apps/api/scripts/generate-postman.mts",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "categoryId",
+      "value": ""
+    },
+    {
+      "key": "subcategoryId",
+      "value": ""
+    },
+    {
+      "key": "productId",
+      "value": ""
+    },
+    {
+      "key": "imageId",
+      "value": ""
+    },
+    {
+      "key": "orderId",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "idempotencyKey",
+      "value": "demo-order-key-001",
+      "description": "Change for each new order; reuse to test idempotent replay"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Liveness",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Liveness probe. No authentication.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"ok\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register CUSTOMER",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "(function () {",
+                  "  try {",
+                  "    var json = pm.response.json();",
+                  "    var token = json && json.data && json.data.token;",
+                  "    if (typeof token === 'string' && token.length > 0) {",
+                  "      pm.collectionVariables.set('token', token);",
+                  "    }",
+                  "  } catch (e) {}",
+                  "})();"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Creates a CUSTOMER account and returns a Bearer JWT in `data.token`.\n\n**Role:** Public (always registers as CUSTOMER — cannot self-register as ADMIN).\n**Auth:** None. Tests script captures `data.token` into collection variable `{{token}}`.\n\nEmail uses `{{$timestamp}}` for uniqueness. Re-run with the same email to see 409.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer-{{$timestamp}}@example.com\",\n  \"password\": \"Password123!\",\n  \"firstName\": \"Nesma\",\n  \"lastName\": \"Bloom\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 201",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"user\": {\n      \"id\": 1,\n      \"email\": \"customer-demo@example.com\",\n      \"role\": \"CUSTOMER\",\n      \"status\": \"ACTIVE\",\n      \"createdAt\": \"2026-10-14T18:00:00.000Z\",\n      \"updatedAt\": \"2026-10-14T18:00:00.000Z\"\n    },\n    \"token\": \"<JWT>\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 409",
+              "status": "Conflict",
+              "code": 409,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"An account with this email already exists. Please log in.\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "(function () {",
+                  "  try {",
+                  "    var json = pm.response.json();",
+                  "    var token = json && json.data && json.data.token;",
+                  "    if (typeof token === 'string' && token.length > 0) {",
+                  "      pm.collectionVariables.set('token', token);",
+                  "    }",
+                  "  } catch (e) {}",
+                  "})();"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Logs in CUSTOMER or ADMIN. Returns a Bearer JWT in `data.token`.\n\n**Role:** Public.\n**Auth:** None. Tests script captures `data.token` into `{{token}}`.\n\nFor ADMIN catalog mutations, log in with an existing ADMIN account (registration cannot create ADMIN).\nReplace the email with your registered customer (or ADMIN) address.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer-demo@example.com\",\n  \"password\": \"Password123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"user\": {\n      \"id\": 1,\n      \"email\": \"customer-demo@example.com\",\n      \"role\": \"CUSTOMER\",\n      \"status\": \"ACTIVE\"\n    },\n    \"token\": \"<JWT>\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 401",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Invalid email or password.\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Change password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/change-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "change-password"
+              ]
+            },
+            "description": "Changes the password for the authenticated user.\n\n**Auth:** `Authorization: Bearer {{token}}`.\nAfter success, that token and every other existing token stop working. Log in again.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"Password123!\",\n  \"newPassword\": \"NewPassword123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"message\": \"Password changed. Please log in again.\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 401",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Current password is incorrect.\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Forgot password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/forgot-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "forgot-password"
+              ]
+            },
+            "description": "Starts a password reset. The response is the same whether or not the email exists.\n\n**Auth:** None. The raw reset token is never returned here.\nWith SMTP configured, the link is emailed. Without SMTP, development logs the link. Copy the `token` query value into Reset password.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer-demo@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"message\": \"If an account exists for that email, password reset instructions have been sent.\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Reset password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "reset-password"
+              ]
+            },
+            "description": "Sets a new password using a one-time token from the reset link.\n\n**Auth:** None. Replace `token` with the value from the development server log.\nThe token works once. Existing Bearer JWTs stop working after a successful reset.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"<reset-token>\",\n  \"newPassword\": \"NewPassword123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"message\": \"Password has been reset. Please log in.\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 400",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"This reset link is invalid or has expired.\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Revokes the current JWT jti server-side (Mode B). Idempotent: repeated logout with the same token returns 200.\n\n**Auth:** `Authorization: Bearer {{token}}`.\nInvalid, expired, or malformed JWT → 401.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"message\": \"Logged out\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Current user (me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Returns the authenticated user. Never includes passwordHash.\n\n**Auth:** `Authorization: Bearer {{token}}`.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"user\": {\n      \"id\": 1,\n      \"email\": \"customer-demo@example.com\",\n      \"role\": \"CUSTOMER\",\n      \"status\": \"ACTIVE\"\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 401",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Authentication required.\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get own profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me",
+                "profile"
+              ]
+            },
+            "description": "**Auth:** CUSTOMER or ADMIN (own profile only).\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"profile\": {\n      \"email\": \"customer-demo@example.com\",\n      \"firstName\": \"Nesma\",\n      \"lastName\": \"Bloom\",\n      \"phone\": null,\n      \"avatarUrl\": null\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Update own profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me",
+                "profile"
+              ]
+            },
+            "description": "Partial profile update. At least one field required.\n\n**Auth:** `Authorization: Bearer {{token}}`.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Nesma\",\n  \"lastName\": \"Bloom\",\n  \"phone\": \"+201000000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"profile\": {\n      \"email\": \"customer-demo@example.com\",\n      \"firstName\": \"Nesma\",\n      \"lastName\": \"Bloom\",\n      \"phone\": \"+201000000000\",\n      \"avatarUrl\": null\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 400",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"At least one profile field is required.\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "List categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categories?page=1&pageSize=20&status=ACTIVE&sortBy=name&sortOrder=asc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "skin",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "name"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "asc"
+                }
+              ]
+            },
+            "description": "Public list defaults to ACTIVE. `status=ALL` or `ARCHIVED` requires ADMIN.\n\n**Auth:** Optional for ACTIVE; ADMIN for archived/all filters.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 1,\n        \"name\": \"Skincare\",\n        \"slug\": \"skincare\",\n        \"status\": \"ACTIVE\"\n      }\n    ],\n    \"meta\": {\n      \"page\": 1,\n      \"pageSize\": 20,\n      \"totalItems\": 1,\n      \"totalPages\": 1\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Create category",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories"
+              ]
+            },
+            "description": "Creates a catalog category. Slug optional (generated from name).\n\n**Auth:** ADMIN — `Authorization: Bearer {{token}}`.\n\nAfter success, copy `data.category.id` into `{{categoryId}}`.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Skincare Demo\",\n  \"slug\": \"skincare-demo\",\n  \"description\": \"Face and body care\",\n  \"status\": \"ACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 201",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"category\": {\n      \"id\": 1,\n      \"name\": \"Skincare Demo\",\n      \"slug\": \"skincare-demo\",\n      \"description\": \"Face and body care\",\n      \"status\": \"ACTIVE\",\n      \"createdAt\": \"2026-10-14T18:00:00.000Z\",\n      \"updatedAt\": \"2026-10-14T18:00:00.000Z\"\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 409",
+              "status": "Conflict",
+              "code": 409,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Category slug already exists.\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Get category by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categories/{{categoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories",
+                "{{categoryId}}"
+              ]
+            },
+            "description": "Public if ACTIVE; ADMIN can view ARCHIVED. Uses `{{categoryId}}`.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"category\": {\n      \"id\": 1,\n      \"name\": \"Skincare Demo\",\n      \"slug\": \"skincare-demo\",\n      \"status\": \"ACTIVE\"\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 404",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Category not found.\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Update category",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categories/{{categoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories",
+                "{{categoryId}}"
+              ]
+            },
+            "description": "**Auth:** ADMIN Bearer JWT. Name updates do not auto-change slug.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Skincare Updated\",\n  \"description\": \"Updated description\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"category\": {\n      \"id\": 1,\n      \"name\": \"Skincare Updated\",\n      \"slug\": \"skincare-demo\",\n      \"status\": \"ACTIVE\"\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Archive category",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categories/{{categoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories",
+                "{{categoryId}}"
+              ]
+            },
+            "description": "Soft-delete (status ARCHIVED). **Auth:** ADMIN Bearer JWT. Idempotent.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"category\": {\n      \"id\": 1,\n      \"status\": \"ARCHIVED\"\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Subcategories",
+      "item": [
+        {
+          "name": "List subcategories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subcategories?page=1&pageSize=20&categoryId={{categoryId}}&status=ACTIVE&sortBy=name&sortOrder=asc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subcategories"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}"
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "name"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "asc"
+                }
+              ]
+            },
+            "description": "Public ACTIVE + ACTIVE parent. Filter by `categoryId`. ADMIN for status ALL/ARCHIVED.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 1,\n        \"name\": \"Serums\",\n        \"slug\": \"serums\",\n        \"categoryId\": 1,\n        \"status\": \"ACTIVE\"\n      }\n    ],\n    \"meta\": {\n      \"page\": 1,\n      \"pageSize\": 20,\n      \"totalItems\": 1,\n      \"totalPages\": 1\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Create subcategory",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subcategories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subcategories"
+              ]
+            },
+            "description": "**Auth:** ADMIN Bearer JWT.\nSet `categoryId` to `{{categoryId}}` from a created category.\nCopy response id into `{{subcategoryId}}`.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Serums Demo\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"slug\": \"serums-demo\",\n  \"description\": \"Concentrated treatments\",\n  \"status\": \"ACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 201",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"subcategory\": {\n      \"id\": 1,\n      \"name\": \"Serums Demo\",\n      \"slug\": \"serums-demo\",\n      \"categoryId\": 1,\n      \"status\": \"ACTIVE\",\n      \"category\": {\n        \"id\": 1,\n        \"name\": \"Skincare Demo\",\n        \"slug\": \"skincare-demo\",\n        \"status\": \"ACTIVE\"\n      }\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 409",
+              "status": "Conflict",
+              "code": 409,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Cannot place an ACTIVE subcategory under an archived category.\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Get subcategory by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subcategories/{{subcategoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subcategories",
+                "{{subcategoryId}}"
+              ]
+            },
+            "description": "Uses `{{subcategoryId}}`. Public if visible; else 404.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"subcategory\": {\n      \"id\": 1,\n      \"name\": \"Serums Demo\",\n      \"slug\": \"serums-demo\",\n      \"status\": \"ACTIVE\"\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Update subcategory",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subcategories/{{subcategoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subcategories",
+                "{{subcategoryId}}"
+              ]
+            },
+            "description": "**Auth:** ADMIN Bearer JWT.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Serums Updated\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"subcategory\": {\n      \"id\": 1,\n      \"name\": \"Serums Updated\",\n      \"slug\": \"serums-demo\",\n      \"status\": \"ACTIVE\"\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Archive subcategory",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subcategories/{{subcategoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subcategories",
+                "{{subcategoryId}}"
+              ]
+            },
+            "description": "**Auth:** ADMIN Bearer JWT. Soft archive.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"subcategory\": {\n      \"id\": 1,\n      \"status\": \"ARCHIVED\"\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products?page=1&pageSize=20&availability=AVAILABLE&status=ACTIVE&sortBy=createdAt&sortOrder=desc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "serum",
+                  "disabled": true
+                },
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "subcategoryId",
+                  "value": "{{subcategoryId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "minPriceMinor",
+                  "value": "0",
+                  "disabled": true
+                },
+                {
+                  "key": "maxPriceMinor",
+                  "value": "100000",
+                  "disabled": true
+                },
+                {
+                  "key": "availability",
+                  "value": "AVAILABLE"
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc"
+                }
+              ]
+            },
+            "description": "Public: ACTIVE + available + ACTIVE parents. Out-of-stock still listed (`inStock: false`).\nADMIN may use `status` / `availability` filters beyond defaults.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 1,\n        \"name\": \"Rose Serum\",\n        \"sku\": \"SKU-ROSE-001\",\n        \"priceMinor\": 25000,\n        \"currency\": \"EGP\",\n        \"stockQty\": 10,\n        \"inStock\": true,\n        \"status\": \"ACTIVE\"\n      }\n    ],\n    \"meta\": {\n      \"page\": 1,\n      \"pageSize\": 20,\n      \"totalItems\": 1,\n      \"totalPages\": 1\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Create product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products"
+              ]
+            },
+            "description": "**Auth:** ADMIN Bearer JWT.\nSet `subcategoryId` to `{{subcategoryId}}`. SKU unique; use a unique value each run.\nPrices are integer EGP piastres (`25000` = 250.00 EGP).\nCopy response id into `{{productId}}`.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rose Serum Demo\",\n  \"subcategoryId\": \"{{subcategoryId}}\",\n  \"sku\": \"SKU-ROSE-DEMO-001\",\n  \"priceMinor\": 25000,\n  \"stockQty\": 10,\n  \"slug\": \"rose-serum-demo\",\n  \"description\": \"Hydrating rose serum\",\n  \"isAvailable\": true,\n  \"status\": \"ACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 201",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": 1,\n      \"name\": \"Rose Serum Demo\",\n      \"slug\": \"rose-serum-demo\",\n      \"sku\": \"SKU-ROSE-DEMO-001\",\n      \"priceMinor\": 25000,\n      \"currency\": \"EGP\",\n      \"stockQty\": 10,\n      \"isAvailable\": true,\n      \"inStock\": true,\n      \"status\": \"ACTIVE\",\n      \"images\": [],\n      \"subcategory\": {\n        \"id\": 1,\n        \"name\": \"Serums Demo\",\n        \"slug\": \"serums-demo\",\n        \"status\": \"ACTIVE\"\n      },\n      \"category\": {\n        \"id\": 1,\n        \"name\": \"Skincare Demo\",\n        \"slug\": \"skincare-demo\",\n        \"status\": \"ACTIVE\"\n      }\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 409",
+              "status": "Conflict",
+              "code": 409,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Product SKU already exists.\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Get product by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/{{productId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products",
+                "{{productId}}"
+              ]
+            },
+            "description": "Uses `{{productId}}`. Public if storefront-visible.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": 1,\n      \"name\": \"Rose Serum Demo\",\n      \"sku\": \"SKU-ROSE-DEMO-001\",\n      \"priceMinor\": 25000,\n      \"currency\": \"EGP\",\n      \"stockQty\": 10,\n      \"inStock\": true,\n      \"images\": []\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Update product",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/{{productId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products",
+                "{{productId}}"
+              ]
+            },
+            "description": "**Auth:** ADMIN Bearer JWT. Name does not auto-change slug.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stockQty\": 8,\n  \"description\": \"Updated product description\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": 1,\n      \"stockQty\": 8,\n      \"inStock\": true\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Archive product",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/{{productId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products",
+                "{{productId}}"
+              ]
+            },
+            "description": "**Auth:** ADMIN Bearer JWT. Soft archive.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": 1,\n      \"status\": \"ARCHIVED\"\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Add product image",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/{{productId}}/images",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products",
+                "{{productId}}",
+                "images"
+              ]
+            },
+            "description": "Adds an image URL (no file upload). **Auth:** ADMIN Bearer JWT.\nUses `{{productId}}`. Copy image id into `{{imageId}}`.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://cdn.example.com/products/rose-serum.jpg\",\n  \"altText\": \"Rose serum bottle\",\n  \"sortOrder\": 0,\n  \"isPrimary\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 201",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": 1,\n      \"images\": [\n        {\n          \"id\": 1,\n          \"url\": \"https://cdn.example.com/products/rose-serum.jpg\",\n          \"altText\": \"Rose serum bottle\",\n          \"sortOrder\": 0,\n          \"isPrimary\": true\n        }\n      ]\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 400",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Image URL must be http(s) without credentials.\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Update product image",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/{{productId}}/images/{{{imageId}}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products",
+                "{{productId}}",
+                "images",
+                "{{{imageId}}}"
+              ]
+            },
+            "description": "**Auth:** ADMIN Bearer JWT. Paths use `{{productId}}` and `{{imageId}}`.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"altText\": \"Updated alt text\",\n  \"isPrimary\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": 1,\n      \"images\": [\n        {\n          \"id\": 1,\n          \"altText\": \"Updated alt text\",\n          \"isPrimary\": true\n        }\n      ]\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Delete product image",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/{{productId}}/images/{{{imageId}}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products",
+                "{{productId}}",
+                "images",
+                "{{{imageId}}}"
+              ]
+            },
+            "description": "**Auth:** ADMIN Bearer JWT. Hard-deletes image; promotes next primary if needed.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"product\": {\n      \"id\": 1,\n      \"images\": []\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "List all orders (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders?page=1&pageSize=20&status=ALL&sortOrder=desc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "ALL"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc"
+                },
+                {
+                  "key": "userId",
+                  "value": "{{userId}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "**Auth:** ADMIN only.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 1,\n        \"status\": \"PENDING\",\n        \"totalMinor\": 50000,\n        \"currency\": \"EGP\"\n      }\n    ],\n    \"meta\": {\n      \"page\": 1,\n      \"pageSize\": 20,\n      \"totalItems\": 1,\n      \"totalPages\": 1\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 403",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Insufficient permissions.\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Create order (CUSTOMER)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKey}}",
+                "description": "Required. Reuse the same value to replay; change it for a new order."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders"
+              ]
+            },
+            "description": "Places an order. Stock is deducted; prices come from the database.\n\n**Auth:** CUSTOMER only (ADMIN gets 403).\n**Auth:** `Authorization: Bearer {{token}}`.\n**Idempotency-Key:** Required. Use `{{idempotencyKey}}`.\n  - First success → HTTP 201\n  - Same key + same body → HTTP 200 (no second stock deduction)\n  - Same key + different body → HTTP 409\n\nSet `productId` to `{{productId}}`. Copy order id into `{{orderId}}`.\nGenerate a new idempotency key (or change `idempotencyKey`) for a fresh order.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 2\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 201",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"order\": {\n      \"id\": 1,\n      \"userId\": 1,\n      \"status\": \"PENDING\",\n      \"totalMinor\": 50000,\n      \"currency\": \"EGP\",\n      \"items\": [\n        {\n          \"productId\": 1,\n          \"productNameSnapshot\": \"Rose Serum Demo\",\n          \"productSkuSnapshot\": \"SKU-ROSE-DEMO-001\",\n          \"unitPriceMinor\": 25000,\n          \"quantity\": 2,\n          \"lineTotalMinor\": 50000\n        }\n      ]\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 409",
+              "status": "Conflict",
+              "code": 409,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Insufficient stock.\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "List my orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders/my?page=1&pageSize=20&status=ALL&sortOrder=desc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders",
+                "my"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "ALL"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc"
+                }
+              ]
+            },
+            "description": "**Auth:** Authenticated (own orders only).\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 1,\n        \"status\": \"PENDING\",\n        \"totalMinor\": 50000,\n        \"currency\": \"EGP\"\n      }\n    ],\n    \"meta\": {\n      \"page\": 1,\n      \"pageSize\": 20,\n      \"totalItems\": 1,\n      \"totalPages\": 1\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Get order by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders/{{orderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders",
+                "{{orderId}}"
+              ]
+            },
+            "description": "Owner or ADMIN. Others get 404. Uses `{{orderId}}`.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"order\": {\n      \"id\": 1,\n      \"status\": \"PENDING\",\n      \"totalMinor\": 50000,\n      \"currency\": \"EGP\",\n      \"items\": []\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 404",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Order not found.\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Cancel order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders/{{orderId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders",
+                "{{orderId}}",
+                "cancel"
+              ]
+            },
+            "description": "CUSTOMER: PENDING only. ADMIN: PENDING or CONFIRMED. Restocks once.\n**Auth:** `Authorization: Bearer {{token}}`. Uses `{{orderId}}`.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"order\": {\n      \"id\": 1,\n      \"status\": \"CANCELLED\",\n      \"totalMinor\": 50000,\n      \"currency\": \"EGP\"\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 409",
+              "status": "Conflict",
+              "code": 409,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Order cannot be cancelled in its current status.\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Update order status (ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders/{{orderId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders",
+                "{{orderId}}",
+                "status"
+              ]
+            },
+            "description": "ADMIN only: PENDING→CONFIRMED or CONFIRMED→FULFILLED (no skip).\n**Auth:** ADMIN Bearer JWT. Uses `{{orderId}}`.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CONFIRMED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"order\": {\n      \"id\": 1,\n      \"status\": \"CONFIRMED\"\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 409",
+              "status": "Conflict",
+              "code": 409,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Invalid order status transition.\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
