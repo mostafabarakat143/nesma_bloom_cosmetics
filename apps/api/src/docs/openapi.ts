@@ -192,6 +192,84 @@ export const openApiDocument = {
         },
       },
     },
+    "/api/v1/auth/change-password": {
+      post: {
+        tags: ["Auth"],
+        summary: "Change password",
+        description:
+          "Requires the current password. Sets password_changed_at so every existing Bearer JWT, including this one, is rejected. Log in again to receive a new token.",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["currentPassword", "newPassword"],
+                properties: {
+                  currentPassword: { type: "string" },
+                  newPassword: { type: "string", minLength: 8, maxLength: 128 },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Password changed; previous JWTs are no longer accepted" },
+          "401": { description: "Missing token or current password is incorrect" },
+        },
+      },
+    },
+    "/api/v1/auth/forgot-password": {
+      post: {
+        tags: ["Auth"],
+        summary: "Request password reset",
+        description:
+          "Always returns the same success message. Does not reveal whether the email exists. The raw reset token is not included in the response.",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["email"],
+                properties: { email: { type: "string", format: "email" } },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Generic acceptance message" },
+        },
+      },
+    },
+    "/api/v1/auth/reset-password": {
+      post: {
+        tags: ["Auth"],
+        summary: "Reset password with a one-time token",
+        description:
+          "Consumes a single-use reset token and sets password_changed_at, which rejects every existing Bearer JWT.",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["token", "newPassword"],
+                properties: {
+                  token: { type: "string" },
+                  newPassword: { type: "string", minLength: 8, maxLength: 128 },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Password reset; log in with the new password" },
+          "400": { description: "Invalid, used, or expired token" },
+        },
+      },
+    },
     "/api/v1/auth/logout": {
       post: {
         tags: ["Auth"],

@@ -1,4 +1,5 @@
 import { createApp } from "../../src/app.js";
+import type { PasswordResetMailer } from "../../src/modules/auth/password-reset.mailer.js";
 import {
   createPrismaClient,
   type Database,
@@ -35,11 +36,17 @@ export function buildTestEnv(
 export function buildTestApp(
   envOverrides: Partial<NodeJS.ProcessEnv> = {},
   prisma?: Database,
+  mailer?: PasswordResetMailer,
 ) {
   const env = buildTestEnv(envOverrides);
   const logger = createLogger(env);
   const db = prisma ?? createPrismaClient(env);
-  return { app: createApp({ env, logger, prisma: db }), env, prisma: db };
+  return {
+    app: createApp({ env, logger, prisma: db, mailer }),
+    env,
+    prisma: db,
+    logger,
+  };
 }
 
 export { TEST_DATABASE_URL };

@@ -10,9 +10,18 @@ import { TEST_ORIGIN, authHeaders, extractToken } from "../helpers/auth.js";
 import { buildTestApp } from "../helpers/test-app.js";
 
 describe("auth and profiles (Bearer JWT)", () => {
-  const { app, prisma, env } = buildTestApp();
+  const resetUrls: string[] = [];
+  const { app, prisma, env } = buildTestApp(
+    {},
+    undefined,
+    async ({ resetUrl }) => {
+      resetUrls.push(resetUrl);
+    },
+  );
 
   beforeEach(async () => {
+    resetUrls.length = 0;
+    await prisma.passwordResetToken.deleteMany();
     await prisma.revokedAccessToken.deleteMany();
     await prisma.orderIdempotencyKey.deleteMany();
     await prisma.orderItem.deleteMany();
@@ -265,6 +274,111 @@ describe("auth and profiles (Bearer JWT)", () => {
       .set(authHeaders(token));
     expect(fetched.status).toBe(200);
     expect(fetched.body.data.profile.email).toBe(email);
+  });
+
+  it("changes the password and rejects tokens issued before the change", async () => {
+    const { token, email } = await register();
+
+    const wrong = await request(app)
+      .post("/api/v1/auth/change-password")
+      .set(authHeaders(token))
+      .send({ currentPassword: "WrongPassword1!", newPassword: "NewPassword123!" });
+    expect(wrong.status).toBe(401);
+    expect(wrong.body.message).toBe("Current password is incorrect.");
+
+    const changed = await request(app)
+      .post("/api/v1/auth/change-password")
+      .set(authHeaders(token))
+      .send({ currentPassword: "Password123!", newPassword: "NewPassword123!" });
+    expect(changed.status).toBe(200);
+    expect(changed.body.data.message).toBe(
+      "Password changed. Please log in again.",
+    );
+
+    const stale = await request(app)
+      .get("/api/v1/auth/me")
+      .set(authHeaders(token));
+    expect(stale.status).toBe(401);
+
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+
+    const oldLogin = await request(app)
+      .post("/api/v1/auth/login")
+      .set("Origin", TEST_ORIGIN)
+      .send({ email, password: "Password123!" });
+    expect(oldLogin.status).toBe(401);
+
+    const nextLogin = await request(app)
+      .post("/api/v1/auth/login")
+      .set("Origin", TEST_ORIGIN)
+      .send({ email, password: "NewPassword123!" });
+    expect(nextLogin.status).toBe(200);
+    const nextToken = extractToken(nextLogin);
+
+    const me = await request(app)
+      .get("/api/v1/auth/me")
+      .set(authHeaders(nextToken));
+    expect(me.status).toBe(200);
+  });
+
+  it("resets a password with a one-time token and hides whether the email exists", async () => {
+    const { token, email } = await register();
+
+    const unknown = await request(app)
+      .post("/api/v1/auth/forgot-password")
+      .send({ email: "missing@example.com" });
+    const known = await request(app)
+      .post("/api/v1/auth/forgot-password")
+      .send({ email });
+
+    expect(unknown.status).toBe(200);
+    expect(known.status).toBe(200);
+    expect(unknown.body).toEqual(known.body);
+    expect(JSON.stringify(known.body)).not.toMatch(/resetUrl|eyJ|<reset/);
+    expect(resetUrls).toHaveLength(1);
+
+    const resetToken = new URL(resetUrls[0]!).searchParams.get("token");
+    expect(resetToken).toBeTruthy();
+
+    const reset = await request(app)
+      .post("/api/v1/auth/reset-password")
+      .send({ token: resetToken, newPassword: "ResetPassword123!" });
+    expect(reset.status).toBe(200);
+
+    const reused = await request(app)
+      .post("/api/v1/auth/reset-password")
+      .send({ token: resetToken, newPassword: "AnotherPassword123!" });
+    expect(reused.status).toBe(400);
+
+    const stale = await request(app)
+      .get("/api/v1/auth/me")
+      .set(authHeaders(token));
+    expect(stale.status).toBe(401);
+
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+
+    const login = await request(app)
+      .post("/api/v1/auth/login")
+      .set("Origin", TEST_ORIGIN)
+      .send({ email, password: "ResetPassword123!" });
+    expect(login.status).toBe(200);
+  });
+
+  it("rejects an expired password reset token", async () => {
+    const { email } = await register();
+
+    await request(app).post("/api/v1/auth/forgot-password").send({ email });
+    const resetToken = new URL(resetUrls[0]!).searchParams.get("token");
+
+    await prisma.passwordResetToken.updateMany({
+      data: { expiresAt: new Date(Date.now() - 1000) },
+    });
+
+    const reset = await request(app)
+      .post("/api/v1/auth/reset-password")
+      .send({ token: resetToken, newPassword: "ResetPassword123!" });
+    expect(reset.status).toBe(400);
+    expect(reset.body.message).toBe("This reset link is invalid or has expired.");
   });
 
   it("purges only expired revocation rows", async () => {

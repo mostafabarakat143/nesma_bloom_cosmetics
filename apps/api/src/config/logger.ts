@@ -15,6 +15,8 @@ export function createLogger(env: Env) {
         "req.headers.cookie",
         "password",
         "passwordHash",
+        "pass",
+        "SMTP_PASS",
         "token",
         "accessToken",
       ],

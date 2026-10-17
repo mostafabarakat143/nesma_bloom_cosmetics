@@ -12,6 +12,10 @@ import { notFoundMiddleware } from "./common/middlewares/not-found.middleware.js
 import { requestIdMiddleware } from "./common/middlewares/request-id.middleware.js";
 import { validate } from "./common/middlewares/validate.middleware.js";
 import { createAuthRouter } from "./modules/auth/auth.routes.js";
+import {
+  createPasswordResetMailer,
+  type PasswordResetMailer,
+} from "./modules/auth/password-reset.mailer.js";
 import { createCategoryRouter } from "./modules/categories/category.routes.js";
 import { healthRouter } from "./modules/health/health.routes.js";
 import {
@@ -28,9 +32,10 @@ export type AppDependencies = {
   env: Env;
   logger: Logger;
   prisma: Database;
+  mailer?: PasswordResetMailer;
 };
 
-export function createApp({ env, logger, prisma }: AppDependencies): Express {
+export function createApp({ env, logger, prisma, mailer }: AppDependencies): Express {
   const app: Express = express();
 
   app.disable("x-powered-by");
@@ -96,7 +101,15 @@ export function createApp({ env, logger, prisma }: AppDependencies): Express {
     },
   );
 
-  app.use("/api/v1/auth", createAuthRouter(env, prisma));
+  app.use(
+    "/api/v1/auth",
+    createAuthRouter(
+      env,
+      prisma,
+      logger,
+      mailer ?? createPasswordResetMailer(env, logger),
+    ),
+  );
   app.use("/api/v1/users", createUserRouter(env, prisma));
   app.use("/api/v1/categories", createCategoryRouter(env, prisma));
   app.use("/api/v1/subcategories", createSubcategoryRouter(env, prisma));

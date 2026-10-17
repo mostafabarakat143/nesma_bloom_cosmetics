@@ -132,6 +132,8 @@ Import `apps/api/docs/postman/Nesma-Bloom-API.postman_collection.json`. Set `bas
 3. Protected calls send `Authorization: Bearer <token>`.
 4. `POST /api/v1/auth/logout` revokes that `jti`. Repeating logout with the same token returns 200. Every other protected route rejects it with 401.
 5. Disabled users lose API access immediately. Authorization roles are read from PostgreSQL on each request, not from the JWT.
+6. `POST /api/v1/auth/change-password` requires the current password. It records `password_changed_at`, so every existing JWT is rejected and the user logs in again.
+7. `POST /api/v1/auth/forgot-password` always returns the same message. The reset token is stored only as a SHA-256 hash and is not returned in the response. When `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, and `SMTP_FROM` are set, the link is emailed. Without SMTP, development prints the link in the API log. `POST /api/v1/auth/reset-password` uses that token once and also invalidates existing JWTs.
 
 ## Orders lifecycle
 

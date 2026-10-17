@@ -15,6 +15,8 @@ export type BearerTokenClaims = {
   sub: number;
   jti: string;
   /** Unix seconds */
+  iat: number;
+  /** Unix seconds */
   exp: number;
 };
 
@@ -70,16 +72,26 @@ export async function verifyBearerToken(
 function parseBearerClaims(payload: JWTPayload): BearerTokenClaims {
   const sub = parsePositiveIntId(payload.sub);
   const jti = typeof payload.jti === "string" ? payload.jti : null;
+  const iat =
+    typeof payload.iat === "number" && Number.isFinite(payload.iat)
+      ? payload.iat
+      : null;
   const exp =
     typeof payload.exp === "number" && Number.isFinite(payload.exp)
       ? payload.exp
       : null;
 
-  if (sub === null || jti === null || !UUID_RE.test(jti) || exp === null) {
+  if (
+    sub === null ||
+    jti === null ||
+    !UUID_RE.test(jti) ||
+    iat === null ||
+    exp === null
+  ) {
     throw AppError.unauthorized("Authentication required");
   }
 
-  return { sub, jti, exp };
+  return { sub, jti, iat, exp };
 }
 
 export async function isJtiRevoked(
@@ -117,20 +129,33 @@ export async function revokeAccessToken(
   }
 }
 
-export async function loadActiveUserRole(
-  prisma: Database,
-  userId: number,
-): Promise<UserRole> {
+async function loadUserForAuth(prisma: Database, userId: number) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { status: true, role: true },
+    select: { status: true, role: true, passwordChangedAt: true },
   });
 
-  if (!user || user.status !== "ACTIVE") {
+  if (!user) {
     throw AppError.unauthorized("Authentication required");
   }
 
-  return user.role;
+  return user;
+}
+
+/**
+ * A password change sets passwordChangedAt. Any JWT issued at or before that
+ * instant is no longer proof of the current password.
+ */
+export function assertTokenIssuedAfterPasswordChange(
+  iat: number,
+  passwordChangedAt: Date | null,
+): void {
+  if (
+    passwordChangedAt &&
+    iat * 1000 <= passwordChangedAt.getTime()
+  ) {
+    throw AppError.unauthorized("Authentication required");
+  }
 }
 
 /**
@@ -147,10 +172,15 @@ export async function authenticateBearerRequest(
     throw AppError.unauthorized("Authentication required");
   }
 
-  const role = await loadActiveUserRole(prisma, claims.sub);
+  const user = await loadUserForAuth(prisma, claims.sub);
+  if (user.status !== "ACTIVE") {
+    throw AppError.unauthorized("Authentication required");
+  }
+  assertTokenIssuedAfterPasswordChange(claims.iat, user.passwordChangedAt);
+
   return {
     id: claims.sub,
-    role,
+    role: user.role,
     jti: claims.jti,
     exp: claims.exp,
   };
@@ -171,12 +201,14 @@ export async function authenticateBearerForLogout(
 
   const user = await prisma.user.findUnique({
     where: { id: claims.sub },
-    select: { role: true, status: true },
+    select: { role: true, status: true, passwordChangedAt: true },
   });
 
   if (!user) {
     throw AppError.unauthorized("Authentication required");
   }
+
+  assertTokenIssuedAfterPasswordChange(claims.iat, user.passwordChangedAt);
 
   // Prefer DB role when ACTIVE; DISABLED still allowed to revoke their token.
   return {

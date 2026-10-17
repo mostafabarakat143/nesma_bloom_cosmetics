@@ -166,6 +166,92 @@ const EXAMPLES: Record<string, ExampleDef> = {
     },
   },
 
+  "POST /api/v1/auth/change-password": {
+    name: "Change password",
+    description: [
+      "Changes the password for the authenticated user.",
+      "",
+      "**Auth:** `Authorization: Bearer {{token}}`.",
+      "After success, that token and every other existing token stop working. Log in again.",
+    ].join("\n"),
+    body: {
+      currentPassword: "Password123!",
+      newPassword: "NewPassword123!",
+    },
+    successExample: {
+      code: 200,
+      status: "OK",
+      body: {
+        status: "success",
+        data: { message: "Password changed. Please log in again." },
+      },
+    },
+    errorExample: {
+      code: 401,
+      status: "Unauthorized",
+      body: {
+        status: "error",
+        message: "Current password is incorrect.",
+      },
+    },
+  },
+
+  "POST /api/v1/auth/forgot-password": {
+    name: "Forgot password",
+    description: [
+      "Starts a password reset. The response is the same whether or not the email exists.",
+      "",
+      "**Auth:** None. The raw reset token is never returned here.",
+      "With SMTP configured, the link is emailed. Without SMTP, development logs the link. Copy the `token` query value into Reset password.",
+    ].join("\n"),
+    public: true,
+    body: {
+      email: "customer-demo@example.com",
+    },
+    successExample: {
+      code: 200,
+      status: "OK",
+      body: {
+        status: "success",
+        data: {
+          message:
+            "If an account exists for that email, password reset instructions have been sent.",
+        },
+      },
+    },
+  },
+
+  "POST /api/v1/auth/reset-password": {
+    name: "Reset password",
+    description: [
+      "Sets a new password using a one-time token from the reset link.",
+      "",
+      "**Auth:** None. Replace `token` with the value from the development server log.",
+      "The token works once. Existing Bearer JWTs stop working after a successful reset.",
+    ].join("\n"),
+    public: true,
+    body: {
+      token: "<reset-token>",
+      newPassword: "NewPassword123!",
+    },
+    successExample: {
+      code: 200,
+      status: "OK",
+      body: {
+        status: "success",
+        data: { message: "Password has been reset. Please log in." },
+      },
+    },
+    errorExample: {
+      code: 400,
+      status: "Bad Request",
+      body: {
+        status: "error",
+        message: "This reset link is invalid or has expired.",
+      },
+    },
+  },
+
   "POST /api/v1/auth/logout": {
     name: "Logout",
     description: [

@@ -247,6 +247,184 @@
           ]
         },
         {
+          "name": "Change password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/change-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "change-password"
+              ]
+            },
+            "description": "Changes the password for the authenticated user.\n\n**Auth:** `Authorization: Bearer {{token}}`.\nAfter success, that token and every other existing token stop working. Log in again.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"Password123!\",\n  \"newPassword\": \"NewPassword123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"message\": \"Password changed. Please log in again.\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 401",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Current password is incorrect.\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Forgot password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/forgot-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "forgot-password"
+              ]
+            },
+            "description": "Starts a password reset. The response is the same whether or not the email exists.\n\n**Auth:** None. The raw reset token is never returned here.\nWith SMTP configured, the link is emailed. Without SMTP, development logs the link. Copy the `token` query value into Reset password.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer-demo@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"message\": \"If an account exists for that email, password reset instructions have been sent.\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Reset password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "reset-password"
+              ]
+            },
+            "description": "Sets a new password using a one-time token from the reset link.\n\n**Auth:** None. Replace `token` with the value from the development server log.\nThe token works once. Existing Bearer JWTs stop working after a successful reset.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"<reset-token>\",\n  \"newPassword\": \"NewPassword123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"message\": \"Password has been reset. Please log in.\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 400",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"This reset link is invalid or has expired.\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
           "name": "Logout",
           "request": {
             "method": "POST",

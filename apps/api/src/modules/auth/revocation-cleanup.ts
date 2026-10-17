@@ -1,5 +1,6 @@
 import type { Database } from "../../config/database.js";
 import type { Logger } from "../../config/logger.js";
+import { purgeExpiredPasswordResetTokens } from "./auth.service.js";
 
 /** How often expired denylist rows are deleted. */
 export const REVOCATION_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
@@ -37,8 +38,12 @@ export function startRevocationCleanup(
     running = true;
     try {
       const deleted = await purgeExpiredRevokedAccessTokens(prisma);
-      if (deleted > 0) {
-        logger.info({ deleted }, "Purged expired revoked access tokens");
+      const resetTokens = await purgeExpiredPasswordResetTokens(prisma);
+      if (deleted > 0 || resetTokens > 0) {
+        logger.info(
+          { revokedAccessTokens: deleted, passwordResetTokens: resetTokens },
+          "Purged expired auth records",
+        );
       }
     } catch (error) {
       logger.error(

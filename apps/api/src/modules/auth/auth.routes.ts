@@ -3,17 +3,30 @@ import rateLimit from "express-rate-limit";
 
 import type { Database } from "../../config/database.js";
 import type { Env } from "../../config/env.js";
+import type { Logger } from "../../config/logger.js";
 import {
   createRequireAuth,
   createRequireAuthForLogout,
 } from "../../common/middlewares/auth.middleware.js";
 import { validate } from "../../common/middlewares/validate.middleware.js";
 import { createAuthController } from "./auth.controller.js";
-import { loginBodySchema, registerBodySchema } from "./auth.schema.js";
+import {
+  changePasswordBodySchema,
+  forgotPasswordBodySchema,
+  loginBodySchema,
+  registerBodySchema,
+  resetPasswordBodySchema,
+} from "./auth.schema.js";
+import type { PasswordResetMailer } from "./password-reset.mailer.js";
 
-export function createAuthRouter(env: Env, prisma: Database): ExpressRouter {
+export function createAuthRouter(
+  env: Env,
+  prisma: Database,
+  logger: Logger,
+  mailer: PasswordResetMailer,
+): ExpressRouter {
   const router: ExpressRouter = Router();
-  const controller = createAuthController(env, prisma);
+  const controller = createAuthController(env, prisma, logger, mailer);
   const requireAuth = createRequireAuth(env, prisma);
   const requireAuthForLogout = createRequireAuthForLogout(env, prisma);
 
@@ -41,6 +54,27 @@ export function createAuthRouter(env: Env, prisma: Database): ExpressRouter {
     authLimiter,
     validate({ body: loginBodySchema }),
     (req, res, next) => void controller.login(req, res, next),
+  );
+
+  router.post(
+    "/change-password",
+    requireAuth,
+    validate({ body: changePasswordBodySchema }),
+    (req, res, next) => void controller.changePassword(req, res, next),
+  );
+
+  router.post(
+    "/forgot-password",
+    authLimiter,
+    validate({ body: forgotPasswordBodySchema }),
+    (req, res, next) => void controller.forgotPassword(req, res, next),
+  );
+
+  router.post(
+    "/reset-password",
+    authLimiter,
+    validate({ body: resetPasswordBodySchema }),
+    (req, res, next) => void controller.resetPassword(req, res, next),
   );
 
   router.post("/logout", requireAuthForLogout, (req, res, next) =>

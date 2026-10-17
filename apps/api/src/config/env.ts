@@ -28,6 +28,21 @@ const envSchema = z
     JWT_TTL_SECONDS: z.coerce.number().int().positive().default(604_800),
     JWT_ISSUER: z.string().min(1).default("nesma-bloom-api"),
     JWT_AUDIENCE: z.string().min(1).default("nesma-bloom-clients"),
+    /** How long a password-reset link stays valid. */
+    PASSWORD_RESET_TTL_SECONDS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .max(86_400)
+      .default(1_800),
+    /** Public site origin used to build reset links. */
+    APP_PUBLIC_URL: z.string().url().default("http://localhost:3000"),
+    /** Leave blank to skip real email. All five SMTP values are required to send. */
+    SMTP_HOST: z.string().default(""),
+    SMTP_PORT: z.coerce.number().int().positive().max(65535).default(587),
+    SMTP_USER: z.string().default(""),
+    SMTP_PASS: z.string().default(""),
+    SMTP_FROM: z.string().default(""),
     AUTH_RATE_LIMIT_WINDOW_MS: z.coerce
       .number()
       .int()
