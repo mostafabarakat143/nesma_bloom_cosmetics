@@ -1,4 +1,6 @@
-import Link from "next/link";
+import { getTranslations } from "next-intl/server";
+
+import { Link } from "@/i18n/navigation";
 
 function visiblePages(current: number, total: number): number[] {
   const end = Math.min(total, Math.max(current + 2, 5));
@@ -13,7 +15,7 @@ function visiblePages(current: number, total: number): number[] {
 const pageLink =
   "inline-flex h-11 min-w-11 items-center justify-center rounded-2xl px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep";
 
-export function PageLinks({
+export async function PageLinks({
   page,
   totalPages,
   hrefFor,
@@ -28,6 +30,7 @@ export function PageLinks({
     return null;
   }
 
+  const t = await getTranslations("shop");
   const current = Math.min(Math.max(page, 1), totalPages);
   const pages = visiblePages(current, totalPages);
 
@@ -38,10 +41,10 @@ export function PageLinks({
           href={hrefFor(page - 1)}
           className={`${pageLink} border border-line bg-surface text-ink hover:bg-blush`}
         >
-          Previous
+          {t("previous")}
         </Link>
       ) : (
-        <span className={`${pageLink} text-muted`}>Previous</span>
+        <span className={`${pageLink} text-muted`}>{t("previous")}</span>
       )}
       {pages.map((entry) => {
         const currentPage = entry === page;
@@ -65,10 +68,10 @@ export function PageLinks({
           href={hrefFor(page + 1)}
           className={`${pageLink} border border-line bg-surface text-ink hover:bg-blush`}
         >
-          Next
+          {t("next")}
         </Link>
       ) : (
-        <span className={`${pageLink} text-muted`}>Next</span>
+        <span className={`${pageLink} text-muted`}>{t("next")}</span>
       )}
     </nav>
   );

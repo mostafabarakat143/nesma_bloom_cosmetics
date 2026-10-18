@@ -1,6 +1,9 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
+
+import { useKnownMessage } from "@/components/i18n/known-text";
 
 const labelClass = "block text-sm font-medium text-ink";
 const fieldClass =
@@ -32,6 +35,7 @@ export function TextField({
   onChange,
 }: TextFieldProps) {
   const errorId = `${id}-error`;
+  const translate = useKnownMessage();
   return (
     <div>
       <label htmlFor={id} className={labelClass}>
@@ -53,7 +57,7 @@ export function TextField({
       />
       {error ? (
         <p id={errorId} className="mt-2 text-sm text-rose-deep">
-          {error}
+          {translate(error)}
         </p>
       ) : null}
     </div>
@@ -82,6 +86,8 @@ export function PasswordField({
   onChange,
 }: PasswordFieldProps) {
   const [visible, setVisible] = useState(false);
+  const t = useTranslations("auth");
+  const translate = useKnownMessage();
   const hintId = useId();
   const errorId = `${id}-error`;
   const describedBy = [hint ? hintId : null, error ? errorId : null]
@@ -105,16 +111,16 @@ export function PasswordField({
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy || undefined}
           onChange={(event) => onChange(event.target.value)}
-          className={`${fieldClass} pr-16`}
+          className={`${fieldClass} pe-16`}
         />
         <button
           type="button"
-          className="absolute inset-y-1 right-1 rounded-xl px-3 text-sm text-rose-deep hover:bg-blush focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep"
+          className="absolute inset-y-1 end-1 rounded-xl px-3 text-sm text-rose-deep hover:bg-blush focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep"
           aria-pressed={visible}
-          aria-label={visible ? "Hide password" : "Show password"}
+          aria-label={visible ? t("hidePassword") : t("showPassword")}
           onClick={() => setVisible((current) => !current)}
         >
-          {visible ? "Hide" : "Show"}
+          {visible ? t("hide") : t("show")}
         </button>
       </div>
       {hint ? (
@@ -124,7 +130,7 @@ export function PasswordField({
       ) : null}
       {error ? (
         <p id={errorId} className="mt-2 text-sm text-rose-deep">
-          {error}
+          {translate(error)}
         </p>
       ) : null}
     </div>

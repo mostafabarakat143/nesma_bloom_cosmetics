@@ -1,10 +1,10 @@
 "use client";
 
 import { Menu, X } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
 
+import { Link, usePathname } from "@/i18n/navigation";
 import type { AccountView } from "@/lib/auth/account-view";
 import { mainNav } from "@/lib/navigation";
 
@@ -18,6 +18,7 @@ export function MobileNav({
   unavailable: boolean;
 }) {
   const pathname = usePathname();
+  const t = useTranslations("common");
   const [openPath, setOpenPath] = useState<string | null>(null);
   const open = openPath === pathname;
   const rootRef = useRef<HTMLDivElement>(null);
@@ -95,7 +96,7 @@ export function MobileNav({
         className="inline-flex size-11 items-center justify-center rounded-2xl text-ink hover:bg-blush focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep"
         aria-expanded={open}
         aria-controls="mobile-navigation"
-        aria-label={open ? "Close menu" : "Open menu"}
+        aria-label={open ? t("closeMenu") : t("openMenu")}
         onClick={() => setOpenPath(open ? null : pathname)}
       >
         {open ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
@@ -114,7 +115,7 @@ export function MobileNav({
             onClick={(event) => event.stopPropagation()}
           >
             <p id={titleId} className="sr-only">
-              Mobile navigation
+              {t("mobileNav")}
             </p>
             <ul className="flex flex-col gap-1">
               {mainNav.map((item) => (
@@ -129,7 +130,7 @@ export function MobileNav({
                       }
                     }}
                   >
-                    {item.label}
+                    {t(item.key)}
                   </Link>
                 </li>
               ))}

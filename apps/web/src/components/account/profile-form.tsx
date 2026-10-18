@@ -1,6 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+
+import { KnownText } from "@/components/i18n/known-text";
+import { useRouter } from "@/i18n/navigation";
 import { useState } from "react";
 
 import { AccountAvatar } from "@/components/account/account-avatar";
@@ -31,6 +34,7 @@ function draftFrom(profile: AccountProfile) {
 
 export function ProfileForm({ profile }: { profile: AccountProfile }) {
   const router = useRouter();
+  const t = useTranslations("account");
   const [saved, setSaved] = useState(profile);
   const [draft, setDraft] = useState(() => draftFrom(profile));
   const [editing, setEditing] = useState(false);
@@ -104,12 +108,12 @@ export function ProfileForm({ profile }: { profile: AccountProfile }) {
 
       {savedMessage ? (
         <p role="status" className="mt-6 text-sm text-ink">
-          {savedMessage}
+          <KnownText value={savedMessage} />
         </p>
       ) : null}
       {formError ? (
         <p role="alert" className="mt-6 text-sm text-rose-deep">
-          {formError}
+          <KnownText value={formError} />
         </p>
       ) : null}
 
@@ -124,7 +128,7 @@ export function ProfileForm({ profile }: { profile: AccountProfile }) {
         >
           <TextField
             id="profile-first-name"
-            label="First name"
+            label={t("firstName")}
             autoComplete="given-name"
             value={draft.firstName}
             error={errors.firstName}
@@ -133,7 +137,7 @@ export function ProfileForm({ profile }: { profile: AccountProfile }) {
           />
           <TextField
             id="profile-last-name"
-            label="Last name"
+            label={t("lastName")}
             autoComplete="family-name"
             value={draft.lastName}
             error={errors.lastName}
@@ -142,17 +146,17 @@ export function ProfileForm({ profile }: { profile: AccountProfile }) {
           />
           <TextField
             id="profile-email"
-            label="Email"
+            label={t("email")}
             type="email"
             autoComplete="email"
             value={saved.email}
             readOnly
             onChange={() => undefined}
           />
-          <p className="-mt-3 text-sm text-muted">Email is used to log in and cannot be changed here.</p>
+          <p className="-mt-3 text-sm text-muted">{t("emailNote")}</p>
           <TextField
             id="profile-phone"
-            label="Phone number"
+            label={t("phone")}
             type="tel"
             autoComplete="tel"
             value={draft.phone}
@@ -162,7 +166,7 @@ export function ProfileForm({ profile }: { profile: AccountProfile }) {
           />
           <TextField
             id="profile-avatar"
-            label="Profile image address"
+            label={t("imageAddress")}
             type="url"
             autoComplete="off"
             value={draft.avatarUrl}
@@ -171,14 +175,14 @@ export function ProfileForm({ profile }: { profile: AccountProfile }) {
             onChange={(avatarUrl) => setDraft((current) => ({ ...current, avatarUrl }))}
           />
           <p className="-mt-3 text-sm text-muted">
-            Use an http or https image address, or leave this blank to show your initials.
+            {t("imageHint")}
           </p>
           <div className="flex flex-wrap gap-3">
             <Button type="submit" disabled={pending}>
-              {pending ? "Saving" : "Save changes"}
+              {pending ? t("saving") : t("save")}
             </Button>
             <Button type="button" variant="secondary" onClick={cancelEdit} disabled={pending}>
-              Cancel
+              {t("cancel")}
             </Button>
           </div>
         </form>
@@ -186,25 +190,25 @@ export function ProfileForm({ profile }: { profile: AccountProfile }) {
         <div className="mt-8">
           <dl className="space-y-4 text-sm">
             <div>
-              <dt className="text-muted">First name</dt>
-              <dd className="mt-1 text-ink">{saved.firstName ?? "Not added yet"}</dd>
+              <dt className="text-muted">{t("firstName")}</dt>
+              <dd className="mt-1 text-ink">{saved.firstName ?? t("notAdded")}</dd>
             </div>
             <div>
-              <dt className="text-muted">Last name</dt>
-              <dd className="mt-1 text-ink">{saved.lastName ?? "Not added yet"}</dd>
+              <dt className="text-muted">{t("lastName")}</dt>
+              <dd className="mt-1 text-ink">{saved.lastName ?? t("notAdded")}</dd>
             </div>
             <div>
-              <dt className="text-muted">Email</dt>
+              <dt className="text-muted">{t("email")}</dt>
               <dd className="mt-1 break-all text-ink">{saved.email}</dd>
             </div>
             <div>
-              <dt className="text-muted">Phone number</dt>
-              <dd className="mt-1 text-ink">{saved.phone ?? "Not added yet"}</dd>
+              <dt className="text-muted">{t("phone")}</dt>
+              <dd className="mt-1 text-ink">{saved.phone ?? t("notAdded")}</dd>
             </div>
           </dl>
           <div className="mt-8">
             <Button type="button" onClick={beginEdit}>
-              Edit profile
+              {t("edit")}
             </Button>
           </div>
         </div>

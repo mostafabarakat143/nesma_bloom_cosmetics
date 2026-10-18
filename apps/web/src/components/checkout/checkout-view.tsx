@@ -1,6 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+
+import { KnownText } from "@/components/i18n/known-text";
+import { useRouter } from "@/i18n/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { ProductImage } from "@/components/catalog/product-image";
@@ -22,7 +25,7 @@ import {
   updateDraftQuantity,
 } from "@/lib/order-draft";
 import { formatMinorPrice } from "@/lib/money";
-import { orderStatusLabel, parseOrder, type OrderStatus } from "@/lib/orders/parse";
+import { parseOrder, type OrderStatus } from "@/lib/orders/parse";
 import { maxPurchasableQuantity } from "@/lib/orders/payload";
 
 type ReadyProduct = {
@@ -110,6 +113,7 @@ export function CheckoutView({
   role: "CUSTOMER" | "ADMIN";
 }) {
   const router = useRouter();
+  const t = useTranslations("checkout");
   const snapshot = useSyncExternalStore(
     subscribeDraft,
     () => readDraftSnapshot(userId),
@@ -146,7 +150,7 @@ export function CheckoutView({
   }, [snapshot.ready, lineKey, snapshot.lines]);
 
   if (!snapshot.ready) {
-    return <p className="mt-8 text-muted">Loading your order…</p>;
+    return <p className="mt-8 text-muted">{t("loading")}</p>;
   }
 
   if (snapshot.confirmation && snapshot.lines.length === 0) {
@@ -157,10 +161,10 @@ export function CheckoutView({
     return (
       <div className="mt-8">
         <EmptyState
-          title="Your order is empty"
-          message="Choose a product and a quantity, then come back here to place the order."
+          title={t("emptyTitle")}
+          message={t("emptyMessage")}
           href="/shop"
-          action="Browse the shop"
+          action={t("browse")}
         />
         <GuestExtra userId={userId} lines={snapshot.guestExtra} pending={false} />
       </div>
@@ -194,7 +198,7 @@ export function CheckoutView({
       if (!order) {
         finishOrderSubmit(userId, "uncertain");
         setError(
-          "The order response could not be read. Retry the same selection before changing it.",
+          t("unreadable"),
         );
         setInFlight(false);
         return;
@@ -226,7 +230,7 @@ export function CheckoutView({
     if (result.status === 409 && result.message.includes("different request payload")) {
       releaseOrderKey(userId);
       setError(
-        "That checkout attempt did not match this selection. Try again to place this order.",
+        t("mismatch"),
       );
       setInFlight(false);
       return;
@@ -246,17 +250,17 @@ export function CheckoutView({
     <div className="mt-8">
       {snapshot.source === "guest" ? (
         <p className="mb-4 text-sm leading-relaxed text-muted">
-          These items were chosen before you signed in. Placing the order keeps them with this account.
+          {t("guestNote")}
         </p>
       ) : null}
       {snapshot.pending ? (
         <p role="status" className="mb-4 text-sm leading-relaxed text-ink">
-          This order request has not been confirmed. Retrying sends the same items again.
+          {t("pendingNote")}
         </p>
       ) : null}
       {role !== "CUSTOMER" ? (
         <p role="status" className="mb-4 text-sm text-rose-deep">
-          Only customer accounts can place orders.
+          {t("customersOnly")}
         </p>
       ) : null}
       <GuestExtra userId={userId} lines={snapshot.guestExtra} pending={snapshot.pending} />
@@ -266,7 +270,7 @@ export function CheckoutView({
           const product = productState.state === "ready" ? productState.product : null;
           const name =
             product?.name ??
-            (productState.state === "missing" ? "This product is no longer available" : "Loading product");
+            (productState.state === "missing" ? t("missing") : t("loadingProduct"));
           const maxQty = product ? maxPurchasableQuantity(product) : 100;
           return (
             <li
@@ -280,29 +284,27 @@ export function CheckoutView({
                 <h2 className="font-display text-3xl text-ink">{name}</h2>
                 {product ? (
                   <p className="mt-1 text-sm text-muted">
-                    Catalog price {formatMinorPrice(product.priceMinor, product.currency)}
+                    {t("catalogPrice", { price: formatMinorPrice(product.priceMinor, product.currency) })}
                   </p>
                 ) : null}
                 {productState.state === "missing" ? (
-                  <p className="mt-2 text-sm text-rose-deep">Remove this product before placing the order.</p>
+                  <p className="mt-2 text-sm text-rose-deep">{t("removeBefore")}</p>
                 ) : null}
                 {product && line.quantity > maxQty ? (
                   <p className="mt-2 text-sm text-rose-deep">
-                    {maxQty < 1
-                      ? "This product is out of stock."
-                      : `Only ${maxQty} available. Lower the quantity before placing the order.`}
+                    {maxQty < 1 ? t("outOfStock") : t("onlyAvailable", { count: maxQty })}
                   </p>
                 ) : null}
                 <div className="mt-4 flex flex-wrap items-center gap-3">
-                  <div role="group" aria-label={`Quantity for ${name}`} className="flex items-center gap-2">
+                  <div role="group" aria-label={t("quantityFor", { name })} className="flex items-center gap-2">
                     <button
                       type="button"
-                      aria-label={`Decrease quantity for ${name}`}
+                      aria-label={t("decreaseFor", { name })}
                       disabled={snapshot.pending || line.quantity <= 1}
                       onClick={() => {
                         const result = updateDraftQuantity(userId, line.productId, line.quantity - 1);
                         if (result === "pending") {
-                          setError("This order request is still unfinished. Retry the same selection.");
+                          setError(t("unfinished"));
                         }
                       }}
                       className="inline-flex size-11 items-center justify-center rounded-2xl border border-line bg-bg text-ink hover:bg-blush focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep disabled:opacity-60"
@@ -312,12 +314,12 @@ export function CheckoutView({
                     <span className="min-w-8 text-center text-sm text-ink">{line.quantity}</span>
                     <button
                       type="button"
-                      aria-label={`Increase quantity for ${name}`}
+                      aria-label={t("increaseFor", { name })}
                       disabled={snapshot.pending || line.quantity >= Math.min(100, Math.max(maxQty, line.quantity))}
                       onClick={() => {
                         const result = updateDraftQuantity(userId, line.productId, line.quantity + 1);
                         if (result === "pending") {
-                          setError("This order request is still unfinished. Retry the same selection.");
+                          setError(t("unfinished"));
                         }
                       }}
                       className="inline-flex size-11 items-center justify-center rounded-2xl border border-line bg-bg text-ink hover:bg-blush focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep disabled:opacity-60"
@@ -331,7 +333,7 @@ export function CheckoutView({
                     onClick={() => removeDraftLine(userId, line.productId)}
                     className="text-sm text-rose-deep underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep disabled:opacity-60"
                   >
-                    Remove
+                    {t("remove")}
                   </button>
                 </div>
               </div>
@@ -340,15 +342,13 @@ export function CheckoutView({
         })}
       </ul>
       <div className="mt-6 rounded-2xl border border-line bg-surface p-5">
-        <p className="text-sm text-muted">Estimated total</p>
-        <p className="mt-2 text-lg text-ink">{estimate ?? "Waiting for current prices"}</p>
-        <p className="mt-3 text-sm leading-relaxed text-muted">
-          Catalog prices can change. The final total is calculated when the order is placed. Placing an order does not take payment.
-        </p>
+        <p className="text-sm text-muted">{t("estimated")}</p>
+        <p className="mt-2 text-lg text-ink">{estimate ?? t("waitingPrices")}</p>
+        <p className="mt-3 text-sm leading-relaxed text-muted">{t("priceNote")}</p>
       </div>
       {error ? (
         <p role="alert" className="mt-4 text-sm text-rose-deep">
-          {error}
+          <KnownText value={error} />
         </p>
       ) : null}
       <div className="mt-6 flex flex-wrap gap-3">
@@ -357,7 +357,7 @@ export function CheckoutView({
           disabled={inFlight || blocked || role !== "CUSTOMER"}
           onClick={() => void placeOrder()}
         >
-          {inFlight ? "Placing order" : snapshot.pending ? "Retry order" : "Place order"}
+          {inFlight ? t("placing") : snapshot.pending ? t("retry") : t("place")}
         </Button>
         <Button
           type="button"
@@ -366,11 +366,11 @@ export function CheckoutView({
           onClick={() => {
             const result = clearVisibleDraft(userId);
             if (result === "pending") {
-              setError("This order request is still unfinished. Retry the same selection.");
+              setError(t("unfinished"));
             }
           }}
         >
-          Clear order
+          {t("clearOrder")}
         </Button>
       </div>
     </div>
@@ -386,6 +386,7 @@ function GuestExtra({
   lines: { productId: number; quantity: number }[];
   pending: boolean;
 }) {
+  const t = useTranslations("checkout");
   const [message, setMessage] = useState<string | null>(null);
   if (lines.length === 0) {
     return null;
@@ -393,7 +394,7 @@ function GuestExtra({
   return (
     <div className="mb-4 rounded-2xl border border-line bg-surface p-4">
       <p className="text-sm leading-relaxed text-ink">
-        You also chose {lines.length} {lines.length === 1 ? "product" : "products"} before signing in.
+        {t("guestChosen", { count: lines.length })}
       </p>
       {message ? (
         <p role="status" className="mt-2 text-sm text-rose-deep">
@@ -408,14 +409,14 @@ function GuestExtra({
             onClick={() => {
               const result = includeGuestLines(userId);
               if (result === "full") {
-                setMessage("Adding those items would pass the 50 product limit.");
+                setMessage(t("limit"));
               }
             }}
           >
-            Add them to this order
+            {t("addGuest")}
           </Button>
           <Button type="button" variant="ghost" onClick={() => discardGuestLines()}>
-            Discard them
+            {t("discardGuest")}
           </Button>
         </div>
       )}
@@ -428,21 +429,24 @@ function Confirmation({
 }: {
   confirmation: { orderId: number; status: OrderStatus; totalMinor: number; currency: string };
 }) {
+  const t = useTranslations("checkout");
+  const orders = useTranslations("orders");
+
   return (
     <div className="mt-8 rounded-2xl border border-line bg-surface p-5 shadow-[0_8px_24px_rgb(52_42_46/6%)] sm:p-8">
-      <h2 className="font-display text-4xl text-ink">Order placed</h2>
-      <p className="mt-4 text-ink">Order {confirmation.orderId}</p>
-      <p className="mt-2 text-sm text-muted">{orderStatusLabel(confirmation.status)}</p>
+      <h2 className="font-display text-4xl text-ink">{t("placed")}</h2>
+      <p className="mt-4 text-ink">{t("orderNumber", { id: confirmation.orderId })}</p>
+      <p className="mt-2 text-sm text-muted">{orders(confirmation.status)}</p>
       <p className="mt-4 text-lg text-ink">
         {formatMinorPrice(confirmation.totalMinor, confirmation.currency)}
       </p>
       <p className="mt-3 text-sm leading-relaxed text-muted">
-        No payment has been taken. This is the total returned for the order.
+        {t("noPayment")}
       </p>
       <div className="mt-6 flex flex-wrap gap-3">
-        <Button href={`/account/orders/${confirmation.orderId}`}>View order details</Button>
+        <Button href={`/account/orders/${confirmation.orderId}`}>{t("viewOrder")}</Button>
         <Button href="/shop" variant="secondary">
-          Continue shopping
+          {t("continue")}
         </Button>
       </div>
     </div>

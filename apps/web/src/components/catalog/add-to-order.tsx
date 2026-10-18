@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ export function AddToOrder({
   ownerId: number | null;
   accountUnavailable: boolean;
 }) {
+  const t = useTranslations("product");
   const maxQty = maxPurchasableQuantity({ inStock, stockQty });
   const [quantity, setQuantity] = useState(1);
   const [message, setMessage] = useState<string | null>(null);
@@ -27,7 +29,7 @@ export function AddToOrder({
   if (accountUnavailable) {
     return (
       <p role="status" className="mt-6 text-sm text-muted">
-        Account status is temporarily unavailable. You can still browse.
+        {t("browseNote")}
       </p>
     );
   }
@@ -44,38 +46,38 @@ export function AddToOrder({
     setMessage(null);
     const result = addProduct(ownerId ?? "guest", productId, quantity, maxQty);
     if (result === "added") {
-      setMessage("Added to your order.");
+      setMessage(t("added"));
       return;
     }
     if (result === "clamped") {
-      setMessage("Added up to the available quantity.");
+      setMessage(t("addedClamped"));
       return;
     }
     if (result === "full") {
-      setError("An order can include at most 50 products.");
+      setError(t("full"));
       return;
     }
     if (result === "pending") {
-      setError("Finish or retry the order already in progress before changing it.");
+      setError(t("pending"));
       return;
     }
     if (result === "unavailable") {
-      setError("This product is out of stock.");
+      setError(t("outOfStock"));
       return;
     }
-    setError("Enter a whole quantity between 1 and 100.");
+    setError(t("quantityError"));
   }
 
   return (
     <div className="mt-6">
       {maxQty === 0 ? (
-        <p className="text-sm text-rose-deep">This product is out of stock.</p>
+        <p className="text-sm text-rose-deep">{t("outOfStock")}</p>
       ) : (
         <div className="flex flex-wrap items-center gap-3">
-          <div role="group" aria-label="Quantity" className="flex items-center gap-2">
+          <div role="group" aria-label={t("quantity")} className="flex items-center gap-2">
             <button
               type="button"
-              aria-label="Decrease quantity"
+              aria-label={t("decrease")}
               disabled={quantity <= 1}
               onClick={() => changeQuantity(quantity - 1)}
               className="inline-flex size-11 items-center justify-center rounded-2xl border border-line bg-surface text-ink hover:bg-blush focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep disabled:opacity-60"
@@ -84,7 +86,7 @@ export function AddToOrder({
             </button>
             <input
               id={`quantity-${productId}`}
-              aria-label="Quantity"
+              aria-label={t("quantity")}
               inputMode="numeric"
               value={String(quantity)}
               onChange={(event) => {
@@ -101,7 +103,7 @@ export function AddToOrder({
             />
             <button
               type="button"
-              aria-label="Increase quantity"
+              aria-label={t("increase")}
               disabled={quantity >= maxQty}
               onClick={() => changeQuantity(quantity + 1)}
               className="inline-flex size-11 items-center justify-center rounded-2xl border border-line bg-surface text-ink hover:bg-blush focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep disabled:opacity-60"
@@ -110,7 +112,7 @@ export function AddToOrder({
             </button>
           </div>
           <p className="text-sm text-muted">
-            {stockQty !== null ? `${stockQty} available` : "Available to order"}
+            {stockQty !== null ? t("availableCount", { count: stockQty }) : t("available")}
           </p>
         </div>
       )}
@@ -126,10 +128,10 @@ export function AddToOrder({
       ) : null}
       <div className="mt-4 flex flex-wrap gap-3">
         <Button type="button" disabled={maxQty === 0} onClick={add}>
-          Add to order
+          {t("add")}
         </Button>
         <Button href="/checkout" variant="secondary">
-          Review order
+          {t("review")}
         </Button>
       </div>
     </div>

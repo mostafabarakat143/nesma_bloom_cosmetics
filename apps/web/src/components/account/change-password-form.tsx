@@ -1,6 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+
+import { KnownText } from "@/components/i18n/known-text";
+import { useRouter } from "@/i18n/navigation";
 import { useState, type FormEvent } from "react";
 
 import { PasswordField } from "@/components/auth/fields";
@@ -15,6 +18,7 @@ import {
 
 export function ChangePasswordForm() {
   const router = useRouter();
+  const t = useTranslations("account");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -59,12 +63,12 @@ export function ChangePasswordForm() {
     <form onSubmit={(event) => void submit(event)} noValidate className="grid gap-5">
       {formError ? (
         <p role="alert" className="text-sm text-rose-deep">
-          {formError}
+          <KnownText value={formError} />
         </p>
       ) : null}
       <PasswordField
         id="current-password"
-        label="Current password"
+        label={t("currentPassword")}
         autoComplete="current-password"
         value={currentPassword}
         error={errors.currentPassword}
@@ -72,16 +76,16 @@ export function ChangePasswordForm() {
       />
       <PasswordField
         id="new-password"
-        label="New password"
+        label={t("newPassword")}
         autoComplete="new-password"
         value={newPassword}
         error={errors.newPassword}
-        hint="At least 8 characters."
+        hint={t("passwordHint")}
         onChange={setNewPassword}
       />
       <PasswordField
         id="confirm-password"
-        label="Confirm new password"
+        label={t("confirmPassword")}
         autoComplete="new-password"
         value={confirmPassword}
         error={errors.confirmPassword}
@@ -89,10 +93,10 @@ export function ChangePasswordForm() {
       />
       <div className="flex flex-wrap gap-3">
         <Button type="submit" disabled={pending}>
-          {pending ? "Changing password" : "Change password"}
+          {pending ? t("changing") : t("changePassword")}
         </Button>
         <Button href="/account" variant="secondary">
-          Cancel
+          {t("cancel")}
         </Button>
       </div>
     </form>

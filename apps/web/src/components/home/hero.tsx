@@ -1,18 +1,24 @@
+import { getLocale, getTranslations } from "next-intl/server";
 import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
 
-const highlights = [
-  { label: "Perfumes", icon: PerfumeIcon },
-  { label: "Scented candles", icon: CandleIcon },
-  { label: "Skin & body care", icon: CareIcon },
-  { label: "Hair care", icon: HairIcon },
-  { label: "Natural products", icon: BloomIcon },
-] as const;
-
 const iconClass = "size-8 sm:size-11";
 
-export function Hero() {
+export async function Hero() {
+  const t = await getTranslations("home");
+  const brand = await getTranslations("common");
+  const locale = await getLocale();
+  const track = locale === "ar" ? "tracking-normal normal-case" : "uppercase tracking-[0.22em] sm:tracking-[0.28em]";
+  const itemTrack = locale === "ar" ? "tracking-normal normal-case" : "uppercase tracking-[0.08em] sm:tracking-[0.14em]";
+  const highlights = [
+    { label: t("perfumes"), icon: PerfumeIcon },
+    { label: t("candles"), icon: CandleIcon },
+    { label: t("skin"), icon: CareIcon },
+    { label: t("hair"), icon: HairIcon },
+    { label: t("natural"), icon: BloomIcon },
+  ];
+
   return (
     <section className="relative isolate overflow-hidden bg-[#f6efe6]" aria-labelledby="hero-heading">
       <Image
@@ -25,7 +31,7 @@ export function Hero() {
       />
       <div className="relative flex min-h-[46rem] flex-col items-center justify-center px-4 py-12 text-center sm:min-h-[40rem] sm:px-6 sm:py-16 lg:min-h-[44rem]">
         <h1 id="hero-heading" className="sr-only">
-          Lamsa
+          {brand("brand")}
         </h1>
         <Image
           src="/brand-logo.png"
@@ -35,10 +41,10 @@ export function Hero() {
           className="h-44 w-auto object-contain sm:h-56 lg:h-64"
         />
         <p className="mt-4 font-display text-2xl text-[#6d5330] sm:mt-5 sm:text-3xl">
-          Your beauty blooms with lamsa
+          {t("bloom")}
         </p>
-        <p className="mt-4 text-sm tracking-[0.22em] text-rose-deep uppercase sm:text-base sm:tracking-[0.28em]">
-          Natural beauty & fragrance
+        <p className={`mt-4 text-sm text-rose-deep sm:text-base ${track}`}>
+          {brand("tagline")}
         </p>
         <ul className="mt-6 grid w-full max-w-4xl grid-cols-5 text-[#8d5a62] sm:mt-8">
           {highlights.map((item, index) => {
@@ -47,11 +53,11 @@ export function Hero() {
               <li
                 key={item.label}
                 className={`flex flex-col items-center px-1 sm:px-4 ${
-                  index > 0 ? "border-l border-[#c9a097]/80" : ""
+                  index > 0 ? "border-s border-[#c9a097]/80" : ""
                 }`}
               >
                 <Icon />
-                <span className="mt-2 text-[0.58rem] leading-tight tracking-[0.08em] uppercase sm:mt-3 sm:text-xs sm:tracking-[0.14em]">
+                <span className={`mt-2 text-[0.58rem] leading-tight sm:mt-3 sm:text-xs ${itemTrack}`}>
                   {item.label}
                 </span>
               </li>
@@ -60,7 +66,7 @@ export function Hero() {
         </ul>
         <div className="mt-6 sm:mt-8">
           <Button href="/shop" className="h-9! w-44 sm:w-56">
-            Shop now
+            {t("shopNow")}
           </Button>
         </div>
       </div>

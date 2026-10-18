@@ -1,14 +1,19 @@
+import { getLocale } from "next-intl/server";
+
 type SectionHeadingProps = {
   id: string;
   eyebrow?: string;
   title: string;
 };
 
-export function SectionHeading({ id, eyebrow, title }: SectionHeadingProps) {
+export async function SectionHeading({ id, eyebrow, title }: SectionHeadingProps) {
+  const locale = await getLocale();
+  const tracking = locale === "ar" ? "tracking-normal normal-case" : "tracking-[0.16em] uppercase";
+
   return (
     <div>
       {eyebrow ? (
-        <p className="text-sm tracking-[0.16em] text-rose-deep uppercase">
+        <p className={`text-sm text-rose-deep ${tracking}`}>
           {eyebrow}
         </p>
       ) : null}

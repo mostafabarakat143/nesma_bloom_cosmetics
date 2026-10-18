@@ -1,29 +1,29 @@
+import { getLocale, getTranslations } from "next-intl/server";
+
 import { Button } from "@/components/ui/button";
 
-export function AboutPreview() {
+export async function AboutPreview() {
+  const t = await getTranslations("home");
+  const locale = await getLocale();
+  const tracking = locale === "ar" ? "tracking-normal normal-case" : "tracking-[0.16em] uppercase";
+
   return (
     <section className="bg-surface" aria-labelledby="about-heading">
       <div className="mx-auto grid w-full max-w-6xl gap-8 px-5 py-16 sm:py-20 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
         <div>
-          <p className="text-sm tracking-[0.16em] text-rose-deep uppercase">
-            Our house
-          </p>
+          <p className={`text-sm text-rose-deep ${tracking}`}>{t("ourHouse")}</p>
           <h2
             id="about-heading"
             className="mt-3 font-display text-4xl leading-tight text-ink sm:text-5xl"
           >
-            Care, kept simple
+            {t("careSimple")}
           </h2>
         </div>
         <div>
-          <p className="text-lg leading-relaxed text-muted">
-            Lamsa is a skincare and cosmetics house. The collection is
-            built for a calm routine and a finish that feels considered, not
-            loud.
-          </p>
+          <p className="text-lg leading-relaxed text-muted">{t("aboutBody")}</p>
           <div className="mt-8">
             <Button href="/about" variant="secondary">
-              Read our story
+              {t("readStory")}
             </Button>
           </div>
         </div>

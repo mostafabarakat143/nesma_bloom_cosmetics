@@ -1,14 +1,15 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
 import { authLinkClass } from "@/components/auth/auth-shell";
 import { PasswordField } from "@/components/auth/fields";
 import { postAuth } from "@/components/auth/post-auth";
 import { useResetToken } from "@/components/auth/reset-token";
+import { KnownText } from "@/components/i18n/known-text";
 import { Button } from "@/components/ui/button";
+import { Link, useRouter } from "@/i18n/navigation";
 import {
   MESSAGES,
   validateNewPassword,
@@ -18,6 +19,7 @@ import {
 export function ResetPasswordForm() {
   const token = useResetToken();
   const router = useRouter();
+  const t = useTranslations("auth");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -59,11 +61,11 @@ export function ResetPasswordForm() {
     return (
       <div className="space-y-5">
         <p role="alert" className="text-sm leading-relaxed text-rose-deep">
-          {MESSAGES.resetInvalid}
+          <KnownText value={MESSAGES.resetInvalid} />
         </p>
         <p className="text-sm text-muted">
           <Link href="/forgot-password" className={authLinkClass()}>
-            Request a new reset link
+            {t("requestNew")}
           </Link>
         </p>
       </div>
@@ -74,24 +76,24 @@ export function ResetPasswordForm() {
     <form onSubmit={(event) => void onSubmit(event)} className="space-y-5" noValidate>
       <PasswordField
         id="reset-password"
-        label="New password"
+        label={t("newPassword")}
         autoComplete="new-password"
         value={password}
         error={errors.newPassword}
-        hint="Use at least 8 characters. This link works once."
+        hint={t("resetHint")}
         onChange={setPassword}
       />
       {formError ? (
         <p role="alert" className="text-sm text-rose-deep">
-          {formError}
+          <KnownText value={formError} />
         </p>
       ) : null}
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Updating password" : "Update password"}
+        {pending ? t("updating") : t("updatePassword")}
       </Button>
       <p className="text-sm text-muted">
         <Link href="/login" className={authLinkClass()}>
-          Back to log in
+          {t("backToLogin")}
         </Link>
       </p>
     </form>

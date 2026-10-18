@@ -1,15 +1,18 @@
 "use client";
 
-import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
 import { authLinkClass } from "@/components/auth/auth-shell";
 import { TextField } from "@/components/auth/fields";
 import { postAuth } from "@/components/auth/post-auth";
+import { KnownText } from "@/components/i18n/known-text";
 import { Button } from "@/components/ui/button";
+import { Link } from "@/i18n/navigation";
 import { MESSAGES, validateForgot, type FieldErrors } from "@/lib/auth/credentials";
 
 export function ForgotPasswordForm() {
+  const t = useTranslations("auth");
   const [email, setEmail] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -47,10 +50,10 @@ export function ForgotPasswordForm() {
     <form onSubmit={(event) => void onSubmit(event)} className="space-y-5" noValidate>
       <TextField
         id="forgot-email"
-        label="Email"
+        label={t("email")}
         type="email"
         autoComplete="email"
-        placeholder="you@example.com"
+        placeholder={t("emailPlaceholder")}
         value={email}
         error={errors.email}
         maxLength={255}
@@ -58,20 +61,20 @@ export function ForgotPasswordForm() {
       />
       {formError ? (
         <p role="alert" className="text-sm text-rose-deep">
-          {formError}
+          <KnownText value={formError} />
         </p>
       ) : null}
       {success ? (
         <p role="status" className="text-sm leading-relaxed text-ink">
-          {success}
+          <KnownText value={success} />
         </p>
       ) : null}
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Sending" : "Send reset link"}
+        {pending ? t("sending") : t("sendReset")}
       </Button>
       <p className="text-sm text-muted">
         <Link href="/login" className={authLinkClass()}>
-          Back to log in
+          {t("backToLogin")}
         </Link>
       </p>
     </form>

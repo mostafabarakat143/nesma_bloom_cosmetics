@@ -1,18 +1,22 @@
-import Link from "next/link";
+import { getTranslations } from "next-intl/server";
+
+import { Link } from "@/i18n/navigation";
 
 const items = [
-  { href: "/account", id: "profile", label: "My profile" },
-  { href: "/account/orders", id: "orders", label: "My orders" },
-  { href: "/account/change-password", id: "password", label: "Change password" },
+  { href: "/account", id: "profile", label: "profileTitle" },
+  { href: "/account/orders", id: "orders", label: "ordersTitle" },
+  { href: "/account/change-password", id: "password", label: "changeTitle" },
 ] as const;
 
-export function AccountLinks({
+export async function AccountLinks({
   current,
 }: {
   current: (typeof items)[number]["id"];
 }) {
+  const t = await getTranslations("account");
+
   return (
-    <nav aria-label="Account">
+    <nav aria-label={t("nav")}>
       <ul className="flex flex-wrap gap-2">
         {items.map((item) => {
           const active = item.id === current;
@@ -27,7 +31,7 @@ export function AccountLinks({
                     : "inline-flex h-11 items-center rounded-2xl border border-line bg-surface px-4 text-sm text-ink hover:bg-blush focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep"
                 }
               >
-                {item.label}
+                {t(item.label)}
               </Link>
             </li>
           );

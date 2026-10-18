@@ -1,13 +1,17 @@
+import { getLocale, getTranslations } from "next-intl/server";
+
 import { Button } from "@/components/ui/button";
+import { getPathname } from "@/i18n/navigation";
+import { knownMessageKey } from "@/i18n/known-messages";
 import type { CatalogCategory, CatalogSubcategory } from "@/lib/api/catalog";
 import { shopHref, type ShopQuery } from "@/lib/shop-query";
 
 const fieldClass =
-  "mt-2 h-11 w-full rounded-2xl border border-line bg-bg px-3 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep";
+  "mt-2 h-11 w-full rounded-2xl border border-line bg-bg px-3 text-sm text-ink placeholder:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep";
 
 const labelClass = "block text-sm font-medium text-ink";
 
-export function ProductFilters({
+export async function ProductFilters({
   query,
   categories,
   subcategories,
@@ -16,35 +20,45 @@ export function ProductFilters({
   categories: CatalogCategory[] | null;
   subcategories: CatalogSubcategory[] | null;
 }) {
+  const t = await getTranslations("shop");
+  const messages = await getTranslations("messages");
+  const locale = await getLocale();
   const priceDescribedBy = query.priceError
     ? "price-hint price-error"
     : "price-hint";
+  const priceKey = query.priceError ? knownMessageKey(query.priceError) : null;
+  const priceMessage = query.priceError
+    ? priceKey
+      ? messages(priceKey)
+      : query.priceError
+    : null;
 
   return (
     <form
       key={shopHref(query)}
       method="get"
-      action="/shop"
-      aria-label="Filter products"
+      action={getPathname({ locale, href: "/shop" })}
+      aria-label={t("filterProducts")}
       className="space-y-5 rounded-2xl border border-line bg-surface p-5"
     >
-      <h2 className="font-display text-3xl text-ink">Filters</h2>
+      <h2 className="font-display text-3xl text-ink">{t("filters")}</h2>
       <div>
         <label htmlFor="shop-search" className={labelClass}>
-          Search
+          {t("search")}
         </label>
         <input
           id="shop-search"
           name="q"
           type="text"
           defaultValue={query.q}
+          placeholder={t("searchPlaceholder")}
           maxLength={100}
           className={fieldClass}
         />
       </div>
       <div>
         <label htmlFor="shop-category" className={labelClass}>
-          Category
+          {t("category")}
         </label>
         {categories === null ? (
           <>
@@ -52,7 +66,7 @@ export function ProductFilters({
               <input type="hidden" name="categoryId" value={query.categoryId} />
             ) : null}
             <select id="shop-category" disabled className={fieldClass} defaultValue="">
-              <option value="">Categories are temporarily unavailable</option>
+              <option value="">{t("categoriesUnavailable")}</option>
             </select>
           </>
         ) : (
@@ -62,10 +76,10 @@ export function ProductFilters({
             defaultValue={query.categoryId ?? ""}
             className={fieldClass}
           >
-            <option value="">All categories</option>
+            <option value="">{t("allCategories")}</option>
             {query.categoryId !== null &&
             !categories.some((category) => category.id === query.categoryId) ? (
-              <option value={query.categoryId}>Selected category</option>
+              <option value={query.categoryId}>{t("selectedCategory")}</option>
             ) : null}
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
@@ -77,7 +91,7 @@ export function ProductFilters({
       </div>
       <div>
         <label htmlFor="shop-subcategory" className={labelClass}>
-          Subcategory
+          {t("subcategory")}
         </label>
         {subcategories === null ? (
           <>
@@ -94,7 +108,7 @@ export function ProductFilters({
               className={fieldClass}
               defaultValue=""
             >
-              <option value="">Subcategories are temporarily unavailable</option>
+              <option value="">{t("subcategoriesUnavailable")}</option>
             </select>
           </>
         ) : (
@@ -104,12 +118,12 @@ export function ProductFilters({
             defaultValue={query.subcategoryId ?? ""}
             className={fieldClass}
           >
-            <option value="">All subcategories</option>
+            <option value="">{t("allSubcategories")}</option>
             {query.subcategoryId !== null &&
             !subcategories.some(
               (subcategory) => subcategory.id === query.subcategoryId,
             ) ? (
-              <option value={query.subcategoryId}>Selected subcategory</option>
+              <option value={query.subcategoryId}>{t("selectedSubcategory")}</option>
             ) : null}
             {subcategories.map((subcategory) => (
               <option key={subcategory.id} value={subcategory.id}>
@@ -120,13 +134,13 @@ export function ProductFilters({
         )}
       </div>
       <fieldset className="space-y-5">
-        <legend className={labelClass}>Price (EGP)</legend>
+        <legend className={labelClass}>{t("price")}</legend>
         <p id="price-hint" className="text-sm text-muted">
-          Enter amounts in EGP, such as 15 or 15.50.
+          {t("priceHint")}
         </p>
         <div>
           <label htmlFor="shop-min" className={labelClass}>
-            Minimum
+            {t("minimum")}
           </label>
           <input
             id="shop-min"
@@ -135,6 +149,7 @@ export function ProductFilters({
             inputMode="decimal"
             autoComplete="off"
             defaultValue={query.minEgpInput}
+            placeholder={t("minimumPlaceholder")}
             aria-describedby={priceDescribedBy}
             aria-invalid={query.priceError ? true : undefined}
             className={fieldClass}
@@ -142,7 +157,7 @@ export function ProductFilters({
         </div>
         <div>
           <label htmlFor="shop-max" className={labelClass}>
-            Maximum
+            {t("maximum")}
           </label>
           <input
             id="shop-max"
@@ -151,6 +166,7 @@ export function ProductFilters({
             inputMode="decimal"
             autoComplete="off"
             defaultValue={query.maxEgpInput}
+            placeholder={t("maximumPlaceholder")}
             aria-describedby={priceDescribedBy}
             aria-invalid={query.priceError ? true : undefined}
             className={fieldClass}
@@ -162,13 +178,13 @@ export function ProductFilters({
             role="alert"
             className="rounded-2xl bg-blush px-3 py-2 text-sm text-ink"
           >
-            {query.priceError}
+            {priceMessage}
           </p>
         ) : null}
       </fieldset>
       <div>
         <label htmlFor="shop-sort" className={labelClass}>
-          Sort
+          {t("sort")}
         </label>
         <select
           id="shop-sort"
@@ -176,18 +192,18 @@ export function ProductFilters({
           defaultValue={query.sort}
           className={fieldClass}
         >
-          <option value="newest">Newest</option>
-          <option value="oldest">Oldest</option>
-          <option value="name-asc">Name A–Z</option>
-          <option value="name-desc">Name Z–A</option>
-          <option value="price-asc">Price, low to high</option>
-          <option value="price-desc">Price, high to low</option>
+          <option value="newest">{t("newest")}</option>
+          <option value="oldest">{t("oldest")}</option>
+          <option value="name-asc">{t("nameAsc")}</option>
+          <option value="name-desc">{t("nameDesc")}</option>
+          <option value="price-asc">{t("priceAsc")}</option>
+          <option value="price-desc">{t("priceDesc")}</option>
         </select>
       </div>
       <div className="flex flex-wrap gap-3">
-        <Button type="submit">Apply filters</Button>
+        <Button type="submit">{t("apply")}</Button>
         <Button href="/shop" variant="ghost">
-          Clear
+          {t("clear")}
         </Button>
       </div>
     </form>

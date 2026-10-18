@@ -1,13 +1,15 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
 import { authLinkClass } from "@/components/auth/auth-shell";
 import { PasswordField, TextField } from "@/components/auth/fields";
 import { postAuth } from "@/components/auth/post-auth";
+import { KnownText } from "@/components/i18n/known-text";
 import { Button } from "@/components/ui/button";
+import { Link, useRouter } from "@/i18n/navigation";
+import { splitLocaleHref } from "@/i18n/pathname";
 import {
   MESSAGES,
   validateLogin,
@@ -17,6 +19,7 @@ import { safeNextPath } from "@/lib/auth/redirect";
 
 export function LoginForm({ nextPath }: { nextPath: string }) {
   const router = useRouter();
+  const t = useTranslations("auth");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -49,7 +52,8 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
       return;
     }
 
-    router.push(safeNextPath(result.data.redirectTo));
+    const destination = splitLocaleHref(safeNextPath(result.data.redirectTo));
+    router.push(destination.href, destination.locale ? { locale: destination.locale } : undefined);
     router.refresh();
   }
 
@@ -57,10 +61,10 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
     <form onSubmit={(event) => void onSubmit(event)} className="space-y-5" noValidate>
       <TextField
         id="login-email"
-        label="Email"
+        label={t("email")}
         type="email"
         autoComplete="email"
-        placeholder="you@example.com"
+        placeholder={t("emailPlaceholder")}
         value={email}
         error={errors.email}
         maxLength={255}
@@ -68,30 +72,30 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
       />
       <PasswordField
         id="login-password"
-        label="Password"
+        label={t("password")}
         autoComplete="current-password"
-        placeholder="Your password"
+        placeholder={t("yourPassword")}
         value={password}
         error={errors.password}
         onChange={setPassword}
       />
       {formError ? (
         <p role="alert" className="text-sm text-rose-deep">
-          {formError}
+          <KnownText value={formError} />
         </p>
       ) : null}
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Logging in" : "Log in"}
+        {pending ? t("loggingIn") : t("login")}
       </Button>
       <p className="text-sm text-muted">
         <Link href="/forgot-password" className={authLinkClass()}>
-          Forgot your password?
+          {t("forgotLink")}
         </Link>
       </p>
       <p className="text-sm text-muted">
-        New to Lamsa?{" "}
+        {t("newToLamsa")}{" "}
         <Link href={registerHref} className={authLinkClass()}>
-          Create an account
+          {t("createAccount")}
         </Link>
       </p>
     </form>

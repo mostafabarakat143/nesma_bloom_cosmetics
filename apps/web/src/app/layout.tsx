@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Outfit } from "next/font/google";
+import { getLocale, getTranslations } from "next-intl/server";
+import { Amiri, Cairo, Cormorant_Garamond, Outfit } from "next/font/google";
 import type { ReactNode } from "react";
-
-import { SiteFooter } from "@/components/layout/site-footer";
-import { SiteHeader } from "@/components/layout/site-header";
 
 import "./globals.css";
 
@@ -20,33 +18,41 @@ const cormorant = Cormorant_Garamond({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "Lamsa",
-    template: "%s · Lamsa",
-  },
-  description: "Thoughtful formulas and a calm routine, made for everyday care.",
-};
+const cairo = Cairo({
+  subsets: ["arabic", "latin"],
+  variable: "--font-cairo",
+  display: "swap",
+});
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+const amiri = Amiri({
+  subsets: ["arabic", "latin"],
+  weight: ["400", "700"],
+  variable: "--font-amiri",
+  display: "swap",
+});
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("common");
+  const brand = t("brand");
+  return {
+    title: {
+      default: brand,
+      template: `%s · ${brand}`,
+    },
+    description: t("metaDescription"),
+  };
+}
+
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const locale = await getLocale();
+
   return (
     <html
-      lang="en"
-      className={`${outfit.variable} ${cormorant.variable} h-full antialiased`}
+      lang={locale}
+      dir={locale === "ar" ? "rtl" : "ltr"}
+      className={`${outfit.variable} ${cormorant.variable} ${cairo.variable} ${amiri.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col font-sans">
-        <a
-          href="#main"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[60] focus:rounded-2xl focus:bg-rose-deep focus:px-4 focus:py-2 focus:text-white"
-        >
-          Skip to content
-        </a>
-        <SiteHeader />
-        <main id="main" className="w-full flex-1">
-          {children}
-        </main>
-        <SiteFooter />
-      </body>
+      <body className="flex min-h-full flex-col font-sans">{children}</body>
     </html>
   );
 }

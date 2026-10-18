@@ -33,3 +33,16 @@ body {
   font-family: var(--font-outfit), sans-serif;
 }
 
+html[lang="ar"] body,
+html[lang="ar"] .font-sans {
+  font-family: var(--font-cairo), sans-serif;
+}
+
+html[lang="ar"] .font-display {
+  font-family: var(--font-amiri), Georgia, serif;
+}
+
+html[lang="ar"] .uppercase {
+  letter-spacing: 0;
+}
+

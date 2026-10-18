@@ -1,8 +1,10 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
 export function Newsletter() {
+  const t = useTranslations("home");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -10,7 +12,7 @@ export function Newsletter() {
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!email.trim() || !email.includes("@")) {
-      setMessage("Enter an email address.");
+      setMessage(t("subscribeInvalid"));
       return;
     }
     setMessage(null);
@@ -27,14 +29,14 @@ export function Newsletter() {
           id="newsletter-heading"
           className="font-display text-4xl text-ink sm:text-5xl"
         >
-          Subscribe for what is new
+          {t("subscribeTitle")}
         </h2>
         <p id="newsletter-note" className="mt-4 max-w-xl text-lg text-ink">
-          New arrivals, seasonal edits, and quiet notes from the house.
+          {t("subscribeBody")}
         </p>
         {done ? (
           <p className="mt-8 text-lg text-ink" role="status">
-            Thanks. We’ll write when something new arrives.
+            {t("subscribeThanks")}
           </p>
         ) : (
           <form
@@ -45,7 +47,7 @@ export function Newsletter() {
           >
             <div className="min-w-0 flex-1">
               <label htmlFor="newsletter-email" className="sr-only">
-                Email address
+                {t("email")}
               </label>
               <input
                 id="newsletter-email"
@@ -53,7 +55,7 @@ export function Newsletter() {
                 type="email"
                 autoComplete="email"
                 value={email}
-                placeholder="you@example.com"
+                placeholder={t("emailPlaceholder")}
                 onChange={(event) => setEmail(event.target.value)}
                 className="h-11 w-full rounded-2xl border border-line bg-surface px-4 text-ink placeholder:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep"
               />
@@ -62,7 +64,7 @@ export function Newsletter() {
               type="submit"
               className="inline-flex h-11 items-center justify-center rounded-2xl bg-rose-deep px-5 text-sm font-medium text-white hover:bg-rose-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep"
             >
-              Notify me
+              {t("notify")}
             </button>
             {message ? (
               <p role="alert" className="text-sm text-rose-deep sm:basis-full">

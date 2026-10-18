@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { useEffect, useRef } from "react";
 
 import { SAME_ORIGIN_HEADER, SAME_ORIGIN_VALUE } from "@/lib/auth/origin";

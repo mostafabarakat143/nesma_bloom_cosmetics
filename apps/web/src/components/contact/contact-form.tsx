@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -8,31 +9,26 @@ const labelClass = "block text-sm text-ink";
 const controlClass =
   "mt-2 w-full rounded-xl border border-line bg-bg px-4 text-base text-ink placeholder:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep";
 
-function fieldError(value: string, label: string) {
-  return value.trim() ? null : `Enter your ${label}.`;
-}
-
 export function ContactForm() {
+  const t = useTranslations("contact");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  const nameError = submitted ? fieldError(name, "name") : null;
-  const phoneError = submitted ? fieldError(phone, "phone number") : null;
+  const nameError = submitted && !name.trim() ? t("nameError") : null;
+  const phoneError = submitted && !phone.trim() ? t("phoneError") : null;
   const emailError = submitted
     ? !email.trim()
-      ? "Enter your email."
+      ? t("emailRequired")
       : email.includes("@")
         ? null
-        : "Enter an email address."
+        : t("emailInvalid")
     : null;
-  const messageError = submitted ? fieldError(message, "message") : null;
+  const messageError = submitted && !message.trim() ? t("messageError") : null;
   const notice =
-    submitted && !nameError && !phoneError && !emailError && !messageError
-      ? "This form does not send messages. Use the email or phone above."
-      : null;
+    submitted && !nameError && !phoneError && !emailError && !messageError ? t("notice") : null;
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -45,17 +41,17 @@ export function ContactForm() {
       noValidate
       className="mx-auto mt-16 w-full max-w-3xl space-y-5 rounded-[1.75rem] border border-line bg-surface p-6 sm:p-10"
     >
-      <h2 className="font-display text-4xl text-ink">Contact us</h2>
+      <h2 className="font-display text-4xl text-ink">{t("formTitle")}</h2>
       <div>
         <label htmlFor="contact-name" className={labelClass}>
-          Name
+          {t("name")}
         </label>
         <input
           id="contact-name"
           name="name"
           type="text"
           autoComplete="name"
-          placeholder="Your name"
+          placeholder={t("namePlaceholder")}
           value={name}
           maxLength={100}
           aria-invalid={nameError ? true : undefined}
@@ -71,14 +67,14 @@ export function ContactForm() {
       </div>
       <div>
         <label htmlFor="contact-phone" className={labelClass}>
-          Phone
+          {t("phoneField")}
         </label>
         <input
           id="contact-phone"
           name="phone"
           type="tel"
           autoComplete="tel"
-          placeholder="Your phone number"
+          placeholder={t("phonePlaceholder")}
           value={phone}
           maxLength={30}
           aria-invalid={phoneError ? true : undefined}
@@ -94,14 +90,14 @@ export function ContactForm() {
       </div>
       <div>
         <label htmlFor="contact-email" className={labelClass}>
-          Email
+          {t("emailField")}
         </label>
         <input
           id="contact-email"
           name="email"
           type="email"
           autoComplete="email"
-          placeholder="you@example.com"
+          placeholder={t("emailPlaceholder")}
           value={email}
           maxLength={255}
           aria-invalid={emailError ? true : undefined}
@@ -117,12 +113,12 @@ export function ContactForm() {
       </div>
       <div>
         <label htmlFor="contact-message" className={labelClass}>
-          Message
+          {t("message")}
         </label>
         <textarea
           id="contact-message"
           name="message"
-          placeholder="How can we help?"
+          placeholder={t("messagePlaceholder")}
           value={message}
           maxLength={1000}
           rows={6}
@@ -143,7 +139,7 @@ export function ContactForm() {
         </p>
       ) : null}
       <div className="flex justify-end">
-        <Button type="submit">Send message</Button>
+        <Button type="submit">{t("send")}</Button>
       </div>
     </form>
   );

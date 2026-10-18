@@ -1,19 +1,13 @@
-const reasons = [
-  {
-    title: "A calm routine",
-    body: "Care meant for the morning and the evening, without a crowded shelf.",
-  },
-  {
-    title: "Thoughtful formulas",
-    body: "Each product is there to sit simply in a daily ritual.",
-  },
-  {
-    title: "Quiet luxury",
-    body: "Soft color, clear type, and room to breathe around every detail.",
-  },
-] as const;
+import { getTranslations } from "next-intl/server";
 
-export function WhyNesma() {
+export async function WhyNesma() {
+  const t = await getTranslations("home");
+  const reasons = [
+    { title: t("calmTitle"), body: t("calmBody") },
+    { title: t("formulasTitle"), body: t("formulasBody") },
+    { title: t("luxuryTitle"), body: t("luxuryBody") },
+  ];
+
   return (
     <section
       className="mx-auto w-full max-w-6xl px-5 py-16 sm:py-20"
@@ -23,7 +17,7 @@ export function WhyNesma() {
         id="why-heading"
         className="max-w-xl font-display text-4xl leading-tight text-ink sm:text-5xl"
       >
-        Why Lamsa
+        {t("whyTitle")}
       </h2>
       <ul className="mt-10 grid gap-5 md:grid-cols-3">
         {reasons.map((reason) => (

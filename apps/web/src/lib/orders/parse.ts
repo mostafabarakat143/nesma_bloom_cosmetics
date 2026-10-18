@@ -63,12 +63,12 @@ export function orderStatusLabel(status: OrderStatus): string {
   return STATUS_LABEL[status];
 }
 
-export function formatOrderDate(iso: string): string {
+export function formatOrderDate(iso: string, locale: "ar" | "en" = "en"): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) {
     return iso;
   }
-  const formatted = new Intl.DateTimeFormat("en-GB", {
+  const formatted = new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",

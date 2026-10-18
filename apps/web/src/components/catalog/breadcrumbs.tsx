@@ -1,4 +1,6 @@
-import Link from "next/link";
+import { getTranslations } from "next-intl/server";
+
+import { Link } from "@/i18n/navigation";
 
 export type BreadcrumbItem = {
   label: string;
@@ -6,9 +8,10 @@ export type BreadcrumbItem = {
   current?: boolean;
 };
 
-export function Breadcrumbs({ items }: { items: BreadcrumbItem[] }) {
+export async function Breadcrumbs({ items }: { items: BreadcrumbItem[] }) {
+  const t = await getTranslations("common");
   return (
-    <nav aria-label="Breadcrumb">
+    <nav aria-label={t("breadcrumb")}>
       <ol className="flex flex-wrap items-center gap-2 text-sm text-muted">
         {items.map((item, index) => (
           <li key={`${item.label}-${index}`} className="flex items-center gap-2">

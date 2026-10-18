@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+
+import { Link, usePathname } from "@/i18n/navigation";
 
 import { AccountAvatar } from "@/components/account/account-avatar";
 import { LogoutButton } from "@/components/auth/logout-button";
@@ -24,10 +25,12 @@ export function AccountNav({
   layout: "bar" | "menu";
   onCloseCurrent?: () => void;
 }) {
+  const t = useTranslations("common");
+
   if (unavailable) {
     return (
       <p className={layout === "bar" ? "max-w-48 text-sm text-muted" : "px-3 py-3 text-sm text-muted"}>
-        Account status is temporarily unavailable.
+        {t("accountUnavailable")}
       </p>
     );
   }
@@ -51,6 +54,7 @@ function SignedOutLinks({
   onCloseCurrent?: () => void;
 }) {
   const pathname = usePathname();
+  const t = useTranslations("common");
 
   return (
     <Link
@@ -63,7 +67,7 @@ function SignedOutLinks({
         }
       }}
     >
-      Login
+      {t("login")}
     </Link>
   );
 }
@@ -75,6 +79,8 @@ function AccountSummary({
   account: AccountView;
   onCloseCurrent?: () => void;
 }) {
+  const t = useTranslations("common");
+
   return (
     <div className="px-3 py-3">
       <div className="flex items-center gap-3">
@@ -82,7 +88,7 @@ function AccountSummary({
         <p className="min-w-0 truncate text-base text-ink">{account.fullName}</p>
       </div>
       <Link href="/account" className={`${menuLink} mt-3`} onClick={onCloseCurrent}>
-        Profile
+        {t("profile")}
       </Link>
       <LogoutButton appearance="menu" className="mt-1" onDone={onCloseCurrent} />
     </div>
@@ -91,6 +97,7 @@ function AccountSummary({
 
 function AccountMenu({ account }: { account: AccountView }) {
   const pathname = usePathname();
+  const t = useTranslations("common");
   const [openPath, setOpenPath] = useState<string | null>(null);
   const open = openPath === pathname;
   const rootRef = useRef<HTMLDivElement>(null);
@@ -164,22 +171,22 @@ function AccountMenu({ account }: { account: AccountView }) {
       <button
         ref={buttonRef}
         type="button"
-        className="inline-flex h-11 max-w-56 cursor-pointer items-center gap-2 rounded-full pr-3 pl-1 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep"
+        className="inline-flex max-w-36 cursor-pointer flex-col items-center gap-1 rounded-lg px-1 py-0.5 text-center text-xs leading-tight text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}
         onClick={() => setOpenPath(open ? null : pathname)}
       >
         <AccountAvatar initials={account.initials} avatarUrl={account.avatarUrl} />
-        <span className="truncate">{account.fullName}</span>
+        <span className="w-full truncate">{account.fullName}</span>
       </button>
       {open ? (
         <div
           ref={menuRef}
           id={menuId}
           role="menu"
-          aria-label="Account"
-          className="absolute top-full right-0 z-50 mt-1 w-40 rounded-2xl border border-line bg-surface p-1.5 shadow-[0_8px_24px_rgb(62_52_46/8%)]"
+          aria-label={t("profile")}
+          className="absolute end-0 top-full z-50 mt-1 w-40 rounded-2xl border border-line bg-surface p-1.5 shadow-[0_8px_24px_rgb(62_52_46/8%)]"
           onKeyDown={onMenuKeyDown}
         >
           <Link
@@ -188,7 +195,7 @@ function AccountMenu({ account }: { account: AccountView }) {
             className="block rounded-xl px-3 py-2 text-sm text-ink hover:bg-blush focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep"
             onClick={closeMenu}
           >
-            Profile
+            {t("profile")}
           </Link>
           <LogoutButton appearance="row" onDone={closeMenu} />
         </div>

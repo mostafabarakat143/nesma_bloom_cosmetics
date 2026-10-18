@@ -1,31 +1,35 @@
+import { getTranslations } from "next-intl/server";
+
 import { CategoryCard } from "@/components/catalog/category-card";
 import { SectionHeading } from "@/components/home/section-heading";
 import { Button } from "@/components/ui/button";
 import type { CatalogCategory } from "@/lib/api/catalog";
 
-export function ShopByCategory({
+export async function ShopByCategory({
   categories,
 }: {
   categories: CatalogCategory[] | null;
 }) {
+  const t = await getTranslations("home");
+
   return (
     <section
       className="mx-auto w-full max-w-6xl px-5 py-16 sm:py-20"
       aria-labelledby="categories-heading"
     >
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <SectionHeading id="categories-heading" title="Shop by category" />
+        <SectionHeading id="categories-heading" title={t("shopByCategory")} />
         <Button href="/shop" variant="ghost">
-          Shop now
+          {t("shopNow")}
         </Button>
       </div>
       {categories === null ? (
         <p className="mt-8 text-lg text-muted">
-          Categories are temporarily unavailable.
+          {t("categoriesUnavailable")}
         </p>
       ) : categories.length === 0 ? (
         <p className="mt-8 text-lg text-muted">
-          Categories will appear here when they are published.
+          {t("categoriesEmpty")}
         </p>
       ) : (
         <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

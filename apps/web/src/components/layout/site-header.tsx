@@ -1,7 +1,9 @@
-import Link from "next/link";
+import { Suspense } from "react";
 
 import { SessionCleaner } from "@/components/auth/session-cleaner";
 import { BrandLockup } from "@/components/brand/brand-logo";
+import { LocaleSwitcher } from "@/components/i18n/locale-switcher";
+import { Link } from "@/i18n/navigation";
 import { toAccountView } from "@/lib/auth/account-view";
 import { getAccountProfile } from "@/lib/auth/profile";
 import { getVerifiedUser } from "@/lib/auth/session";
@@ -27,11 +29,14 @@ export async function SiteHeader() {
         >
           <BrandLockup />
         </Link>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-2 sm:gap-4">
           <DesktopNav />
           <div className={account || unavailable ? "hidden md:block" : undefined}>
             <AccountNav account={account} unavailable={unavailable} layout="bar" />
           </div>
+          <Suspense fallback={<span className="inline-block h-11 w-14" aria-hidden="true" />}>
+            <LocaleSwitcher />
+          </Suspense>
           <MobileNav account={account} unavailable={unavailable} />
         </div>
       </div>

@@ -1,23 +1,7 @@
+import { getLocale, getTranslations } from "next-intl/server";
 import Image from "next/image";
-import Link from "next/link";
 
-const socials = [
-  {
-    label: "Instagram",
-    href: "https://www.instagram.com/",
-    icon: InstagramIcon,
-  },
-  {
-    label: "Facebook",
-    href: "https://www.facebook.com/",
-    icon: FacebookIcon,
-  },
-  {
-    label: "WhatsApp",
-    href: "https://wa.me/",
-    icon: WhatsAppIcon,
-  },
-] as const;
+import { Link } from "@/i18n/navigation";
 
 function InstagramIcon() {
   return (
@@ -51,7 +35,16 @@ function WhatsAppIcon() {
   );
 }
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  const t = await getTranslations("common");
+  const locale = await getLocale();
+  const tracking = locale === "ar" ? "tracking-normal normal-case" : "tracking-[0.14em] uppercase";
+  const socials = [
+    { label: t("instagram"), href: "https://www.instagram.com/", icon: InstagramIcon },
+    { label: t("facebook"), href: "https://www.facebook.com/", icon: FacebookIcon },
+    { label: t("whatsapp"), href: "https://wa.me/", icon: WhatsAppIcon },
+  ];
+
   return (
     <footer className="border-t border-line bg-surface">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-5 py-10 sm:flex-row sm:items-end sm:justify-between">
@@ -61,13 +54,13 @@ export function SiteFooter() {
         >
           <Image
             src="/brand-logo.png"
-            alt="Lamsa"
+            alt={t("brand")}
             width={700}
             height={734}
             className="h-36 w-auto object-contain sm:h-40"
           />
-          <span className="mt-3 text-[0.68rem] tracking-[0.14em] text-muted uppercase">
-            Natural beauty & fragrance
+          <span className={`mt-3 text-[0.68rem] text-muted ${tracking}`}>
+            {t("tagline")}
           </span>
         </Link>
         <div className="flex flex-col items-start gap-4 sm:items-end">
@@ -90,7 +83,7 @@ export function SiteFooter() {
             })}
           </ul>
           <p className="text-sm text-muted">
-            © 2026 Lamsa. All rights reserved.
+            {t("rights")}
           </p>
         </div>
       </div>

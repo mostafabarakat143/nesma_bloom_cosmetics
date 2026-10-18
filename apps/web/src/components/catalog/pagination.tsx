@@ -1,4 +1,6 @@
-import Link from "next/link";
+import { getTranslations } from "next-intl/server";
+
+import { Link } from "@/i18n/navigation";
 
 import { shopHref, type ShopQuery } from "@/lib/shop-query";
 
@@ -15,7 +17,7 @@ function visiblePages(current: number, total: number): number[] {
 const pageLink =
   "inline-flex h-11 min-w-11 items-center justify-center rounded-2xl px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep";
 
-export function Pagination({
+export async function Pagination({
   query,
   totalPages,
 }: {
@@ -26,17 +28,19 @@ export function Pagination({
     return null;
   }
 
+  const t = await getTranslations("shop");
+  const nav = await getTranslations("common");
   const current = Math.min(query.page, totalPages);
   const pages = visiblePages(current, totalPages);
 
   return (
-    <nav aria-label="Pagination" className="mt-10 flex flex-wrap items-center gap-2">
+    <nav aria-label={nav("pagination")} className="mt-10 flex flex-wrap items-center gap-2">
       {query.page > 1 ? (
         <Link href={shopHref(query, query.page - 1)} className={`${pageLink} border border-line bg-surface text-ink hover:bg-blush`}>
-          Previous
+          {t("previous")}
         </Link>
       ) : (
-        <span className={`${pageLink} text-muted`}>Previous</span>
+        <span className={`${pageLink} text-muted`}>{t("previous")}</span>
       )}
       {pages.map((page) => {
         const currentPage = page === query.page;
@@ -57,10 +61,10 @@ export function Pagination({
       })}
       {query.page < totalPages ? (
         <Link href={shopHref(query, query.page + 1)} className={`${pageLink} border border-line bg-surface text-ink hover:bg-blush`}>
-          Next
+          {t("next")}
         </Link>
       ) : (
-        <span className={`${pageLink} text-muted`}>Next</span>
+        <span className={`${pageLink} text-muted`}>{t("next")}</span>
       )}
     </nav>
   );

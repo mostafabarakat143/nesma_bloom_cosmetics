@@ -1,6 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+
+import { KnownText } from "@/components/i18n/known-text";
+import { useRouter } from "@/i18n/navigation";
 import { useId, useRef, useState } from "react";
 
 import { postAuth } from "@/components/auth/post-auth";
@@ -16,6 +19,7 @@ export function OrderActions({
   status: OrderStatus;
 }) {
   const router = useRouter();
+  const t = useTranslations("orders");
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const [pending, setPending] = useState(false);
@@ -32,8 +36,8 @@ export function OrderActions({
       const order = parseOrder(result.data.order);
       setNotice(
         order?.status === "CANCELLED"
-          ? "This order has been cancelled."
-          : "The order was updated.",
+          ? t("cancelled")
+          : t("updated"),
       );
       dialogRef.current?.close();
       router.refresh();
@@ -62,7 +66,7 @@ export function OrderActions({
       {status === "PENDING" ? (
         <div className={notice ? "mt-4" : undefined}>
           <Button type="button" variant="secondary" onClick={() => dialogRef.current?.showModal()}>
-            Cancel order
+            {t("cancel")}
           </Button>
         </div>
       ) : null}
@@ -72,14 +76,12 @@ export function OrderActions({
         className="w-[min(100%-2rem,28rem)] rounded-2xl border border-line bg-surface p-6 text-ink backdrop:bg-[rgb(52_42_46/40%)]"
       >
         <h2 id={titleId} className="font-display text-3xl text-ink">
-          Cancel this order?
+          {t("cancelAsk")}
         </h2>
-        <p className="mt-3 text-sm leading-relaxed text-muted">
-          Only a pending order can be cancelled. The items in this order will not be changed.
-        </p>
+        <p className="mt-3 text-sm leading-relaxed text-muted">{t("cancelBody")}</p>
         {error ? (
           <p role="alert" className="mt-4 text-sm text-rose-deep">
-            {error}
+            <KnownText value={error} />
           </p>
         ) : null}
         <div className="mt-6 flex flex-wrap gap-3">
@@ -90,10 +92,10 @@ export function OrderActions({
             disabled={pending}
             onClick={() => dialogRef.current?.close()}
           >
-            Keep order
+            {t("keep")}
           </Button>
           <Button type="button" disabled={pending} onClick={() => void confirmCancel()}>
-            {pending ? "Cancelling" : "Cancel order"}
+            {pending ? t("cancelling") : t("cancel")}
           </Button>
         </div>
       </dialog>

@@ -1,10 +1,13 @@
-import Link from "next/link";
+import { getTranslations } from "next-intl/server";
+
+import { Link } from "@/i18n/navigation";
 
 import { ProductImage } from "@/components/catalog/product-image";
 import type { CatalogProduct } from "@/lib/api/catalog";
 import { formatMinorPrice } from "@/lib/money";
 
-export function ProductCard({ product }: { product: CatalogProduct }) {
+export async function ProductCard({ product }: { product: CatalogProduct }) {
+  const t = await getTranslations("shop");
   const imageAlt = product.image?.altText?.trim() || product.name;
 
   return (
@@ -26,7 +29,7 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
           <p
             className={`mt-2 text-sm ${product.inStock ? "text-ink" : "text-rose-deep"}`}
           >
-            {product.inStock ? "In stock" : "Out of stock"}
+            {product.inStock ? t("inStock") : t("outOfStock")}
           </p>
         </div>
       </Link>

@@ -1,13 +1,17 @@
+import { getTranslations } from "next-intl/server";
+
 import { ProductCard } from "@/components/catalog/product-card";
 import { SectionHeading } from "@/components/home/section-heading";
 import { Button } from "@/components/ui/button";
 import type { CatalogProduct } from "@/lib/api/catalog";
 
-export function NewArrivals({
+export async function NewArrivals({
   products,
 }: {
   products: CatalogProduct[] | null;
 }) {
+  const t = await getTranslations("home");
+
   return (
     <section
       className="bg-surface"
@@ -17,20 +21,20 @@ export function NewArrivals({
         <div className="flex flex-wrap items-end justify-between gap-4">
           <SectionHeading
             id="arrivals-heading"
-            eyebrow="Just added"
-            title="New arrivals"
+            eyebrow={t("justAdded")}
+            title={t("newArrivals")}
           />
           <Button href="/shop" variant="ghost">
-            Shop now
+            {t("shopNow")}
           </Button>
         </div>
         {products === null ? (
           <p className="mt-8 text-lg text-muted">
-            New arrivals are temporarily unavailable.
+            {t("arrivalsUnavailable")}
           </p>
         ) : products.length === 0 ? (
           <p className="mt-8 text-lg text-muted">
-            New arrivals will appear here when products are published.
+            {t("arrivalsEmpty")}
           </p>
         ) : (
           <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">

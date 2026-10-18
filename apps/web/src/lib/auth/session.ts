@@ -1,5 +1,6 @@
 import { cache } from "react";
-import { redirect } from "next/navigation";
+
+import { redirectTo } from "@/i18n/redirect";
 
 import { parsePublicUser } from "./credentials";
 import { readSessionToken } from "./cookies";
@@ -59,5 +60,6 @@ export async function requireUser(nextPath: string): Promise<SessionUser> {
 
   const next = encodeURIComponent(safeNextPath(nextPath));
   const expired = session.state === "invalid" ? "&expired=1" : "";
-  redirect(`/login?next=${next}${expired}`);
+  await redirectTo(`/login?next=${next}${expired}`);
+  return undefined as never;
 }

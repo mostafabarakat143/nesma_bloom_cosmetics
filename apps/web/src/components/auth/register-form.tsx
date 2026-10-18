@@ -1,18 +1,21 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
 import { authLinkClass } from "@/components/auth/auth-shell";
 import { PasswordField, TextField } from "@/components/auth/fields";
 import { postAuth } from "@/components/auth/post-auth";
+import { KnownText } from "@/components/i18n/known-text";
 import { Button } from "@/components/ui/button";
+import { Link, useRouter } from "@/i18n/navigation";
+import { splitLocaleHref } from "@/i18n/pathname";
 import { validateRegister, type FieldErrors } from "@/lib/auth/credentials";
 import { safeNextPath } from "@/lib/auth/redirect";
 
 export function RegisterForm({ nextPath }: { nextPath: string }) {
   const router = useRouter();
+  const t = useTranslations("auth");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -46,7 +49,8 @@ export function RegisterForm({ nextPath }: { nextPath: string }) {
       return;
     }
 
-    router.push(safeNextPath(result.data.redirectTo));
+    const destination = splitLocaleHref(safeNextPath(result.data.redirectTo));
+    router.push(destination.href, destination.locale ? { locale: destination.locale } : undefined);
     router.refresh();
   }
 
@@ -54,9 +58,9 @@ export function RegisterForm({ nextPath }: { nextPath: string }) {
     <form onSubmit={(event) => void onSubmit(event)} className="space-y-5" noValidate>
       <TextField
         id="register-first-name"
-        label="First name"
+        label={t("firstName")}
         autoComplete="given-name"
-        placeholder="Your first name"
+        placeholder={t("firstNamePlaceholder")}
         value={firstName}
         error={errors.firstName}
         maxLength={100}
@@ -64,9 +68,9 @@ export function RegisterForm({ nextPath }: { nextPath: string }) {
       />
       <TextField
         id="register-last-name"
-        label="Last name"
+        label={t("lastName")}
         autoComplete="family-name"
-        placeholder="Your last name"
+        placeholder={t("lastNamePlaceholder")}
         value={lastName}
         error={errors.lastName}
         maxLength={100}
@@ -74,10 +78,10 @@ export function RegisterForm({ nextPath }: { nextPath: string }) {
       />
       <TextField
         id="register-email"
-        label="Email"
+        label={t("email")}
         type="email"
         autoComplete="email"
-        placeholder="you@example.com"
+        placeholder={t("emailPlaceholder")}
         value={email}
         error={errors.email}
         maxLength={255}
@@ -85,25 +89,25 @@ export function RegisterForm({ nextPath }: { nextPath: string }) {
       />
       <PasswordField
         id="register-password"
-        label="Password"
+        label={t("password")}
         autoComplete="new-password"
-        placeholder="Enter your password"
+        placeholder={t("enterPassword")}
         value={password}
         error={errors.password}
         onChange={setPassword}
       />
       {formError ? (
         <p role="alert" className="text-sm text-rose-deep">
-          {formError}
+          <KnownText value={formError} />
         </p>
       ) : null}
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Creating account" : "Create account"}
+        {pending ? t("creatingAccount") : t("createAccount")}
       </Button>
       <p className="text-sm text-muted">
-        Already have an account?{" "}
+        {t("alreadyHave")}{" "}
         <Link href={loginHref} className={authLinkClass()}>
-          Log in
+          {t("login")}
         </Link>
       </p>
     </form>
