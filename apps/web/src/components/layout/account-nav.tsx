@@ -164,7 +164,7 @@ function AccountMenu({ account }: { account: AccountView }) {
       <button
         ref={buttonRef}
         type="button"
-        className="inline-flex h-11 max-w-56 items-center gap-2 rounded-full pr-3 pl-1 text-sm text-ink hover:bg-blush focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep"
+        className="inline-flex h-11 max-w-56 cursor-pointer items-center gap-2 rounded-full pr-3 pl-1 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}

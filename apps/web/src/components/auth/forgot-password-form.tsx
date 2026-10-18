@@ -50,6 +50,7 @@ export function ForgotPasswordForm() {
         label="Email"
         type="email"
         autoComplete="email"
+        placeholder="you@example.com"
         value={email}
         error={errors.email}
         maxLength={255}
