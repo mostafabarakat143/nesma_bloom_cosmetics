@@ -12,7 +12,8 @@ import { PageLinks } from "@/components/ui/page-links";
 import { requireUser } from "@/lib/auth/session";
 import { formatMinorPrice } from "@/lib/money";
 import { loadMyOrders } from "@/lib/orders/load";
-import { formatOrderDate, ORDER_STATUSES } from "@/lib/orders/parse";
+import { OrderTime } from "@/components/account/order-time";
+import { ORDER_STATUSES } from "@/lib/orders/parse";
 import { ordersHref, parseOrderListQuery, type OrderListQuery } from "@/lib/orders/query";
 
 export const dynamic = "force-dynamic";
@@ -129,12 +130,14 @@ async function OrdersBody({
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <h2 className="font-display text-3xl text-ink">{t("orderTitle", { id: order.id })}</h2>
-                <p className="mt-2 text-sm text-muted">{formatOrderDate(order.createdAt, dateLocale)}</p>
+                <p className="mt-2 text-sm text-muted">
+                  <OrderTime iso={order.createdAt} locale={dateLocale} />
+                </p>
                 <p className="mt-2 text-sm text-ink">{t(order.status)}</p>
               </div>
               <p className="text-base text-ink">{formatMinorPrice(order.totalMinor, order.currency)}</p>
             </div>
-            <div className="mt-5">
+            <div className="mt-5 flex justify-end">
               <Button href={`/account/orders/${order.id}`} variant="secondary">
                 {t("viewDetails")}
               </Button>

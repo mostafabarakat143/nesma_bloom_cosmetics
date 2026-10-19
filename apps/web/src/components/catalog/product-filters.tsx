@@ -200,11 +200,11 @@ export async function ProductFilters({
           <option value="price-desc">{t("priceDesc")}</option>
         </select>
       </div>
-      <div className="flex flex-wrap gap-3">
-        <Button type="submit">{t("apply")}</Button>
+      <div className="flex flex-wrap justify-end gap-3">
         <Button href="/shop" variant="ghost">
           {t("clear")}
         </Button>
+        <Button type="submit">{t("apply")}</Button>
       </div>
     </form>
   );

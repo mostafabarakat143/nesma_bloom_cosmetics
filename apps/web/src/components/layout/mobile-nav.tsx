@@ -134,14 +134,15 @@ export function MobileNav({
                   </Link>
                 </li>
               ))}
-              <li className="mt-4 border-t border-line pt-4">
-                <AccountNav
-                  account={account}
-                  unavailable={unavailable}
-                  layout="menu"
-                  onCloseCurrent={() => setOpenPath(null)}
-                />
-              </li>
+              {unavailable ? null : (
+                <li className="mt-4 border-t border-line pt-4">
+                  <AccountNav
+                    account={account}
+                    layout="menu"
+                    onCloseCurrent={() => setOpenPath(null)}
+                  />
+                </li>
+              )}
             </ul>
           </nav>
         </div>

@@ -8,14 +8,18 @@ import { Link } from "@/i18n/navigation";
 import { readDraftSnapshot, subscribeDraft } from "@/lib/order-draft";
 
 function productCount(userId: number): number {
-  return readDraftSnapshot(userId).lines.length;
+  const products = new Set(readDraftSnapshot(userId).lines.map((line) => line.productId));
+  return products.size;
 }
 
-export function CartLink({ userId }: { userId: number }) {
+export function CartLink({ userId }: { userId: number | null }) {
   const t = useTranslations("common");
   const [count, setCount] = useState(0);
 
   useEffect(() => {
+    if (userId === null) {
+      return;
+    }
     const read = () => setCount(productCount(userId));
     read();
     return subscribeDraft(read);

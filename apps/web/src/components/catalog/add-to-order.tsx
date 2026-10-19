@@ -1,11 +1,11 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/toast";
-import { addProduct } from "@/lib/order-draft";
+import { addProduct, readDraftSnapshot, removeDraftLine, subscribeDraft, updateDraftQuantity } from "@/lib/order-draft";
 import { maxPurchasableQuantity } from "@/lib/orders/payload";
 
 export function AddToOrder({
@@ -26,6 +26,21 @@ export function AddToOrder({
   const t = useTranslations("product");
   const maxQty = maxPurchasableQuantity({ inStock, stockQty });
   const [quantity, setQuantity] = useState(1);
+  const [units, setUnits] = useState(0);
+  const tracksUnits = compact && ownerId !== null;
+  const shown = tracksUnits ? units : quantity;
+
+  useEffect(() => {
+    if (!tracksUnits || ownerId === null) {
+      return;
+    }
+    const read = () => {
+      const line = readDraftSnapshot(ownerId).lines.find((item) => item.productId === productId);
+      setUnits(line?.quantity ?? 0);
+    };
+    read();
+    return subscribeDraft(read);
+  }, [tracksUnits, ownerId, productId]);
 
   const loginHref = `/login?next=${encodeURIComponent(`/products/${productId}`)}`;
 
@@ -47,11 +62,50 @@ export function AddToOrder({
     setQuantity(Math.min(Math.max(next, 1), Math.max(maxQty, 1)));
   }
 
+  function setCartUnits(next: number) {
+    if (ownerId === null || !Number.isInteger(next)) {
+      return;
+    }
+    if (next < 1) {
+      const result = removeDraftLine(ownerId, productId);
+      if (result === "pending") {
+        showToast(t("pending"), "error");
+      }
+      return;
+    }
+    const capped = Math.min(next, Math.max(maxQty, 1));
+    if (units < 1) {
+      const result = addProduct(ownerId, productId, capped, maxQty);
+      if (result === "full" || result === "pending" || result === "unavailable" || result === "invalid") {
+        showToast(
+          result === "full"
+            ? t("full")
+            : result === "pending"
+              ? t("pending")
+              : result === "unavailable"
+                ? t("outOfStock")
+                : t("quantityError"),
+          "error",
+        );
+      }
+      return;
+    }
+    if (capped === units) {
+      return;
+    }
+    const result = updateDraftQuantity(ownerId, productId, capped);
+    if (result === "pending") {
+      showToast(t("pending"), "error");
+    } else if (result === "invalid") {
+      showToast(t("quantityError"), "error");
+    }
+  }
+
   function add() {
     if (ownerId === null) {
       return;
     }
-    const result = addProduct(ownerId, productId, quantity, maxQty);
+    const result = addProduct(ownerId, productId, tracksUnits ? 1 : quantity, maxQty);
     if (result === "added") {
       showToast(t("added"));
       return;
@@ -90,7 +144,7 @@ export function AddToOrder({
     ) : (
       <Button
         type="button"
-        disabled={maxQty === 0}
+        disabled={maxQty === 0 || (tracksUnits && units >= maxQty)}
         onClick={(event) => {
           add();
           event.currentTarget.blur();
@@ -111,8 +165,8 @@ export function AddToOrder({
             <button
               type="button"
               aria-label={t("decrease")}
-              disabled={quantity <= 1}
-              onClick={() => changeQuantity(quantity - 1)}
+              disabled={shown <= (tracksUnits ? 0 : 1)}
+              onClick={() => (tracksUnits ? setCartUnits(shown - 1) : changeQuantity(shown - 1))}
               className={controlClass}
             >
               −
@@ -121,15 +175,23 @@ export function AddToOrder({
               id={`quantity-${productId}`}
               aria-label={t("quantity")}
               inputMode="numeric"
-              value={String(quantity)}
+              value={String(shown)}
               onChange={(event) => {
                 const next = Number(event.target.value);
                 if (event.target.value.trim() === "") {
-                  setQuantity(1);
+                  if (tracksUnits) {
+                    setCartUnits(0);
+                  } else {
+                    setQuantity(1);
+                  }
                   return;
                 }
                 if (Number.isInteger(next)) {
-                  changeQuantity(next);
+                  if (tracksUnits) {
+                    setCartUnits(next);
+                  } else {
+                    changeQuantity(next);
+                  }
                 }
               }}
               className={inputClass}
@@ -137,8 +199,8 @@ export function AddToOrder({
             <button
               type="button"
               aria-label={t("increase")}
-              disabled={quantity >= maxQty}
-              onClick={() => changeQuantity(quantity + 1)}
+              disabled={shown >= maxQty}
+              onClick={() => (tracksUnits ? setCartUnits(shown + 1) : changeQuantity(shown + 1))}
               className={controlClass}
             >
               +

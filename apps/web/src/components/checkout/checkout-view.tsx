@@ -26,6 +26,13 @@ import { formatMinorPrice } from "@/lib/money";
 import { parseOrder, type OrderStatus } from "@/lib/orders/parse";
 import { maxPurchasableQuantity } from "@/lib/orders/payload";
 
+const ORDER_WHATSAPP_NUMBER = "201015981398";
+
+function orderWhatsappUrl(orderId: number) {
+  const text = `أهلاً بكم وشكراً لتعاملكم مع لمسه\nتم تأكيد الطلب رقم ${orderId}`;
+  return `https://wa.me/${ORDER_WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
+}
+
 type ReadyProduct = {
   id: number;
   name: string;
@@ -186,6 +193,8 @@ export function CheckoutView({
       return;
     }
 
+    const whatsappTab = window.open("about:blank", "_blank");
+
     const result = await postAuth("/api/orders", { items: started.items }, "POST", {
       "idempotency-key": started.key,
     });
@@ -193,12 +202,19 @@ export function CheckoutView({
     if (result.ok) {
       const order = parseOrder(result.data.order);
       if (!order) {
+        whatsappTab?.close();
         finishOrderSubmit(userId, "uncertain");
         setError(
           t("unreadable"),
         );
         setInFlight(false);
         return;
+      }
+      const whatsappUrl = orderWhatsappUrl(order.id);
+      if (whatsappTab && !whatsappTab.closed) {
+        whatsappTab.location.replace(whatsappUrl);
+      } else {
+        window.location.assign(whatsappUrl);
       }
       finishOrderSubmit(userId, "success", {
         orderId: order.id,
@@ -209,6 +225,8 @@ export function CheckoutView({
       setInFlight(false);
       return;
     }
+
+    whatsappTab?.close();
 
     if (result.status === 0 || result.status === 503) {
       finishOrderSubmit(userId, "uncertain");
@@ -345,13 +363,6 @@ export function CheckoutView({
       <div className="mt-6 flex flex-wrap justify-end gap-3">
         <Button
           type="button"
-          disabled={inFlight || blocked || role !== "CUSTOMER"}
-          onClick={() => void placeOrder()}
-        >
-          {inFlight ? t("placing") : snapshot.pending ? t("retry") : t("place")}
-        </Button>
-        <Button
-          type="button"
           variant="secondary"
           disabled={snapshot.pending || inFlight}
           onClick={() => {
@@ -362,6 +373,13 @@ export function CheckoutView({
           }}
         >
           {t("clearOrder")}
+        </Button>
+        <Button
+          type="button"
+          disabled={inFlight || blocked || role !== "CUSTOMER"}
+          onClick={() => void placeOrder()}
+        >
+          {inFlight ? t("placing") : snapshot.pending ? t("retry") : t("place")}
         </Button>
       </div>
     </div>
@@ -387,11 +405,11 @@ function Confirmation({
       <p className="mt-3 text-sm leading-relaxed text-muted">
         {t("noPayment")}
       </p>
-      <div className="mt-6 flex flex-wrap gap-3">
-        <Button href={`/account/orders/${confirmation.orderId}`}>{t("viewOrder")}</Button>
+      <div className="mt-6 flex flex-wrap justify-end gap-3">
         <Button href="/shop" variant="secondary">
           {t("continue")}
         </Button>
+        <Button href={`/account/orders/${confirmation.orderId}`}>{t("viewOrder")}</Button>
       </div>
     </div>
   );

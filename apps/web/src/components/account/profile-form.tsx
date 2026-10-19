@@ -177,12 +177,12 @@ export function ProfileForm({ profile }: { profile: AccountProfile }) {
           <p className="-mt-3 text-sm text-muted">
             {t("imageHint")}
           </p>
-          <div className="flex flex-wrap gap-3">
-            <Button type="submit" disabled={pending}>
-              {pending ? t("saving") : t("save")}
-            </Button>
+          <div className="flex flex-wrap justify-end gap-3">
             <Button type="button" variant="secondary" onClick={cancelEdit} disabled={pending}>
               {t("cancel")}
+            </Button>
+            <Button type="submit" disabled={pending}>
+              {pending ? t("saving") : t("save")}
             </Button>
           </div>
         </form>

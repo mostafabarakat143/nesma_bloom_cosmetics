@@ -69,6 +69,7 @@ export function ChangePasswordForm() {
       <PasswordField
         id="current-password"
         label={t("currentPassword")}
+        placeholder={t("currentPasswordPlaceholder")}
         autoComplete="current-password"
         value={currentPassword}
         error={errors.currentPassword}
@@ -77,26 +78,27 @@ export function ChangePasswordForm() {
       <PasswordField
         id="new-password"
         label={t("newPassword")}
+        placeholder={t("newPasswordPlaceholder")}
         autoComplete="new-password"
         value={newPassword}
         error={errors.newPassword}
-        hint={t("passwordHint")}
         onChange={setNewPassword}
       />
       <PasswordField
         id="confirm-password"
         label={t("confirmPassword")}
+        placeholder={t("confirmPasswordPlaceholder")}
         autoComplete="new-password"
         value={confirmPassword}
         error={errors.confirmPassword}
         onChange={setConfirmPassword}
       />
-      <div className="flex flex-wrap gap-3">
-        <Button type="submit" disabled={pending}>
-          {pending ? t("changing") : t("changePassword")}
-        </Button>
+      <div className="flex flex-wrap justify-end gap-3">
         <Button href="/account" variant="secondary">
           {t("cancel")}
+        </Button>
+        <Button type="submit" disabled={pending}>
+          {pending ? t("changing") : t("changePassword")}
         </Button>
       </div>
     </form>

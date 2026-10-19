@@ -68,16 +68,19 @@ export function formatOrderDate(iso: string, locale: "ar" | "en" = "en"): string
   if (Number.isNaN(date.getTime())) {
     return iso;
   }
-  const formatted = new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-GB", {
+  const parts = new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
-    hour: "2-digit",
+    hour: "numeric",
     minute: "2-digit",
-    timeZone: "UTC",
-    hourCycle: "h23",
-  }).format(date);
-  return `${formatted} UTC`;
+    hourCycle: "h12",
+  }).formatToParts(date);
+  return parts
+    .map((part) =>
+      part.type === "dayPeriod" && locale === "en" ? part.value.toUpperCase() : part.value,
+    )
+    .join("");
 }
 
 function parseItem(value: unknown): OrderItem | null {

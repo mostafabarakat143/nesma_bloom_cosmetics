@@ -25,14 +25,8 @@ export function AccountNav({
   layout: "bar" | "menu";
   onCloseCurrent?: () => void;
 }) {
-  const t = useTranslations("common");
-
   if (unavailable) {
-    return (
-      <p className={layout === "bar" ? "max-w-48 text-sm text-muted" : "px-3 py-3 text-sm text-muted"}>
-        {t("accountUnavailable")}
-      </p>
-    );
+    return null;
   }
 
   if (!account) {

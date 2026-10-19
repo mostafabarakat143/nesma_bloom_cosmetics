@@ -6,6 +6,8 @@ import { LocaleSwitcher } from "@/components/i18n/locale-switcher";
 import { Link } from "@/i18n/navigation";
 import { toAccountView } from "@/lib/auth/account-view";
 import { getAccountProfile } from "@/lib/auth/profile";
+import { readSessionToken } from "@/lib/auth/cookies";
+import { sessionSubjectId } from "@/lib/auth/jwt";
 import { getVerifiedUser } from "@/lib/auth/session";
 
 import { AccountNav } from "./account-nav";
@@ -20,6 +22,13 @@ export async function SiteHeader() {
     session.state === "authenticated"
       ? toAccountView(session.user.email, await getAccountProfile())
       : null;
+  const cartUserId =
+    session.state === "authenticated"
+      ? session.user.id
+      : unavailable
+        ? sessionSubjectId((await readSessionToken()) ?? "")
+        : null;
+  const showCart = session.state === "authenticated" || unavailable;
 
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-surface">
@@ -32,10 +41,12 @@ export async function SiteHeader() {
         </Link>
         <div className="flex items-center gap-2 sm:gap-4">
           <DesktopNav />
-          {session.state === "authenticated" ? <CartLink userId={session.user.id} /> : null}
-          <div className={account || unavailable ? "hidden md:block" : undefined}>
-            <AccountNav account={account} unavailable={unavailable} layout="bar" />
-          </div>
+          {showCart ? <CartLink userId={cartUserId} /> : null}
+          {unavailable ? null : (
+            <div className={account ? "hidden md:block" : undefined}>
+              <AccountNav account={account} layout="bar" />
+            </div>
+          )}
           <Suspense fallback={<span className="inline-block h-11 w-14" aria-hidden="true" />}>
             <LocaleSwitcher />
           </Suspense>
