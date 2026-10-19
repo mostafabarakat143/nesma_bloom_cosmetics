@@ -1,3 +1,4 @@
+import { AVATAR_FILE_MESSAGES } from "@/lib/auth/avatar-file";
 import { MESSAGES } from "@/lib/auth/credentials";
 import { PROFILE_MESSAGES } from "@/lib/auth/profile-update";
 
@@ -34,6 +35,9 @@ export const messageKeys = {
   profileLastName: "profileLastName",
   profilePhone: "profilePhone",
   profileAvatar: "profileAvatar",
+  profilePhotoType: "profilePhotoType",
+  profilePhotoSize: "profilePhotoSize",
+  profilePhotoMissing: "profilePhotoMissing",
   profileRequired: "profileRequired",
   profileUnsupported: "profileUnsupported",
   profileSaved: "profileSaved",
@@ -76,6 +80,9 @@ const byEnglish = new Map<string, KnownMessageKey>([
   [PROFILE_MESSAGES.lastName, messageKeys.profileLastName],
   [PROFILE_MESSAGES.phone, messageKeys.profilePhone],
   [PROFILE_MESSAGES.avatar, messageKeys.profileAvatar],
+  [AVATAR_FILE_MESSAGES.type, messageKeys.profilePhotoType],
+  [AVATAR_FILE_MESSAGES.size, messageKeys.profilePhotoSize],
+  [AVATAR_FILE_MESSAGES.missing, messageKeys.profilePhotoMissing],
   [PROFILE_MESSAGES.required, messageKeys.profileRequired],
   [PROFILE_MESSAGES.unsupported, messageKeys.profileUnsupported],
   [PROFILE_MESSAGES.saved, messageKeys.profileSaved],

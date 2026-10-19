@@ -184,14 +184,15 @@
     "saving": "جارٍ الحفظ",
     "emailNote": "البريد يُستخدم لتسجيل الدخول ولا يمكن تغييره من هنا.",
     "notAdded": "لم يُضف بعد",
-    "imageAddress": "عنوان صورة الملف",
+    "imageAddress": "صورة الملف",
+    "removePhoto": "إزالة الصورة",
     "phone": "رقم الهاتف",
     "firstName": "الاسم الأول",
     "lastName": "اسم العائلة",
     "email": "البريد الإلكتروني",
     "edit": "تعديل الملف",
     "cancel": "إلغاء",
-    "imageHint": "استخدمي عنوان صورة يبدأ بـ http أو https، أو اتركيه فارغًا لتظهر الحروف الأولى."
+    "imageHint": "JPEG أو PNG أو WebP، حتى ٥ ميغابايت. الصورة الجديدة تستبدل الحالية."
   },
   "shop": {
     "title": "المتجر",
@@ -383,6 +384,9 @@
     "profileLastName": "اسم العائلة يجب ألا يتجاوز ١٠٠ حرف.",
     "profilePhone": "رقم الهاتف يجب أن يكون بين ٣ و ٣٠ حرفًا.",
     "profileAvatar": "أدخلي عنوان صورة http أو https، حتى ٢٠٤٨ حرفًا.",
+    "profilePhotoType": "يجب أن تكون الصورة بصيغة JPEG أو PNG أو WebP.",
+    "profilePhotoSize": "يجب ألا يتجاوز حجم الصورة ٥ ميغابايت.",
+    "profilePhotoMissing": "اختاري صورة.",
     "profileRequired": "حقل واحد على الأقل من الملف مطلوب.",
     "profileUnsupported": "لا يمكن تغيير هذا الحقل.",
     "profileSaved": "تم حفظ الملف.",

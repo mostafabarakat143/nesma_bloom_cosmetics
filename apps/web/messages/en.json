@@ -184,14 +184,15 @@
     "saving": "Saving",
     "emailNote": "Email is used to log in and cannot be changed here.",
     "notAdded": "Not added yet",
-    "imageAddress": "Profile image address",
+    "imageAddress": "Profile photo",
+    "removePhoto": "Remove photo",
     "phone": "Phone number",
     "firstName": "First name",
     "lastName": "Last name",
     "email": "Email",
     "edit": "Edit profile",
     "cancel": "Cancel",
-    "imageHint": "Use an http or https image address, or leave this blank to show your initials."
+    "imageHint": "JPEG, PNG, or WebP, up to 5 MB. A new photo replaces your current one."
   },
   "shop": {
     "title": "Shop",
@@ -383,6 +384,9 @@
     "profileLastName": "Last name must be 100 characters or fewer.",
     "profilePhone": "Phone number must be between 3 and 30 characters.",
     "profileAvatar": "Enter an http or https image address, up to 2048 characters.",
+    "profilePhotoType": "Image must be a JPEG, PNG, or WebP file.",
+    "profilePhotoSize": "Image must be 5 MB or smaller.",
+    "profilePhotoMissing": "Choose an image file.",
     "profileRequired": "At least one profile field is required.",
     "profileUnsupported": "That profile field cannot be changed.",
     "profileSaved": "Profile saved.",

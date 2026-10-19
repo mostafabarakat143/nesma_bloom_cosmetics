@@ -7,12 +7,12 @@ import { useRouter } from "@/i18n/navigation";
 import { useState } from "react";
 
 import { AccountAvatar } from "@/components/account/account-avatar";
-import { postAuth } from "@/components/auth/post-auth";
+import { postAuth, postAuthFile } from "@/components/auth/post-auth";
 import { TextField } from "@/components/auth/fields";
 import { Button } from "@/components/ui/button";
 import { toAccountView } from "@/lib/auth/account-view";
+import { avatarFileError } from "@/lib/auth/avatar-file";
 import {
-  parseAvatarUrl,
   parseSavedProfile,
   type AccountProfile,
 } from "@/lib/auth/profile-parse";
@@ -28,8 +28,15 @@ function draftFrom(profile: AccountProfile) {
     firstName: profile.firstName ?? "",
     lastName: profile.lastName ?? "",
     phone: profile.phone ?? "",
-    avatarUrl: profile.avatarUrl ?? "",
   };
+}
+
+function displayAvatar(url: string | null, revision: number): string | null {
+  if (!url || revision === 0) {
+    return url;
+  }
+  const join = url.includes("?") ? "&" : "?";
+  return `${url}${join}v=${revision}`;
 }
 
 export function ProfileForm({ profile }: { profile: AccountProfile }) {
@@ -37,6 +44,11 @@ export function ProfileForm({ profile }: { profile: AccountProfile }) {
   const t = useTranslations("account");
   const [saved, setSaved] = useState(profile);
   const [draft, setDraft] = useState(() => draftFrom(profile));
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [removePhoto, setRemovePhoto] = useState(false);
+  const [photoRevision, setPhotoRevision] = useState(0);
+  const [fileInputKey, setFileInputKey] = useState(0);
   const [editing, setEditing] = useState(false);
   const [pending, setPending] = useState(false);
   const [errors, setErrors] = useState<ProfileFieldErrors>({});
@@ -44,10 +56,22 @@ export function ProfileForm({ profile }: { profile: AccountProfile }) {
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
 
   const view = toAccountView(saved.email, saved);
-  const shownAvatar = editing ? parseAvatarUrl(draft.avatarUrl) : saved.avatarUrl;
+  const shownAvatar = previewUrl
+    ? previewUrl
+    : removePhoto
+      ? null
+      : displayAvatar(saved.avatarUrl, photoRevision);
+
+  function clearPhotoChoice() {
+    setPhoto(null);
+    setPreviewUrl(null);
+    setFileInputKey((current) => current + 1);
+  }
 
   function beginEdit() {
     setDraft(draftFrom(saved));
+    clearPhotoChoice();
+    setRemovePhoto(false);
     setErrors({});
     setFormError(null);
     setSavedMessage(null);
@@ -56,13 +80,40 @@ export function ProfileForm({ profile }: { profile: AccountProfile }) {
 
   function cancelEdit() {
     setDraft(draftFrom(saved));
+    clearPhotoChoice();
+    setRemovePhoto(false);
     setErrors({});
     setFormError(null);
     setEditing(false);
   }
 
+  function choosePhoto(file: File | null) {
+    setFormError(null);
+    setSavedMessage(null);
+    if (!file) {
+      setPhoto(null);
+      setPreviewUrl(null);
+      return;
+    }
+    const problem = avatarFileError(file);
+    if (problem) {
+      setPhoto(null);
+      setPreviewUrl(null);
+      setFileInputKey((current) => current + 1);
+      setErrors((current) => ({ ...current, avatarUrl: problem }));
+      return;
+    }
+    setErrors((current) => ({ ...current, avatarUrl: undefined }));
+    setRemovePhoto(false);
+    setPhoto(file);
+    setPreviewUrl(URL.createObjectURL(file));
+  }
+
   async function save() {
-    const parsed = validateProfileUpdate(draft);
+    const parsed = validateProfileUpdate({
+      ...draft,
+      ...(removePhoto && !photo ? { avatarUrl: null } : {}),
+    });
     if (!parsed.ok) {
       setErrors(parsed.errors);
       setFormError(profileUpdateError(parsed.errors));
@@ -74,9 +125,8 @@ export function ProfileForm({ profile }: { profile: AccountProfile }) {
     setFormError(null);
     setPending(true);
     const result = await postAuth("/api/account/profile", parsed.value, "PATCH");
-    setPending(false);
-
     if (!result.ok) {
+      setPending(false);
       if (result.status === 401) {
         router.push("/login?expired=1");
         router.refresh();
@@ -86,11 +136,34 @@ export function ProfileForm({ profile }: { profile: AccountProfile }) {
       return;
     }
 
-    const next = parseSavedProfile(result.data.profile);
+    let next = parseSavedProfile(result.data.profile);
+    if (photo) {
+      const uploaded = await postAuthFile("/api/account/avatar", photo);
+      if (!uploaded.ok) {
+        setPending(false);
+        if (uploaded.status === 401) {
+          router.push("/login?expired=1");
+          router.refresh();
+          return;
+        }
+        if (next) {
+          setSaved(next);
+          setDraft(draftFrom(next));
+        }
+        setFormError(uploaded.message);
+        return;
+      }
+      next = parseSavedProfile(uploaded.data.profile) ?? next;
+      setPhotoRevision((current) => current + 1);
+    }
+
+    setPending(false);
     if (next) {
       setSaved(next);
       setDraft(draftFrom(next));
     }
+    clearPhotoChoice();
+    setRemovePhoto(false);
     setSavedMessage(PROFILE_MESSAGES.saved);
     setEditing(false);
     router.refresh();
@@ -164,19 +237,46 @@ export function ProfileForm({ profile }: { profile: AccountProfile }) {
             maxLength={30}
             onChange={(phone) => setDraft((current) => ({ ...current, phone }))}
           />
-          <TextField
-            id="profile-avatar"
-            label={t("imageAddress")}
-            type="url"
-            autoComplete="off"
-            value={draft.avatarUrl}
-            error={errors.avatarUrl}
-            maxLength={2048}
-            onChange={(avatarUrl) => setDraft((current) => ({ ...current, avatarUrl }))}
-          />
-          <p className="-mt-3 text-sm text-muted">
-            {t("imageHint")}
-          </p>
+          <div>
+            <label htmlFor="profile-avatar" className="block text-sm font-medium text-ink">
+              {t("imageAddress")}
+            </label>
+            <input
+              key={fileInputKey}
+              id="profile-avatar"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+              className="mt-2 block w-full text-sm text-ink file:me-3 file:h-11 file:rounded-2xl file:border-0 file:bg-blush file:px-4 file:text-sm file:font-medium file:text-rose-deep"
+              aria-invalid={errors.avatarUrl ? true : undefined}
+              aria-describedby={errors.avatarUrl ? "profile-avatar-error" : "profile-avatar-hint"}
+              onChange={(event) => choosePhoto(event.target.files?.[0] ?? null)}
+            />
+            {errors.avatarUrl ? (
+              <p id="profile-avatar-error" className="mt-2 text-sm text-rose-deep">
+                <KnownText value={errors.avatarUrl} />
+              </p>
+            ) : (
+              <p id="profile-avatar-hint" className="mt-2 text-sm text-muted">
+                {t("imageHint")}
+              </p>
+            )}
+            {(photo || (saved.avatarUrl && !removePhoto)) ? (
+              <div className="mt-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    clearPhotoChoice();
+                    setRemovePhoto(true);
+                    setErrors((current) => ({ ...current, avatarUrl: undefined }));
+                  }}
+                  disabled={pending}
+                >
+                  {t("removePhoto")}
+                </Button>
+              </div>
+            ) : null}
+          </div>
           <div className="flex flex-wrap justify-end gap-3">
             <Button type="button" variant="secondary" onClick={cancelEdit} disabled={pending}>
               {t("cancel")}
