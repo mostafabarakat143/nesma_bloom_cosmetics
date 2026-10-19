@@ -74,7 +74,7 @@ export async function createCategory(
   data: {
     name: string;
     slug: string;
-    description?: string | null;
+    imageUrl: string;
     status?: CatalogStatus;
   },
 ): Promise<Category> {
@@ -82,7 +82,7 @@ export async function createCategory(
     data: {
       name: data.name,
       slug: data.slug,
-      description: data.description ?? null,
+      imageUrl: data.imageUrl,
       status: data.status ?? "ACTIVE",
     },
   });

@@ -4,7 +4,7 @@ export type CategoryDto = {
   id: number;
   name: string;
   slug: string;
-  description: string | null;
+  imageUrl: string | null;
   status: Category["status"];
   createdAt: string;
   updatedAt: string;
@@ -15,7 +15,7 @@ export function toCategoryDto(category: Category): CategoryDto {
     id: category.id,
     name: category.name,
     slug: category.slug,
-    description: category.description,
+    imageUrl: category.imageUrl,
     status: category.status,
     createdAt: category.createdAt.toISOString(),
     updatedAt: category.updatedAt.toISOString(),

@@ -405,7 +405,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
     body: {
       name: "Skincare Demo",
       slug: "skincare-demo",
-      description: "Face and body care",
+      imageUrl: "https://cdn.example.com/categories/skincare.jpg",
       status: "ACTIVE",
     },
     successExample: {
@@ -418,7 +418,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
             id: SAMPLE_ID.categoryId,
             name: "Skincare Demo",
             slug: "skincare-demo",
-            description: "Face and body care",
+            imageUrl: "https://cdn.example.com/categories/skincare.jpg",
             status: "ACTIVE",
             createdAt: "2026-10-14T18:00:00.000Z",
             updatedAt: "2026-10-14T18:00:00.000Z",
@@ -471,7 +471,7 @@ const EXAMPLES: Record<string, ExampleDef> = {
       "**Auth:** ADMIN Bearer JWT. Name updates do not auto-change slug.",
     body: {
       name: "Skincare Updated",
-      description: "Updated description",
+      imageUrl: "https://cdn.example.com/categories/skincare-updated.jpg",
     },
     successExample: {
       code: 200,
@@ -933,6 +933,12 @@ const EXAMPLES: Record<string, ExampleDef> = {
               status: "PENDING",
               totalMinor: 50000,
               currency: "EGP",
+              customer: {
+                id: SAMPLE_ID.userId,
+                email: "customer@example.com",
+                firstName: "Lina",
+                lastName: "Hassan",
+              },
             },
           ],
           meta: { page: 1, pageSize: 20, totalItems: 1, totalPages: 1 },
@@ -1124,6 +1130,168 @@ const EXAMPLES: Record<string, ExampleDef> = {
       },
     },
   },
+
+  "GET /api/v1/users": {
+    name: "List users (ADMIN)",
+    description: "ADMIN only. Search matches email, first name, or last name.",
+    query: [
+      { key: "page", value: "1" },
+      { key: "pageSize", value: "20" },
+      { key: "search", value: "lina", disabled: true },
+      { key: "role", value: "CUSTOMER", disabled: true },
+      { key: "status", value: "ACTIVE" },
+      { key: "sortBy", value: "createdAt" },
+      { key: "sortOrder", value: "desc" },
+    ],
+    successExample: {
+      code: 200,
+      status: "OK",
+      body: {
+        status: "success",
+        data: {
+          items: [
+            {
+              id: SAMPLE_ID.userId,
+              email: "customer@example.com",
+              role: "CUSTOMER",
+              status: "ACTIVE",
+            },
+          ],
+          meta: { page: 1, pageSize: 20, totalItems: 1, totalPages: 1 },
+        },
+      },
+    },
+  },
+
+  "GET /api/v1/users/{id}": {
+    name: "Get user (ADMIN)",
+    description: "ADMIN only. Uses `{{userId}}`.",
+    successExample: {
+      code: 200,
+      status: "OK",
+      body: {
+        status: "success",
+        data: {
+          user: {
+            id: SAMPLE_ID.userId,
+            email: "customer@example.com",
+            role: "CUSTOMER",
+            status: "ACTIVE",
+          },
+        },
+      },
+    },
+  },
+
+  "PATCH /api/v1/users/{id}": {
+    name: "Update user role or status (ADMIN)",
+    description:
+      "ADMIN only. Refuses to disable or demote the last active admin.",
+    body: { status: "DISABLED" },
+    successExample: {
+      code: 200,
+      status: "OK",
+      body: {
+        status: "success",
+        data: {
+          user: {
+            id: SAMPLE_ID.userId,
+            status: "DISABLED",
+          },
+        },
+      },
+    },
+    errorExample: {
+      code: 409,
+      status: "Conflict",
+      body: {
+        status: "error",
+        message: "Cannot remove the last active admin.",
+      },
+    },
+  },
+
+  "POST /api/v1/contact": {
+    name: "Submit contact form",
+    description: "Public. Stores name, phone, email, and message.",
+    public: true,
+    body: {
+      name: "Lina Hassan",
+      phone: "01000000000",
+      email: "lina@example.com",
+      message: "I would like to know about the rose serum.",
+    },
+    successExample: {
+      code: 201,
+      status: "Created",
+      body: {
+        status: "success",
+        data: {
+          contact: {
+            id: 1,
+            name: "Lina Hassan",
+            email: "lina@example.com",
+          },
+        },
+      },
+    },
+  },
+
+  "GET /api/v1/contact": {
+    name: "List contact messages (ADMIN)",
+    description: "ADMIN only.",
+    query: [
+      { key: "page", value: "1" },
+      { key: "pageSize", value: "20" },
+    ],
+    successExample: {
+      code: 200,
+      status: "OK",
+      body: {
+        status: "success",
+        data: {
+          items: [],
+          meta: { page: 1, pageSize: 20, totalItems: 0, totalPages: 0 },
+        },
+      },
+    },
+  },
+
+  "GET /api/v1/admin/dashboard": {
+    name: "Admin dashboard",
+    description:
+      "ADMIN only. Order aggregates respect optional from/to. Periods are UTC.",
+    query: [
+      { key: "bucket", value: "month" },
+      { key: "from", value: "2026-01-01", disabled: true },
+      { key: "to", value: "2026-12-31", disabled: true },
+    ],
+    successExample: {
+      code: 200,
+      status: "OK",
+      body: {
+        status: "success",
+        data: {
+          dashboard: {
+            totals: {
+              products: 0,
+              users: 1,
+              categories: 0,
+              subcategories: 0,
+              orders: 0,
+            },
+            ordersByStatus: {
+              PENDING: 0,
+              CONFIRMED: 0,
+              FULFILLED: 0,
+              CANCELLED: 0,
+            },
+            ordersOverTime: [],
+          },
+        },
+      },
+    },
+  },
 };
 
 const PATH_VAR_MAP: Record<string, string> = {
@@ -1147,7 +1315,8 @@ function resolvePathVars(
       "/api/v1/products/{{productId}}/images/{imageId}",
       "/api/v1/products/{{productId}}/images/{{imageId}}",
     )
-    .replace("/api/v1/orders/{id}", "/api/v1/orders/{{orderId}}");
+    .replace("/api/v1/orders/{id}", "/api/v1/orders/{{orderId}}")
+    .replace("/api/v1/users/{id}", "/api/v1/users/{{userId}}");
 
   // Any leftover OpenAPI params
   for (const [token, name] of Object.entries(PATH_VAR_MAP)) {

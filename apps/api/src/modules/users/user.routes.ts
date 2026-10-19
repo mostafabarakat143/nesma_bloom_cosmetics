@@ -6,7 +6,12 @@ import { createRequireAuth } from "../../common/middlewares/auth.middleware.js";
 import { requireRole } from "../../common/middlewares/require-role.middleware.js";
 import { validate } from "../../common/middlewares/validate.middleware.js";
 import { createUserController } from "./user.controller.js";
-import { updateProfileBodySchema } from "./user.schema.js";
+import {
+  listUsersQuerySchema,
+  updateProfileBodySchema,
+  updateUserBodySchema,
+  userIdParamsSchema,
+} from "./user.schema.js";
 
 export function createUserRouter(env: Env, prisma: Database): ExpressRouter {
   const router: ExpressRouter = Router();
@@ -35,6 +40,30 @@ export function createUserRouter(env: Env, prisma: Database): ExpressRouter {
         data: { message: "admin ok" },
       });
     },
+  );
+
+  router.get(
+    "/",
+    requireAuth,
+    requireRole("ADMIN"),
+    validate({ query: listUsersQuerySchema }),
+    (req, res, next) => void controller.list(req, res, next),
+  );
+
+  router.get(
+    "/:id",
+    requireAuth,
+    requireRole("ADMIN"),
+    validate({ params: userIdParamsSchema }),
+    (req, res, next) => void controller.getById(req, res, next),
+  );
+
+  router.patch(
+    "/:id",
+    requireAuth,
+    requireRole("ADMIN"),
+    validate({ params: userIdParamsSchema, body: updateUserBodySchema }),
+    (req, res, next) => void controller.update(req, res, next),
   );
 
   return router;

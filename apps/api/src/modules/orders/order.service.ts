@@ -6,14 +6,21 @@ import { AppError } from "../../common/errors/app-error.js";
 import { Prisma, type OrderStatus } from "../../generated/prisma/client.js";
 import type { Database } from "../../config/database.js";
 import { isPublicProductVisible } from "../categories/catalog-visibility.js";
-import { toOrderDto, type OrderDto } from "./order.mapper.js";
+import {
+  toAdminOrderDto,
+  toOrderDto,
+  type AdminOrderDto,
+  type OrderDto,
+} from "./order.mapper.js";
 import {
   completeOrderIdempotencyKey,
   createOrderWithItems,
   decrementStockIfAvailable,
   deleteExpiredOrderIdempotencyKey,
+  findAdminOrdersPage,
   findCheckoutProducts,
   findOrderById,
+  findOrderByIdForAdmin,
   findOrderIdempotencyKey,
   findOrdersPage,
   findUserStatus,
@@ -372,8 +379,11 @@ export async function listMyOrders(
 export async function listAllOrders(
   prisma: Database,
   query: ListOrdersQuery,
-): Promise<PaginatedOrders> {
-  const { items, totalItems } = await findOrdersPage(prisma, {
+): Promise<{
+  items: AdminOrderDto[];
+  meta: PaginatedOrders["meta"];
+}> {
+  const { items, totalItems } = await findAdminOrdersPage(prisma, {
     userId: query.userId,
     status: query.status,
     sortOrder: query.sortOrder,
@@ -385,7 +395,7 @@ export async function listAllOrders(
     totalItems === 0 ? 0 : Math.ceil(totalItems / query.pageSize);
 
   return {
-    items: items.map(toOrderDto),
+    items: items.map(toAdminOrderDto),
     meta: {
       page: query.page,
       pageSize: query.pageSize,
@@ -399,13 +409,17 @@ export async function getOrderById(
   prisma: Database,
   id: number,
   user: AuthUser,
-): Promise<OrderDto> {
-  const order = await findOrderById(prisma, id);
-  if (!order) {
-    throw AppError.notFound("Order not found");
+): Promise<OrderDto | AdminOrderDto> {
+  if (user.role === "ADMIN") {
+    const order = await findOrderByIdForAdmin(prisma, id);
+    if (!order) {
+      throw AppError.notFound("Order not found");
+    }
+    return toAdminOrderDto(order);
   }
 
-  if (user.role !== "ADMIN" && order.userId !== user.id) {
+  const order = await findOrderById(prisma, id);
+  if (!order || order.userId !== user.id) {
     throw AppError.notFound("Order not found");
   }
 

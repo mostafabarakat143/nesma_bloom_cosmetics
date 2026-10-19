@@ -39,6 +39,8 @@ export const openApiDocument = {
     { name: "Health" },
     { name: "Auth" },
     { name: "Users" },
+    { name: "Contact" },
+    { name: "Admin" },
     { name: "Categories" },
     { name: "Subcategories" },
     { name: "Products" },
@@ -110,6 +112,17 @@ export const openApiDocument = {
           createdAt: { type: "string", format: "date-time" },
           updatedAt: { type: "string", format: "date-time" },
           items: { type: "array", items: { type: "object" } },
+          customer: {
+            type: "object",
+            description:
+              "Present on ADMIN list and ADMIN get-by-id only. Omitted for the owning customer.",
+            properties: {
+              id: { type: "integer" },
+              email: { type: "string", format: "email" },
+              firstName: { type: ["string", "null"] },
+              lastName: { type: ["string", "null"] },
+            },
+          },
         },
       },
       Product: {
@@ -320,6 +333,83 @@ export const openApiDocument = {
         responses: { "200": { description: "Updated profile" } },
       },
     },
+    "/api/v1/users": {
+      get: {
+        tags: ["Users"],
+        summary: "List users (ADMIN)",
+        description:
+          "Paginated users. Search matches email, first name, or last name. Never returns password hashes.",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "pageSize", in: "query", schema: { type: "integer", default: 20 } },
+          { name: "search", in: "query", schema: { type: "string" } },
+          { name: "role", in: "query", schema: { type: "string", enum: ["CUSTOMER", "ADMIN"] } },
+          { name: "status", in: "query", schema: { type: "string", enum: ["ACTIVE", "DISABLED"] } },
+          { name: "sortBy", in: "query", schema: { type: "string", enum: ["email", "createdAt", "role", "status"] } },
+          { name: "sortOrder", in: "query", schema: { type: "string", enum: ["asc", "desc"] } },
+        ],
+        responses: { "200": { description: "Paginated users" }, "403": { description: "Not ADMIN" } },
+      },
+    },
+    "/api/v1/users/{id}": {
+      get: {
+        tags: ["Users"],
+        summary: "Get user (ADMIN)",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1, maximum: 2147483647 } },
+        ],
+        responses: { "200": { description: "User" }, "404": { description: "Not found" } },
+      },
+      patch: {
+        tags: ["Users"],
+        summary: "Update user role or status (ADMIN)",
+        description:
+          "Changes role and/or status. Refuses to disable or demote the last ACTIVE admin. Does not delete users.",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1, maximum: 2147483647 } },
+        ],
+        responses: {
+          "200": { description: "Updated" },
+          "409": { description: "Last active admin" },
+        },
+      },
+    },
+    "/api/v1/contact": {
+      post: {
+        tags: ["Contact"],
+        summary: "Submit the contact form",
+        description: "Public. Stores name, phone, email, and message.",
+        responses: { "201": { description: "Stored" }, "400": { description: "Invalid body" } },
+      },
+      get: {
+        tags: ["Contact"],
+        summary: "List contact messages (ADMIN)",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "pageSize", in: "query", schema: { type: "integer", default: 20 } },
+        ],
+        responses: { "200": { description: "Paginated messages" } },
+      },
+    },
+    "/api/v1/admin/dashboard": {
+      get: {
+        tags: ["Admin"],
+        summary: "Dashboard aggregates (ADMIN)",
+        description:
+          "Catalog and user totals are all-time. Order total, ordersByStatus, and ordersOverTime respect optional from/to. Periods are UTC (YYYY-MM or YYYY-MM-DD).",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "from", in: "query", schema: { type: "string", format: "date-time" } },
+          { name: "to", in: "query", schema: { type: "string", format: "date-time" } },
+          { name: "bucket", in: "query", schema: { type: "string", enum: ["month", "day"], default: "month" } },
+        ],
+        responses: { "200": { description: "Dashboard" } },
+      },
+    },
     "/api/v1/categories": {
       get: {
         tags: ["Categories"],
@@ -337,7 +427,7 @@ export const openApiDocument = {
       },
       post: {
         tags: ["Categories"],
-        summary: "Create category (ADMIN)",
+        summary: "Create category (ADMIN). Requires name and imageUrl.",
         security: [{ bearerAuth: [] }],
         responses: { "201": { description: "Created" } },
       },
@@ -540,7 +630,7 @@ export const openApiDocument = {
     "/api/v1/orders/{id}": {
       get: {
         tags: ["Orders"],
-        summary: "Get order (owner or ADMIN)",
+        summary: "Get order (owner or ADMIN). ADMIN responses include customer.",
         security: [{ bearerAuth: [] }],
         parameters: [
           { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1, maximum: 2147483647 } },

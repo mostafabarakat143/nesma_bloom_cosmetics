@@ -1,7 +1,7 @@
 import { Prisma, type OrderStatus } from "../../generated/prisma/client.js";
 
 import type { Database } from "../../config/database.js";
-import type { OrderWithItems } from "./order.mapper.js";
+import type { OrderWithCustomer, OrderWithItems } from "./order.mapper.js";
 
 export type TxClient = Parameters<
   Parameters<Database["$transaction"]>[0]
@@ -10,6 +10,22 @@ export type TxClient = Parameters<
 const orderInclude = {
   items: {
     orderBy: [{ productSkuSnapshot: "asc" as const }, { id: "asc" as const }],
+  },
+} satisfies Prisma.OrderInclude;
+
+const orderAdminInclude = {
+  items: orderInclude.items,
+  user: {
+    select: {
+      id: true,
+      email: true,
+      profile: {
+        select: {
+          firstName: true,
+          lastName: true,
+        },
+      },
+    },
   },
 } satisfies Prisma.OrderInclude;
 
@@ -282,6 +298,16 @@ export async function findOrderById(
   });
 }
 
+export async function findOrderByIdForAdmin(
+  prisma: Database,
+  id: number,
+): Promise<OrderWithCustomer | null> {
+  return prisma.order.findUnique({
+    where: { id },
+    include: orderAdminInclude,
+  });
+}
+
 export type OrderListFilters = {
   userId?: number;
   status: OrderStatus | "ALL";
@@ -312,6 +338,34 @@ export async function findOrdersPage(
       skip,
       take: filters.pageSize,
       include: orderInclude,
+    }),
+  ]);
+
+  return { items, totalItems };
+}
+
+export async function findAdminOrdersPage(
+  prisma: Database,
+  filters: OrderListFilters,
+): Promise<{ items: OrderWithCustomer[]; totalItems: number }> {
+  const where: Prisma.OrderWhereInput = {};
+  if (filters.userId) {
+    where.userId = filters.userId;
+  }
+  if (filters.status !== "ALL") {
+    where.status = filters.status;
+  }
+
+  const skip = (filters.page - 1) * filters.pageSize;
+
+  const [totalItems, items] = await prisma.$transaction([
+    prisma.order.count({ where }),
+    prisma.order.findMany({
+      where,
+      orderBy: [{ createdAt: filters.sortOrder }, { id: "asc" }],
+      skip,
+      take: filters.pageSize,
+      include: orderAdminInclude,
     }),
   ]);
 

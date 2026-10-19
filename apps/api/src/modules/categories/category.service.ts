@@ -119,7 +119,7 @@ export async function createCategoryService(
     const category = await createCategory(prisma, {
       name: input.name,
       slug,
-      description: input.description,
+      imageUrl: input.imageUrl,
       status: input.status,
     });
     return toCategoryDto(category);
@@ -146,9 +146,7 @@ export async function updateCategoryService(
     const category = await updateCategory(prisma, id, {
       ...(input.name !== undefined ? { name: input.name } : {}),
       ...(input.slug !== undefined ? { slug: input.slug } : {}),
-      ...(input.description !== undefined
-        ? { description: input.description }
-        : {}),
+      ...(input.imageUrl !== undefined ? { imageUrl: input.imageUrl } : {}),
       ...(input.status !== undefined ? { status: input.status } : {}),
     });
     return toCategoryDto(category);

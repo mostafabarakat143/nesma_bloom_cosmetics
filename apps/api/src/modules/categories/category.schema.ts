@@ -31,6 +31,32 @@ export const listCategoriesQuerySchema = z
   })
   .strict();
 
+function isSafeHttpUrl(raw: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return false;
+  }
+
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return false;
+  }
+
+  if (parsed.username || parsed.password) {
+    return false;
+  }
+
+  return true;
+}
+
+const imageUrlSchema = z
+  .string({ error: () => "Category image URL is required." })
+  .trim()
+  .min(1, "Category image URL is required.")
+  .max(2048)
+  .refine(isSafeHttpUrl, "Image URL must be http(s) without credentials");
+
 export const createCategoryBodySchema = z
   .object({
     name: z
@@ -39,7 +65,7 @@ export const createCategoryBodySchema = z
       .min(1, "Category name is required.")
       .max(120),
     slug: slugSchema.optional(),
-    description: z.string().trim().max(5000).nullable().optional(),
+    imageUrl: imageUrlSchema,
     status: z.enum(["ACTIVE", "ARCHIVED"]).optional(),
   })
   .strict();
@@ -48,7 +74,7 @@ export const updateCategoryBodySchema = z
   .object({
     name: z.string().trim().min(1).max(120).optional(),
     slug: slugSchema.optional(),
-    description: z.string().trim().max(5000).nullable().optional(),
+    imageUrl: imageUrlSchema.optional(),
     status: z.enum(["ACTIVE", "ARCHIVED"]).optional(),
   })
   .strict()
