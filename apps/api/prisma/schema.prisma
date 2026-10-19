@@ -1,0 +1,296 @@
+// Nesma Bloom Cosmetics — PostgreSQL schema (Prisma 7)
+//
+// Money: integer minor units (EGP piastres). 100 piastres = 1.00 EGP.
+// INTEGER max ≈ 2_147_483_647 piastres ≈ 21_474_836.47 EGP per field.
+// Services must use safe integer arithmetic, reject overflow, and never
+// trust client-submitted prices or line totals.
+//
+// IDs: Int @id @default(autoincrement()) — PostgreSQL IDENTITY per table.
+//
+// Email: application must normalize to lowercase on registration; PostgreSQL
+// also enforces case-insensitive uniqueness via unique index on lower(email)
+// (added in the initial migration SQL).
+//
+// Product images: partial unique index ensures at most one primary image per
+// product (not at least one). Added in migration SQL.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+
+  @@map("user_role")
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+
+  @@map("user_status")
+}
+
+enum CatalogStatus {
+  ACTIVE
+  ARCHIVED
+
+  @@map("catalog_status")
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  FULFILLED
+  CANCELLED
+
+  @@map("order_status")
+}
+
+enum IdempotencyRecordStatus {
+  PROCESSING
+  COMPLETED
+
+  @@map("idempotency_record_status")
+}
+
+// ---------------------------------------------------------------------------
+// Identity
+// ---------------------------------------------------------------------------
+
+model User {
+  id           Int        @id @default(autoincrement())
+  email        String     @unique @db.VarChar(255)
+  passwordHash      String     @map("password_hash") @db.VarChar(255)
+  /// Set when the password changes. JWTs issued at or before this time are rejected.
+  passwordChangedAt DateTime?  @map("password_changed_at") @db.Timestamptz(3)
+  role              UserRole   @default(CUSTOMER)
+  status            UserStatus @default(ACTIVE)
+  createdAt         DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  profile              UserProfile?
+  orders               Order[]
+  revokedAccessTokens  RevokedAccessToken[]
+  passwordResetTokens  PasswordResetToken[]
+  orderIdempotencyKeys OrderIdempotencyKey[]
+
+  @@map("users")
+}
+
+/// Denylist for Bearer JWTs. Stores jti only — never the raw token string.
+model RevokedAccessToken {
+  id        Int      @id @default(autoincrement())
+  jti       String   @unique @db.Uuid
+  userId    Int      @map("user_id")
+  /// Copy of JWT exp — rows may be deleted after this instant.
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+  revokedAt DateTime @default(now()) @map("revoked_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("revoked_access_tokens")
+}
+
+/// One-time password reset. Stores SHA-256 of the token, never the raw token.
+model PasswordResetToken {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  tokenHash String    @unique @map("token_hash") @db.Char(64)
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(3)
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}
+
+model UserProfile {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique @map("user_id")
+  firstName String?  @map("first_name") @db.VarChar(100)
+  lastName  String?  @map("last_name") @db.VarChar(100)
+  phone     String?  @db.VarChar(30)
+  avatarUrl String?  @map("avatar_url") @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+/// Public contact-form submissions. No account is required to create one.
+model ContactMessage {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(120)
+  phone     String   @db.VarChar(30)
+  email     String   @db.VarChar(255)
+  message   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([createdAt])
+  @@map("contact_messages")
+}
+
+// ---------------------------------------------------------------------------
+// Catalog
+// ---------------------------------------------------------------------------
+
+model Category {
+  id          Int           @id @default(autoincrement())
+  name        String        @db.VarChar(120)
+  slug        String        @unique @db.VarChar(160)
+  /// Public http(s) image URL. Null only for rows created before images were required.
+  imageUrl    String?       @map("image_url") @db.Text
+  status      CatalogStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  subcategories Subcategory[]
+
+  @@map("categories")
+}
+
+model Subcategory {
+  id          Int           @id @default(autoincrement())
+  categoryId  Int           @map("category_id")
+  name        String        @db.VarChar(120)
+  slug        String        @db.VarChar(160)
+  description String?       @db.Text
+  status      CatalogStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  category Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  products Product[]
+
+  @@unique([categoryId, slug])
+  @@index([categoryId])
+  @@map("subcategories")
+}
+
+model Product {
+  id            Int           @id @default(autoincrement())
+  subcategoryId Int           @map("subcategory_id")
+  name          String        @db.VarChar(200)
+  slug          String        @unique @db.VarChar(220)
+  sku           String        @unique @db.VarChar(64)
+  description   String?       @db.Text
+  /// Price in EGP piastres (minor units). Never trust client-submitted prices.
+  priceMinor    Int           @map("price_minor")
+  currency      String        @default("EGP") @db.Char(3)
+  stockQty      Int           @default(0) @map("stock_qty")
+  isAvailable   Boolean       @default(true) @map("is_available")
+  status        CatalogStatus @default(ACTIVE)
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  subcategory Subcategory    @relation(fields: [subcategoryId], references: [id], onDelete: Restrict)
+  images      ProductImage[]
+  orderItems  OrderItem[]
+
+  @@index([subcategoryId])
+  @@index([status, isAvailable])
+  @@map("products")
+}
+
+model ProductImage {
+  id        Int      @id @default(autoincrement())
+  productId Int      @map("product_id")
+  url       String   @db.Text
+  altText   String?  @map("alt_text") @db.VarChar(255)
+  sortOrder Int      @default(0) @map("sort_order")
+  /// At most one primary per product (partial unique index in migration).
+  /// Does not require that a product has a primary image.
+  isPrimary Boolean  @default(false) @map("is_primary")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  /// Deterministic ordering; prevents two images sharing the same sort slot.
+  @@unique([productId, sortOrder])
+  @@index([productId, sortOrder])
+  @@map("product_images")
+}
+
+// ---------------------------------------------------------------------------
+// Orders
+// ---------------------------------------------------------------------------
+
+model Order {
+  id         Int         @id @default(autoincrement())
+  userId     Int         @map("user_id")
+  status     OrderStatus @default(PENDING)
+  /// Order total in EGP piastres. Computed by the service, never by the client.
+  totalMinor Int         @map("total_minor")
+  /// Historical currency snapshot for the order (v1: EGP only).
+  currency   String      @default("EGP") @db.Char(3)
+  createdAt  DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user           User                  @relation(fields: [userId], references: [id], onDelete: Restrict)
+  items          OrderItem[]
+  idempotencyKey OrderIdempotencyKey?
+
+  @@index([userId, createdAt])
+  @@map("orders")
+}
+
+/// Server-side idempotency for POST /orders. Unique (userId, key) is the concurrency gate.
+/// PROCESSING rows are never committed; only COMPLETED rows persist after success.
+model OrderIdempotencyKey {
+  id          Int                     @id @default(autoincrement())
+  userId      Int                     @map("user_id")
+  key         String                  @db.VarChar(128)
+  /// SHA-256 hex of canonical create-order payload.
+  requestHash String                  @map("request_hash") @db.Char(64)
+  status      IdempotencyRecordStatus @default(PROCESSING)
+  orderId     Int?                    @unique @map("order_id")
+  expiresAt   DateTime                @map("expires_at") @db.Timestamptz(3)
+  createdAt   DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order Order? @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, key])
+  @@index([expiresAt])
+  @@map("order_idempotency_keys")
+}
+
+model OrderItem {
+  id                  Int    @id @default(autoincrement())
+  orderId             Int    @map("order_id")
+  productId           Int    @map("product_id")
+  productNameSnapshot String @map("product_name_snapshot") @db.VarChar(200)
+  productSkuSnapshot  String @map("product_sku_snapshot") @db.VarChar(64)
+  /// Unit price at purchase time (EGP piastres).
+  unitPriceMinor      Int    @map("unit_price_minor")
+  quantity            Int
+  /// Line total at purchase time (EGP piastres). Service-calculated.
+  lineTotalMinor      Int    @map("line_total_minor")
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}

@@ -1,4 +1,8 @@
-
 packages:
   - "apps/*"
   - "packages/*"
+allowBuilds:
+  argon2: true
+ignoredBuiltDependencies:
+  - sharp
+  - unrs-resolver
