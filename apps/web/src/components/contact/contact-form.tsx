@@ -3,7 +3,9 @@
 import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
+import { postAuth } from "@/components/auth/post-auth";
 import { Button } from "@/components/ui/button";
+import { showToast } from "@/components/ui/toast";
 
 const labelClass = "block text-sm text-ink";
 const controlClass =
@@ -16,23 +18,56 @@ export function ContactForm() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
 
   const nameError = submitted && !name.trim() ? t("nameError") : null;
-  const phoneError = submitted && !phone.trim() ? t("phoneError") : null;
+  const phoneError =
+    submitted && phone.trim().length < 3 ? t("phoneError") : null;
+  const emailValue = email.trim();
+  const emailLooksValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue);
   const emailError = submitted
-    ? !email.trim()
+    ? !emailValue
       ? t("emailRequired")
-      : email.includes("@")
+      : emailLooksValid
         ? null
         : t("emailInvalid")
     : null;
   const messageError = submitted && !message.trim() ? t("messageError") : null;
-  const notice =
-    submitted && !nameError && !phoneError && !emailError && !messageError ? t("notice") : null;
+  const valid =
+    name.trim().length > 0 &&
+    phone.trim().length >= 3 &&
+    emailLooksValid &&
+    message.trim().length > 0;
 
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitted(true);
+    setSendError(null);
+    if (!valid || pending) {
+      return;
+    }
+
+    setPending(true);
+    const result = await postAuth("/api/contact", {
+      name: name.trim(),
+      phone: phone.trim(),
+      email: email.trim(),
+      message: message.trim(),
+    });
+    setPending(false);
+
+    if (!result.ok) {
+      setSendError(t("sendError"));
+      return;
+    }
+
+    setName("");
+    setPhone("");
+    setEmail("");
+    setMessage("");
+    setSubmitted(false);
+    showToast(t("notice"));
   }
 
   return (
@@ -53,7 +88,7 @@ export function ContactForm() {
           autoComplete="name"
           placeholder={t("namePlaceholder")}
           value={name}
-          maxLength={100}
+          maxLength={120}
           aria-invalid={nameError ? true : undefined}
           aria-describedby={nameError ? "contact-name-error" : undefined}
           onChange={(event) => setName(event.target.value)}
@@ -120,7 +155,7 @@ export function ContactForm() {
           name="message"
           placeholder={t("messagePlaceholder")}
           value={message}
-          maxLength={1000}
+          maxLength={5000}
           rows={6}
           aria-invalid={messageError ? true : undefined}
           aria-describedby={messageError ? "contact-message-error" : undefined}
@@ -133,13 +168,15 @@ export function ContactForm() {
           </p>
         ) : null}
       </div>
-      {notice ? (
-        <p role="status" className="text-sm text-rose-deep">
-          {notice}
+      {sendError ? (
+        <p role="alert" className="text-sm text-rose-deep">
+          {sendError}
         </p>
       ) : null}
       <div className="flex justify-end">
-        <Button type="submit">{t("send")}</Button>
+        <Button type="submit" disabled={pending}>
+          {pending ? t("sending") : t("send")}
+        </Button>
       </div>
     </form>
   );

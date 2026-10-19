@@ -7,7 +7,7 @@ export type CatalogCategory = {
   id: number;
   name: string;
   slug: string;
-  description: string | null;
+  imageUrl: string | null;
 };
 
 export type CatalogSubcategory = {
@@ -99,11 +99,16 @@ function parseCategory(value: unknown): CatalogCategory | null {
     return null;
   }
 
+  const imageUrl =
+    typeof value.imageUrl === "string" && isHttpUrl(value.imageUrl)
+      ? value.imageUrl
+      : null;
+
   return {
     id: value.id,
     name: value.name,
     slug: value.slug,
-    description: typeof value.description === "string" ? value.description : null,
+    imageUrl,
   };
 }
 

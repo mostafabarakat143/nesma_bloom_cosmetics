@@ -108,12 +108,14 @@
     "emailPlaceholder": "you@example.com",
     "messagePlaceholder": "كيف نساعدك؟",
     "send": "إرسال الرسالة",
+    "sending": "جارٍ الإرسال",
     "nameError": "أدخلي اسمك.",
     "phoneError": "أدخلي رقم هاتفك.",
     "emailRequired": "أدخلي بريدك الإلكتروني.",
     "emailInvalid": "أدخلي بريدًا إلكترونيًا صحيحًا.",
     "messageError": "أدخلي رسالتك.",
-    "notice": "هذا النموذج لا يرسل الرسائل. استخدمي البريد أو الهاتف أعلاه."
+    "notice": "تم إرسال رسالتك. سنرد عليك.",
+    "sendError": "تعذر إرسال الرسالة. حاولي مرة أخرى."
   },
   "auth": {
     "account": "الحساب",

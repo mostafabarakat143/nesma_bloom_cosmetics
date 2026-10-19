@@ -108,12 +108,14 @@
     "emailPlaceholder": "you@example.com",
     "messagePlaceholder": "How can we help?",
     "send": "Send message",
+    "sending": "Sending",
     "nameError": "Enter your name.",
     "phoneError": "Enter your phone number.",
     "emailRequired": "Enter your email.",
     "emailInvalid": "Enter an email address.",
     "messageError": "Enter your message.",
-    "notice": "This form does not send messages. Use the email or phone above."
+    "notice": "Your message was sent. We will get back to you.",
+    "sendError": "We could not send your message. Please try again."
   },
   "auth": {
     "account": "Account",
