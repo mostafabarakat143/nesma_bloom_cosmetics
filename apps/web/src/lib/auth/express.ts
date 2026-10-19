@@ -33,6 +33,7 @@ function messageOf(body: unknown): string {
 export async function callExpress(
   path: string,
   init: RequestInit,
+  timeoutMs = 8_000,
 ): Promise<ExpressResult> {
   let url: string;
   try {
@@ -45,7 +46,7 @@ export async function callExpress(
     const response = await fetch(`${url}${path}`, {
       ...init,
       cache: "no-store",
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     const text = await response.text();
     let body: unknown = null;
