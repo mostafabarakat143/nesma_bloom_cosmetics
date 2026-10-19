@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { showToast } from "@/components/ui/toast";
 import { addProduct } from "@/lib/order-draft";
 import { maxPurchasableQuantity } from "@/lib/orders/payload";
 
@@ -13,20 +14,25 @@ export function AddToOrder({
   stockQty,
   ownerId,
   accountUnavailable,
+  compact = false,
 }: {
   productId: number;
   inStock: boolean;
   stockQty: number | null;
   ownerId: number | null;
   accountUnavailable: boolean;
+  compact?: boolean;
 }) {
   const t = useTranslations("product");
   const maxQty = maxPurchasableQuantity({ inStock, stockQty });
   const [quantity, setQuantity] = useState(1);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+
+  const loginHref = `/login?next=${encodeURIComponent(`/products/${productId}`)}`;
 
   if (accountUnavailable) {
+    if (compact) {
+      return null;
+    }
     return (
       <p role="status" className="mt-6 text-sm text-muted">
         {t("browseNote")}
@@ -42,34 +48,61 @@ export function AddToOrder({
   }
 
   function add() {
-    setError(null);
-    setMessage(null);
-    const result = addProduct(ownerId ?? "guest", productId, quantity, maxQty);
+    if (ownerId === null) {
+      return;
+    }
+    const result = addProduct(ownerId, productId, quantity, maxQty);
     if (result === "added") {
-      setMessage(t("added"));
+      showToast(t("added"));
       return;
     }
     if (result === "clamped") {
-      setMessage(t("addedClamped"));
+      showToast(t("addedClamped"));
       return;
     }
     if (result === "full") {
-      setError(t("full"));
+      showToast(t("full"), "error");
       return;
     }
     if (result === "pending") {
-      setError(t("pending"));
+      showToast(t("pending"), "error");
       return;
     }
     if (result === "unavailable") {
-      setError(t("outOfStock"));
+      showToast(t("outOfStock"), "error");
       return;
     }
-    setError(t("quantityError"));
+    showToast(t("quantityError"), "error");
   }
 
+  const controlClass = compact
+    ? "inline-flex size-9 items-center justify-center rounded-xl border border-line bg-surface text-ink hover:bg-blush focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep disabled:opacity-60"
+    : "inline-flex size-11 items-center justify-center rounded-2xl border border-line bg-surface text-ink hover:bg-blush focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep disabled:opacity-60";
+  const inputClass = compact
+    ? "h-9 w-12 rounded-xl border border-line bg-bg text-center text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep"
+    : "h-11 w-16 rounded-2xl border border-line bg-bg text-center text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep";
+
+  const addButton =
+    ownerId === null ? (
+      <Button href={loginHref} className={compact ? "!h-8 shrink-0 !px-3 !text-xs" : undefined}>
+        {t("add")}
+      </Button>
+    ) : (
+      <Button
+        type="button"
+        disabled={maxQty === 0}
+        onClick={(event) => {
+          add();
+          event.currentTarget.blur();
+        }}
+        className={compact ? "!h-8 shrink-0 !px-3 !text-xs" : undefined}
+      >
+        {t("add")}
+      </Button>
+    );
+
   return (
-    <div className="mt-6">
+    <div className={compact ? "mt-3" : "mt-6"}>
       {maxQty === 0 ? (
         <p className="text-sm text-rose-deep">{t("outOfStock")}</p>
       ) : (
@@ -80,7 +113,7 @@ export function AddToOrder({
               aria-label={t("decrease")}
               disabled={quantity <= 1}
               onClick={() => changeQuantity(quantity - 1)}
-              className="inline-flex size-11 items-center justify-center rounded-2xl border border-line bg-surface text-ink hover:bg-blush focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep disabled:opacity-60"
+              className={controlClass}
             >
               −
             </button>
@@ -99,41 +132,35 @@ export function AddToOrder({
                   changeQuantity(next);
                 }
               }}
-              className="h-11 w-16 rounded-2xl border border-line bg-bg text-center text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep"
+              className={inputClass}
             />
             <button
               type="button"
               aria-label={t("increase")}
               disabled={quantity >= maxQty}
               onClick={() => changeQuantity(quantity + 1)}
-              className="inline-flex size-11 items-center justify-center rounded-2xl border border-line bg-surface text-ink hover:bg-blush focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep disabled:opacity-60"
+              className={controlClass}
             >
               +
             </button>
           </div>
-          <p className="text-sm text-muted">
-            {stockQty !== null ? t("availableCount", { count: stockQty }) : t("available")}
-          </p>
+          {compact ? null : (
+            <p className="text-sm text-muted">
+              {stockQty !== null ? t("availableCount", { count: stockQty }) : t("available")}
+            </p>
+          )}
         </div>
       )}
-      {message ? (
-        <p role="status" className="mt-4 text-sm text-ink">
-          {message}
-        </p>
-      ) : null}
-      {error ? (
-        <p role="alert" className="mt-4 text-sm text-rose-deep">
-          {error}
-        </p>
-      ) : null}
-      <div className="mt-4 flex flex-wrap gap-3">
-        <Button type="button" disabled={maxQty === 0} onClick={add}>
-          {t("add")}
-        </Button>
-        <Button href="/checkout" variant="secondary">
-          {t("review")}
-        </Button>
-      </div>
+      {maxQty === 0 ? null : compact ? (
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <p className="min-w-0 text-sm text-muted">
+            {stockQty !== null ? t("availableCount", { count: stockQty }) : t("available")}
+          </p>
+          {addButton}
+        </div>
+      ) : (
+        <div className="mt-4 flex flex-wrap gap-3">{addButton}</div>
+      )}
     </div>
   );
 }

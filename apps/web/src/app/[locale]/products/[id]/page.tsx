@@ -3,7 +3,6 @@ import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 
 import { AddToOrder } from "@/components/catalog/add-to-order";
-import { Breadcrumbs } from "@/components/catalog/breadcrumbs";
 import { ProductGallery } from "@/components/catalog/product-gallery";
 import { PageContainer } from "@/components/layout/page-container";
 import { Button } from "@/components/ui/button";
@@ -55,7 +54,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   const t = await getTranslations("product");
   const stock = await getTranslations("shop");
-  const nav = await getTranslations("common");
 
   if (result.status === "unavailable") {
     return (
@@ -77,22 +75,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   return (
     <PageContainer>
-      <Breadcrumbs
-        items={[
-          { label: nav("home"), href: "/" },
-          { label: nav("shop"), href: "/shop" },
-          {
-            label: product.category.name,
-            href: `/shop?categoryId=${product.category.id}`,
-          },
-          {
-            label: product.subcategory.name,
-            href: `/shop?categoryId=${product.category.id}&subcategoryId=${product.subcategory.id}`,
-          },
-          { label: product.name, current: true },
-        ]}
-      />
-      <div className="mt-8 grid items-start gap-10 lg:grid-cols-2">
+      <div className="grid items-start gap-10 lg:grid-cols-2">
         <ProductGallery
           key={product.id}
           images={product.images}
@@ -115,11 +98,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
           <p className="mt-6 text-lg text-ink">
             {formatMinorPrice(product.priceMinor, product.currency)}
           </p>
-          <p
-            className={`mt-2 text-sm ${product.inStock ? "text-ink" : "text-rose-deep"}`}
-          >
-            {product.inStock ? stock("inStock") : stock("outOfStock")}
-          </p>
+          {product.inStock ? null : (
+            <p className="mt-2 text-sm text-rose-deep">{stock("outOfStock")}</p>
+          )}
           <AddToOrder
             productId={product.id}
             inStock={product.inStock}

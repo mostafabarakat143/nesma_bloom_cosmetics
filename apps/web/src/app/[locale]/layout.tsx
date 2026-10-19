@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { LocaleDocument } from "@/components/i18n/locale-document";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { Toaster } from "@/components/ui/toast";
 import { routing } from "@/i18n/routing";
 
 export function generateStaticParams() {
@@ -42,6 +43,7 @@ export default async function LocaleLayout({
         {children}
       </main>
       <SiteFooter />
+      <Toaster />
     </NextIntlClientProvider>
   );
 }

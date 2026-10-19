@@ -9,6 +9,7 @@ import { getAccountProfile } from "@/lib/auth/profile";
 import { getVerifiedUser } from "@/lib/auth/session";
 
 import { AccountNav } from "./account-nav";
+import { CartLink } from "./cart-link";
 import { DesktopNav } from "./desktop-nav";
 import { MobileNav } from "./mobile-nav";
 
@@ -31,6 +32,7 @@ export async function SiteHeader() {
         </Link>
         <div className="flex items-center gap-2 sm:gap-4">
           <DesktopNav />
+          {session.state === "authenticated" ? <CartLink userId={session.user.id} /> : null}
           <div className={account || unavailable ? "hidden md:block" : undefined}>
             <AccountNav account={account} unavailable={unavailable} layout="bar" />
           </div>

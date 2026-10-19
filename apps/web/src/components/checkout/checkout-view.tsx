@@ -14,9 +14,7 @@ import { MESSAGES } from "@/lib/auth/credentials";
 import {
   beginOrderSubmit,
   clearVisibleDraft,
-  discardGuestLines,
   finishOrderSubmit,
-  includeGuestLines,
   releaseOrderKey,
   readDraftSnapshot,
   removeDraftLine,
@@ -166,7 +164,6 @@ export function CheckoutView({
           href="/shop"
           action={t("browse")}
         />
-        <GuestExtra userId={userId} lines={snapshot.guestExtra} pending={false} />
       </div>
     );
   }
@@ -258,12 +255,6 @@ export function CheckoutView({
           {t("pendingNote")}
         </p>
       ) : null}
-      {role !== "CUSTOMER" ? (
-        <p role="status" className="mb-4 text-sm text-rose-deep">
-          {t("customersOnly")}
-        </p>
-      ) : null}
-      <GuestExtra userId={userId} lines={snapshot.guestExtra} pending={snapshot.pending} />
       <ul className="grid gap-4">
         {snapshot.lines.map((line) => {
           const productState = products.get(line.productId) ?? { state: "loading" as const };
@@ -284,7 +275,7 @@ export function CheckoutView({
                 <h2 className="font-display text-3xl text-ink">{name}</h2>
                 {product ? (
                   <p className="mt-1 text-sm text-muted">
-                    {t("catalogPrice", { price: formatMinorPrice(product.priceMinor, product.currency) })}
+                    {t("price", { price: formatMinorPrice(product.priceMinor, product.currency) })}
                   </p>
                 ) : null}
                 {productState.state === "missing" ? (
@@ -351,7 +342,7 @@ export function CheckoutView({
           <KnownText value={error} />
         </p>
       ) : null}
-      <div className="mt-6 flex flex-wrap gap-3">
+      <div className="mt-6 flex flex-wrap justify-end gap-3">
         <Button
           type="button"
           disabled={inFlight || blocked || role !== "CUSTOMER"}
@@ -373,53 +364,6 @@ export function CheckoutView({
           {t("clearOrder")}
         </Button>
       </div>
-    </div>
-  );
-}
-
-function GuestExtra({
-  userId,
-  lines,
-  pending,
-}: {
-  userId: number;
-  lines: { productId: number; quantity: number }[];
-  pending: boolean;
-}) {
-  const t = useTranslations("checkout");
-  const [message, setMessage] = useState<string | null>(null);
-  if (lines.length === 0) {
-    return null;
-  }
-  return (
-    <div className="mb-4 rounded-2xl border border-line bg-surface p-4">
-      <p className="text-sm leading-relaxed text-ink">
-        {t("guestChosen", { count: lines.length })}
-      </p>
-      {message ? (
-        <p role="status" className="mt-2 text-sm text-rose-deep">
-          {message}
-        </p>
-      ) : null}
-      {pending ? null : (
-        <div className="mt-3 flex flex-wrap gap-3">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              const result = includeGuestLines(userId);
-              if (result === "full") {
-                setMessage(t("limit"));
-              }
-            }}
-          >
-            {t("addGuest")}
-          </Button>
-          <Button type="button" variant="ghost" onClick={() => discardGuestLines()}>
-            {t("discardGuest")}
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
