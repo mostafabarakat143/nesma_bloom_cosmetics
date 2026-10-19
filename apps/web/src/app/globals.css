@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f6efe4;
+  --surface: #fff9f3;
+  --blush: #f4e3d6;
+  --rose: #c6a36a;
+  --rose-deep: #9c4e68;
+  --rose-hover: #7d3c52;
+  --ink: #3e342e;
+  --muted: #74685f;
+  --line: #e7d9c8;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-blush: var(--blush);
+  --color-rose: var(--rose);
+  --color-rose-deep: var(--rose-deep);
+  --color-rose-hover: var(--rose-hover);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --font-sans: var(--font-outfit), sans-serif;
+  --font-display: var(--font-cormorant), Georgia, serif;
+  --radius-card: 1rem;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-outfit), sans-serif;
+}
+
+html[lang="ar"] body,
+html[lang="ar"] .font-sans {
+  font-family: var(--font-cairo), sans-serif;
+}
+
+html[lang="ar"] .font-display {
+  font-family: var(--font-amiri), Georgia, serif;
+}
+
+html[lang="ar"] .uppercase {
+  letter-spacing: 0;
+}
+
