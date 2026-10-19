@@ -11,7 +11,9 @@ import { createErrorMiddleware } from "./common/middlewares/error.middleware.js"
 import { notFoundMiddleware } from "./common/middlewares/not-found.middleware.js";
 import { requestIdMiddleware } from "./common/middlewares/request-id.middleware.js";
 import { validate } from "./common/middlewares/validate.middleware.js";
+import { createDashboardRouter } from "./modules/admin/dashboard.routes.js";
 import { createAuthRouter } from "./modules/auth/auth.routes.js";
+import { createContactRouter } from "./modules/contact/contact.routes.js";
 import {
   createPasswordResetMailer,
   type PasswordResetMailer,
@@ -111,6 +113,8 @@ export function createApp({ env, logger, prisma, mailer }: AppDependencies): Exp
     ),
   );
   app.use("/api/v1/users", createUserRouter(env, prisma));
+  app.use("/api/v1/contact", createContactRouter(env, prisma));
+  app.use("/api/v1/admin", createDashboardRouter(env, prisma));
   app.use("/api/v1/categories", createCategoryRouter(env, prisma));
   app.use("/api/v1/subcategories", createSubcategoryRouter(env, prisma));
   app.use("/api/v1/products", createProductRouter(env, prisma));

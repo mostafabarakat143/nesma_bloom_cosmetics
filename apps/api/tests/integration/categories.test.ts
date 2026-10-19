@@ -8,6 +8,7 @@ import { buildTestApp } from "../helpers/test-app.js";
 
 describe("categories CRUD", () => {
   const { app, prisma } = buildTestApp();
+  const categoryImage = "https://cdn.example.com/categories/rose.jpg";
 
   beforeEach(async () => {
     await prisma.revokedAccessToken.deleteMany();
@@ -62,6 +63,8 @@ describe("categories CRUD", () => {
     expect(list.status).toBe(200);
     expect(list.body.data.items).toHaveLength(1);
     expect(list.body.data.items[0].slug).toBe("active-one");
+    expect(list.body.data.items[0].imageUrl).toBeNull();
+    expect(list.body.data.items[0]).not.toHaveProperty("description");
     expect(list.body.data.meta.totalItems).toBe(1);
 
     const active = await prisma.category.findUniqueOrThrow({
@@ -158,14 +161,16 @@ describe("categories CRUD", () => {
     const generated = await request(app)
       .post("/api/v1/categories")
       .set(authHeaders(token))
-      .send({ name: "Skin Care" });
+      .send({ name: "Skin Care", imageUrl: categoryImage });
     expect(generated.status).toBe(201);
     expect(generated.body.data.category.slug).toBe("skin-care");
+    expect(generated.body.data.category.imageUrl).toBe(categoryImage);
+    expect(generated.body.data.category).not.toHaveProperty("description");
 
     const explicit = await request(app)
       .post("/api/v1/categories")
       .set(authHeaders(token))
-      .send({ name: "Makeup", slug: "make-up" });
+      .send({ name: "Makeup", slug: "make-up", imageUrl: categoryImage });
     expect(explicit.status).toBe(201);
     expect(explicit.body.data.category.slug).toBe("make-up");
   });
@@ -175,12 +180,12 @@ describe("categories CRUD", () => {
     await request(app)
       .post("/api/v1/categories")
       .set(authHeaders(token))
-      .send({ name: "One", slug: "shared" });
+      .send({ name: "One", slug: "shared", imageUrl: categoryImage });
 
     const dup = await request(app)
       .post("/api/v1/categories")
       .set(authHeaders(token))
-      .send({ name: "Two", slug: "shared" });
+      .send({ name: "Two", slug: "shared", imageUrl: categoryImage });
     expect(dup.status).toBe(409);
   });
 
@@ -189,7 +194,7 @@ describe("categories CRUD", () => {
     const created = await request(app)
       .post("/api/v1/categories")
       .set(authHeaders(token))
-      .send({ name: "Original", slug: "original" });
+      .send({ name: "Original", slug: "original", imageUrl: categoryImage });
 
     const id = created.body.data.category.id;
 
@@ -214,7 +219,7 @@ describe("categories CRUD", () => {
     const created = await request(app)
       .post("/api/v1/categories")
       .set(authHeaders(token))
-      .send({ name: "Temp", slug: "temp" });
+      .send({ name: "Temp", slug: "temp", imageUrl: categoryImage });
     const id = created.body.data.category.id;
 
     const first = await request(app)
@@ -252,7 +257,7 @@ describe("categories CRUD", () => {
     const created = await request(app)
       .post("/api/v1/categories")
       .set(authHeaders(token))
-      .send({ name: "Valid", slug: "valid" });
+      .send({ name: "Valid", slug: "valid", imageUrl: categoryImage });
 
     const emptyPatch = await request(app)
       .patch(`/api/v1/categories/${created.body.data.category.id}`)
@@ -279,7 +284,11 @@ describe("categories CRUD", () => {
     const created = await request(app)
       .post("/api/v1/categories")
       .set(authHeaders(adminToken))
-      .send({ name: "Admin Target", slug: "admin-target" });
+      .send({
+        name: "Admin Target",
+        slug: "admin-target",
+        imageUrl: categoryImage,
+      });
     expect(created.status).toBe(201);
 
     const noBearer = await request(app)
@@ -287,5 +296,36 @@ describe("categories CRUD", () => {
       .set("Origin", TEST_ORIGIN)
       .send({ name: "Hacked" });
     expect(noBearer.status).toBe(401);
+  });
+
+  it("requires an image URL and rejects description", async () => {
+    const { token } = await asAdmin();
+
+    const missingImage = await request(app)
+      .post("/api/v1/categories")
+      .set(authHeaders(token))
+      .send({ name: "No Image", slug: "no-image" });
+    expect(missingImage.status).toBe(400);
+
+    const withDescription = await request(app)
+      .post("/api/v1/categories")
+      .set(authHeaders(token))
+      .send({
+        name: "Described",
+        slug: "described",
+        imageUrl: categoryImage,
+        description: "should not be accepted",
+      });
+    expect(withDescription.status).toBe(400);
+
+    const unsafe = await request(app)
+      .post("/api/v1/categories")
+      .set(authHeaders(token))
+      .send({
+        name: "Unsafe",
+        slug: "unsafe",
+        imageUrl: "javascript:alert(1)",
+      });
+    expect(unsafe.status).toBe(400);
   });
 });

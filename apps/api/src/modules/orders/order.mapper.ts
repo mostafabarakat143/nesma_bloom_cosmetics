@@ -25,6 +25,30 @@ export type OrderWithItems = Order & {
   items: OrderItem[];
 };
 
+export type OrderCustomerDto = {
+  id: number;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+};
+
+export type AdminOrderDto = OrderDto & {
+  customer: OrderCustomerDto;
+};
+
+export type OrderCustomerRecord = {
+  id: number;
+  email: string;
+  profile: {
+    firstName: string | null;
+    lastName: string | null;
+  } | null;
+};
+
+export type OrderWithCustomer = OrderWithItems & {
+  user: OrderCustomerRecord;
+};
+
 export function toOrderItemDto(item: OrderItem): OrderItemDto {
   return {
     id: item.id,
@@ -47,5 +71,17 @@ export function toOrderDto(order: OrderWithItems): OrderDto {
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
     items: order.items.map(toOrderItemDto),
+  };
+}
+
+export function toAdminOrderDto(order: OrderWithCustomer): AdminOrderDto {
+  return {
+    ...toOrderDto(order),
+    customer: {
+      id: order.user.id,
+      email: order.user.email,
+      firstName: order.user.profile?.firstName ?? null,
+      lastName: order.user.profile?.lastName ?? null,
+    },
   };
 }

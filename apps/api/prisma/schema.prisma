@@ -135,6 +135,19 @@ model UserProfile {
   @@map("user_profiles")
 }
 
+/// Public contact-form submissions. No account is required to create one.
+model ContactMessage {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(120)
+  phone     String   @db.VarChar(30)
+  email     String   @db.VarChar(255)
+  message   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([createdAt])
+  @@map("contact_messages")
+}
+
 // ---------------------------------------------------------------------------
 // Catalog
 // ---------------------------------------------------------------------------
@@ -143,7 +156,8 @@ model Category {
   id          Int           @id @default(autoincrement())
   name        String        @db.VarChar(120)
   slug        String        @unique @db.VarChar(160)
-  description String?       @db.Text
+  /// Public http(s) image URL. Null only for rows created before images were required.
+  imageUrl    String?       @map("image_url") @db.Text
   status      CatalogStatus @default(ACTIVE)
   createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)

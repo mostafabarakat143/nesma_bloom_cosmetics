@@ -377,6 +377,25 @@ describe("orders management", () => {
       .query({ userId: customerA.user.id });
     expect(adminList.status).toBe(200);
     expect(adminList.body.data.items).toHaveLength(1);
+    expect(adminList.body.data.items[0].customer).toEqual({
+      id: customerA.user.id,
+      email: customerA.email,
+      firstName: null,
+      lastName: null,
+    });
+    expect(mine.body.data.items[0].customer).toBeUndefined();
+
+    const adminDetail = await request(app)
+      .get(`/api/v1/orders/${orderId}`)
+      .set(authHeaders(adminToken));
+    expect(adminDetail.status).toBe(200);
+    expect(adminDetail.body.data.order.customer.email).toBe(customerA.email);
+
+    const ownerDetail = await request(app)
+      .get(`/api/v1/orders/${orderId}`)
+      .set(authHeaders(customerA.token));
+    expect(ownerDetail.status).toBe(200);
+    expect(ownerDetail.body.data.order.customer).toBeUndefined();
 
     expect(
       (
