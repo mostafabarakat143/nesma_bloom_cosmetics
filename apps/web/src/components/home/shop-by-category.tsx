@@ -32,7 +32,7 @@ export async function ShopByCategory({
           {t("categoriesEmpty")}
         </p>
       ) : (
-        <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 lg:gap-5">
           {categories.map((category) => (
             <li key={category.id} className="min-w-0">
               <CategoryCard

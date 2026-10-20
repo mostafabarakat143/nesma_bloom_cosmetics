@@ -29,7 +29,7 @@ import { maxPurchasableQuantity } from "@/lib/orders/payload";
 const ORDER_WHATSAPP_NUMBER = "201015981398";
 
 function orderWhatsappUrl(orderId: number) {
-  const text = `أهلاً بكم وشكراً لتعاملكم مع لمسه\nتم تأكيد الطلب رقم ${orderId}`;
+  const text = `لتاكيد الاوردر ارسل رقم الطلب ${orderId}`;
   return `https://wa.me/${ORDER_WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
 }
 

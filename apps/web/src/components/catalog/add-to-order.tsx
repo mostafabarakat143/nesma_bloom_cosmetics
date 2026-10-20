@@ -1,10 +1,12 @@
 "use client";
 
+import { ShoppingBag } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/toast";
+import { Link } from "@/i18n/navigation";
 import { addProduct, readDraftSnapshot, removeDraftLine, subscribeDraft, updateDraftQuantity } from "@/lib/order-draft";
 import { maxPurchasableQuantity } from "@/lib/orders/payload";
 
@@ -15,6 +17,8 @@ export function AddToOrder({
   ownerId,
   accountUnavailable,
   compact = false,
+  /** When compact on a light image, use dark qty controls. */
+  compactOnLight = false,
 }: {
   productId: number;
   inStock: boolean;
@@ -22,6 +26,7 @@ export function AddToOrder({
   ownerId: number | null;
   accountUnavailable: boolean;
   compact?: boolean;
+  compactOnLight?: boolean;
 }) {
   const t = useTranslations("product");
   const maxQty = maxPurchasableQuantity({ inStock, stockQty });
@@ -129,34 +134,124 @@ export function AddToOrder({
     showToast(t("quantityError"), "error");
   }
 
-  const controlClass = compact
-    ? "inline-flex size-9 items-center justify-center rounded-xl border border-line bg-surface text-ink hover:bg-blush focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep disabled:opacity-60"
-    : "inline-flex size-11 items-center justify-center rounded-2xl border border-line bg-surface text-ink hover:bg-blush focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep disabled:opacity-60";
-  const inputClass = compact
-    ? "h-9 w-12 rounded-xl border border-line bg-bg text-center text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep"
-    : "h-11 w-16 rounded-2xl border border-line bg-bg text-center text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep";
+  if (compact) {
+    const onLight = compactOnLight;
+    const glassControl = onLight
+      ? "inline-flex h-7 w-7 shrink-0 items-center justify-center text-ink hover:bg-ink/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep disabled:opacity-50"
+      : "inline-flex h-7 w-7 shrink-0 items-center justify-center text-white hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-50";
+    const qtyBorder = onLight ? "border-ink/40 bg-white/40" : "border-white/70 bg-white/10";
+    const qtyDivider = onLight ? "border-ink/25" : "border-white/40";
+    const qtyInput = onLight
+      ? "h-7 w-6 border-0 bg-transparent text-center text-[11px] text-ink focus-visible:outline-none"
+      : "h-7 w-6 border-0 bg-transparent text-center text-[11px] text-white focus-visible:outline-none";
+    const addClass =
+      "inline-flex h-7 min-w-0 flex-1 items-center justify-center gap-1 rounded-full bg-rose-deep px-2 text-[11px] font-medium text-white hover:bg-rose-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:pointer-events-none disabled:opacity-60";
+
+    if (maxQty === 0) {
+      return null;
+    }
+
+    return (
+      <div className="mt-2 flex items-center gap-1.5">
+        <div
+          role="group"
+          aria-label={t("quantity")}
+          className={`inline-flex shrink-0 items-center overflow-hidden rounded-full border ${qtyBorder}`}
+        >
+          <button
+            type="button"
+            aria-label={t("decrease")}
+            disabled={shown <= (tracksUnits ? 0 : 1)}
+            onClick={() =>
+              tracksUnits ? setCartUnits(shown - 1) : changeQuantity(shown - 1)
+            }
+            className={`${glassControl} border-e ${qtyDivider}`}
+          >
+            −
+          </button>
+          <input
+            id={`quantity-${productId}`}
+            aria-label={t("quantity")}
+            inputMode="numeric"
+            value={String(shown)}
+            onChange={(event) => {
+              const next = Number(event.target.value);
+              if (event.target.value.trim() === "") {
+                if (tracksUnits) {
+                  setCartUnits(0);
+                } else {
+                  setQuantity(1);
+                }
+                return;
+              }
+              if (Number.isInteger(next)) {
+                if (tracksUnits) {
+                  setCartUnits(next);
+                } else {
+                  changeQuantity(next);
+                }
+              }
+            }}
+            className={qtyInput}
+          />
+          <button
+            type="button"
+            aria-label={t("increase")}
+            disabled={shown >= maxQty}
+            onClick={() =>
+              tracksUnits ? setCartUnits(shown + 1) : changeQuantity(shown + 1)
+            }
+            className={`${glassControl} border-s ${qtyDivider}`}
+          >
+            +
+          </button>
+        </div>
+        {ownerId === null ? (
+          <Link href={loginHref} className={addClass}>
+            <ShoppingBag className="size-3 shrink-0" aria-hidden="true" strokeWidth={2} />
+            <span className="truncate">{t("add")}</span>
+          </Link>
+        ) : (
+          <button
+            type="button"
+            disabled={units >= maxQty}
+            onClick={(event) => {
+              add();
+              event.currentTarget.blur();
+            }}
+            className={addClass}
+          >
+            <ShoppingBag className="size-3 shrink-0" aria-hidden="true" strokeWidth={2} />
+            <span className="truncate">{t("add")}</span>
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  const controlClass =
+    "inline-flex size-11 items-center justify-center rounded-2xl border border-line bg-surface text-ink hover:bg-blush focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep disabled:opacity-60";
+  const inputClass =
+    "h-11 w-16 rounded-2xl border border-line bg-bg text-center text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep";
 
   const addButton =
     ownerId === null ? (
-      <Button href={loginHref} className={compact ? "!h-8 shrink-0 !px-3 !text-xs" : undefined}>
-        {t("add")}
-      </Button>
+      <Button href={loginHref}>{t("add")}</Button>
     ) : (
       <Button
         type="button"
-        disabled={maxQty === 0 || (tracksUnits && units >= maxQty)}
+        disabled={maxQty === 0}
         onClick={(event) => {
           add();
           event.currentTarget.blur();
         }}
-        className={compact ? "!h-8 shrink-0 !px-3 !text-xs" : undefined}
       >
         {t("add")}
       </Button>
     );
 
   return (
-    <div className={compact ? "mt-3" : "mt-6"}>
+    <div className="mt-6">
       {maxQty === 0 ? (
         <p className="text-sm text-rose-deep">{t("outOfStock")}</p>
       ) : (
@@ -165,8 +260,8 @@ export function AddToOrder({
             <button
               type="button"
               aria-label={t("decrease")}
-              disabled={shown <= (tracksUnits ? 0 : 1)}
-              onClick={() => (tracksUnits ? setCartUnits(shown - 1) : changeQuantity(shown - 1))}
+              disabled={shown <= 1}
+              onClick={() => changeQuantity(shown - 1)}
               className={controlClass}
             >
               −
@@ -179,19 +274,11 @@ export function AddToOrder({
               onChange={(event) => {
                 const next = Number(event.target.value);
                 if (event.target.value.trim() === "") {
-                  if (tracksUnits) {
-                    setCartUnits(0);
-                  } else {
-                    setQuantity(1);
-                  }
+                  setQuantity(1);
                   return;
                 }
                 if (Number.isInteger(next)) {
-                  if (tracksUnits) {
-                    setCartUnits(next);
-                  } else {
-                    changeQuantity(next);
-                  }
+                  changeQuantity(next);
                 }
               }}
               className={inputClass}
@@ -200,27 +287,18 @@ export function AddToOrder({
               type="button"
               aria-label={t("increase")}
               disabled={shown >= maxQty}
-              onClick={() => (tracksUnits ? setCartUnits(shown + 1) : changeQuantity(shown + 1))}
+              onClick={() => changeQuantity(shown + 1)}
               className={controlClass}
             >
               +
             </button>
           </div>
-          {compact ? null : (
-            <p className="text-sm text-muted">
-              {stockQty !== null ? t("availableCount", { count: stockQty }) : t("available")}
-            </p>
-          )}
-        </div>
-      )}
-      {maxQty === 0 ? null : compact ? (
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <p className="min-w-0 text-sm text-muted">
+          <p className="text-sm text-muted">
             {stockQty !== null ? t("availableCount", { count: stockQty }) : t("available")}
           </p>
-          {addButton}
         </div>
-      ) : (
+      )}
+      {maxQty === 0 ? null : (
         <div className="mt-4 flex flex-wrap gap-3">{addButton}</div>
       )}
     </div>
