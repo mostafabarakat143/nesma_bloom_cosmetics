@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import { z } from "zod";
 
 const envSchema = z
@@ -37,6 +39,20 @@ const envSchema = z
       .default(1_800),
     /** Public site origin used to build reset links. */
     APP_PUBLIC_URL: z.string().url().default("http://localhost:3000"),
+    /**
+     * Directory for uploaded catalog and profile images.
+     * Relative paths are resolved from the API process working directory.
+     */
+    UPLOAD_DIR: z.string().min(1).default("uploads"),
+    /** Origin used in stored image URLs. No path, query, or hash. */
+    API_PUBLIC_URL: z
+      .string()
+      .url()
+      .default("http://localhost:4000")
+      .refine((value) => {
+        const url = new URL(value);
+        return url.pathname === "/" && url.search === "" && url.hash === "";
+      }, "API_PUBLIC_URL must be an origin with no path, query, or hash"),
     /** Leave blank to skip real email. All five SMTP values are required to send. */
     SMTP_HOST: z.string().default(""),
     SMTP_PORT: z.coerce.number().int().positive().max(65535).default(587),
@@ -65,6 +81,8 @@ const envSchema = z
     return {
       ...value,
       ENABLE_API_DOCS: enableApiDocs,
+      UPLOAD_DIR: path.resolve(value.UPLOAD_DIR),
+      API_PUBLIC_URL: value.API_PUBLIC_URL.replace(/\/$/, ""),
     };
   });
 

@@ -22,7 +22,7 @@ export function createProductRouter(
   prisma: Database,
 ): ExpressRouter {
   const router: ExpressRouter = Router();
-  const controller = createProductController(prisma);
+  const controller = createProductController(env, prisma);
   const optionalAuth = createOptionalAuth(env, prisma);
   const requireAuth = createRequireAuth(env, prisma);
 

@@ -635,6 +635,70 @@
           ]
         },
         {
+          "name": "Replace own profile image",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me/avatar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me",
+                "avatar"
+              ]
+            },
+            "description": "One profile image per user. Send multipart form-data with a single field named `file`.\nJPEG, PNG, or WebP, at most 5 MB. A new upload replaces the previous file.\n\n**Auth:** `Authorization: Bearer {{token}}`.\nIn Postman, set the body to form-data, key `file`, type File.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"profile\": {\n      \"email\": \"customer-demo@example.com\",\n      \"firstName\": \"Nesma\",\n      \"lastName\": \"Bloom\",\n      \"phone\": null,\n      \"avatarUrl\": \"http://localhost:4000/api/v1/media/avatars/1.jpg\"\n    }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 400",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Image must be a JPEG, PNG, or WebP file.\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
           "name": "List users (ADMIN)",
           "request": {
             "method": "GET",
@@ -810,6 +874,110 @@
                 }
               ],
               "body": "{\n  \"status\": \"error\",\n  \"message\": \"Cannot remove the last active admin.\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Uploads",
+      "item": [
+        {
+          "name": "Upload catalog image",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT from Login/Register (`data.token` → collection `token`)."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/uploads/images",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "uploads",
+                "images"
+              ]
+            },
+            "description": "Stores one catalog image and returns `data.url`.\nSave that URL as a category `imageUrl` or a product image `url`.\nSend multipart form-data with a single field named `file` (JPEG, PNG, or WebP, at most 5 MB).\n\n**Role:** ADMIN.\n**Auth:** `Authorization: Bearer {{token}}`.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success 201",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"url\": \"http://localhost:4000/api/v1/media/catalog/00000000-0000-4000-8000-000000000000.jpg\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "Error 403",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"Insufficient permissions.\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Read uploaded image",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/media/{scope}/{filename}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "media",
+                "{scope}",
+                "{filename}"
+              ]
+            },
+            "description": "Public image bytes. `scope` is `catalog` or `avatars`. Filenames are generated by the upload routes.\n\nTips: Login/Register capture `data.token` into `{{token}}`. Protected requests send `Authorization: Bearer {{token}}`.\nNever paste real JWTs into this collection file."
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"note\": \"Binary image body, not JSON.\"\n}",
               "_postman_previewlanguage": "json"
             }
           ]

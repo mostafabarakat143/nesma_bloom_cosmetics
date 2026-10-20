@@ -19,7 +19,7 @@ export function createCategoryRouter(
   prisma: Database,
 ): ExpressRouter {
   const router: ExpressRouter = Router();
-  const controller = createCategoryController(prisma);
+  const controller = createCategoryController(env, prisma);
   const optionalAuth = createOptionalAuth(env, prisma);
   const requireAuth = createRequireAuth(env, prisma);
 

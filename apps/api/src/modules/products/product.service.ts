@@ -3,6 +3,8 @@ import type { Request } from "express";
 import { AppError } from "../../common/errors/app-error.js";
 import { slugifyFromName } from "../../common/utils/slug.js";
 import type { Database } from "../../config/database.js";
+import type { Env } from "../../config/env.js";
+import { releaseUnusedImage } from "../uploads/image-storage.js";
 import { isPublicProductVisible } from "../categories/catalog-visibility.js";
 import { toProductDto, type ProductDto } from "./product.mapper.js";
 import {
@@ -360,6 +362,7 @@ export async function updateProductImageService(
   productId: number,
   imageId: number,
   input: UpdateProductImageBody,
+  env: Env,
 ): Promise<ProductDto> {
   const product = await findProductById(prisma, productId);
   if (!product) {
@@ -370,6 +373,8 @@ export async function updateProductImageService(
   if (!image) {
     throw AppError.notFound("Product image not found");
   }
+
+  const previousUrl = image.url;
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -395,6 +400,10 @@ export async function updateProductImageService(
     throw error;
   }
 
+  if (input.url !== undefined && input.url !== previousUrl) {
+    await releaseUnusedImage(env, prisma, previousUrl);
+  }
+
   const refreshed = await findProductById(prisma, productId);
   if (!refreshed) {
     throw AppError.notFound("Product not found");
@@ -406,6 +415,7 @@ export async function deleteProductImageService(
   prisma: Database,
   productId: number,
   imageId: number,
+  env: Env,
 ): Promise<ProductDto> {
   const product = await findProductById(prisma, productId);
   if (!product) {
@@ -435,6 +445,8 @@ export async function deleteProductImageService(
     }
     throw error;
   }
+
+  await releaseUnusedImage(env, prisma, image.url);
 
   const refreshed = await findProductById(prisma, productId);
   if (!refreshed) {

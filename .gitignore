@@ -19,5 +19,9 @@ backups/
 # Prisma generated client (regenerate with `pnpm --filter @cosmetics/api db:generate`)
 apps/api/src/generated/
 
+# Uploaded catalog and profile images (local disk). Do not ignore src/modules/uploads.
+/uploads/
+apps/api/uploads/
+
 # Migration rehearsal / scratch (official SQL lives under prisma/migrations/)
 apps/api/prisma/proposed/

@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 
 import type { Database } from "../../config/database.js";
+import type { Env } from "../../config/env.js";
 import type {
   CreateProductBody,
   CreateProductImageBody,
@@ -19,7 +20,7 @@ import {
   updateProductService,
 } from "./product.service.js";
 
-export function createProductController(prisma: Database) {
+export function createProductController(env: Env, prisma: Database) {
   return {
     async list(req: Request, res: Response, next: NextFunction): Promise<void> {
       try {
@@ -116,6 +117,7 @@ export function createProductController(prisma: Database) {
           id,
           imageId,
           body,
+          env,
         );
         res.status(200).json({ status: "success", data: { product } });
       } catch (error) {
@@ -130,7 +132,7 @@ export function createProductController(prisma: Database) {
     ): Promise<void> {
       try {
         const { id, imageId } = req.params as unknown as { id: number; imageId: number };
-        const product = await deleteProductImageService(prisma, id, imageId);
+        const product = await deleteProductImageService(prisma, id, imageId, env);
         res.status(200).json({ status: "success", data: { product } });
       } catch (error) {
         next(error);

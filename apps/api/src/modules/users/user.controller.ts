@@ -1,20 +1,23 @@
 import type { NextFunction, Request, Response } from "express";
 
 import type { Database } from "../../config/database.js";
+import type { Env } from "../../config/env.js";
 import type {
   ListUsersQuery,
   UpdateProfileBody,
   UpdateUserBody,
 } from "./user.schema.js";
+import { readImageUpload } from "../uploads/read-image-upload.js";
 import {
   getOwnProfile,
   getUserById,
   listUsers,
+  replaceOwnAvatar,
   updateOwnProfile,
   updateUser,
 } from "./user.service.js";
 
-export function createUserController(prisma: Database) {
+export function createUserController(env: Env, prisma: Database) {
   return {
     async getMyProfile(
       req: Request,
@@ -36,7 +39,26 @@ export function createUserController(prisma: Database) {
     ): Promise<void> {
       try {
         const body = req.body as UpdateProfileBody;
-        const profile = await updateOwnProfile(prisma, req.user!.id, body);
+        const profile = await updateOwnProfile(prisma, req.user!.id, body, env);
+        res.status(200).json({ status: "success", data: { profile } });
+      } catch (error) {
+        next(error);
+      }
+    },
+
+    async replaceMyAvatar(
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<void> {
+      try {
+        const bytes = await readImageUpload(req);
+        const profile = await replaceOwnAvatar(
+          env,
+          prisma,
+          req.user!.id,
+          bytes,
+        );
         res.status(200).json({ status: "success", data: { profile } });
       } catch (error) {
         next(error);
