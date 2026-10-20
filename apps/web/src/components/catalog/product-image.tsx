@@ -2,34 +2,33 @@
 
 import { useState } from "react";
 
+import { isDisplayableImageUrl } from "@/components/catalog/image-text-tone";
+
 type ProductImageProps = {
   url: string | null;
   alt: string;
+  crossOrigin?: "" | "anonymous" | "use-credentials";
+  onLoad?: (img: HTMLImageElement) => void;
+  onFailed?: () => void;
 };
 
-function isDisplayableUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
-export function ProductImage({ url, alt }: ProductImageProps) {
-  const safeUrl = url && isDisplayableUrl(url) ? url : null;
+export function ProductImage({
+  url,
+  alt,
+  crossOrigin,
+  onLoad,
+  onFailed,
+}: ProductImageProps) {
+  const safeUrl = url && isDisplayableImageUrl(url) ? url : null;
   const [failed, setFailed] = useState(false);
 
   if (!safeUrl || failed) {
     return (
       <div
-        className="flex h-full w-full items-center justify-center bg-blush p-6 text-center"
+        className="h-full w-full bg-white"
         aria-hidden="true"
-      >
-        <span className="font-display text-3xl leading-tight text-rose-deep">
-          {alt}
-        </span>
-      </div>
+        title={alt}
+      />
     );
   }
 
@@ -41,8 +40,13 @@ export function ProductImage({ url, alt }: ProductImageProps) {
       alt={alt}
       loading="lazy"
       decoding="async"
-      className="h-full w-full object-cover"
-      onError={() => setFailed(true)}
+      crossOrigin={crossOrigin}
+      className="h-full w-full object-cover object-center"
+      onLoad={(event) => onLoad?.(event.currentTarget)}
+      onError={() => {
+        setFailed(true);
+        onFailed?.();
+      }}
     />
   );
 }

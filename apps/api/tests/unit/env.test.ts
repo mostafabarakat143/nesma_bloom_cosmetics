@@ -1,3 +1,4 @@
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { getCorsOrigins, loadEnv } from "../../src/config/env.js";
@@ -15,6 +16,8 @@ describe("loadEnv", () => {
     expect(env.JWT_TTL_SECONDS).toBe(604_800);
     expect(env.JWT_ISSUER).toBe("nesma-bloom-api");
     expect(env.JWT_AUDIENCE).toBe("nesma-bloom-clients");
+    expect(env.API_PUBLIC_URL).toBe("http://localhost:4000");
+    expect(env.UPLOAD_DIR).toBe(path.resolve("uploads"));
   });
 
   it("fails fast on invalid configuration", () => {
@@ -42,6 +45,15 @@ describe("loadEnv", () => {
         JWT_ACCESS_SECRET: "short",
       }),
     ).toThrow(/JWT_ACCESS_SECRET/);
+  });
+
+  it("rejects an API public URL that includes a path", () => {
+    expect(() =>
+      loadEnv({
+        ...baseTestEnvVars,
+        API_PUBLIC_URL: "http://localhost:4000/api",
+      }),
+    ).toThrow(/API_PUBLIC_URL/);
   });
 
   it("parses comma-separated CORS origins", () => {

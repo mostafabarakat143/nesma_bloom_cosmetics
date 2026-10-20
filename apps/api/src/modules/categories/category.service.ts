@@ -3,6 +3,8 @@ import type { Request } from "express";
 import { AppError } from "../../common/errors/app-error.js";
 import { slugifyFromName } from "../../common/utils/slug.js";
 import type { Database } from "../../config/database.js";
+import type { Env } from "../../config/env.js";
+import { releaseUnusedImage } from "../uploads/image-storage.js";
 import { toCategoryDto, type CategoryDto } from "./category.mapper.js";
 
 type AuthUser = NonNullable<Request["user"]>;
@@ -135,27 +137,40 @@ export async function updateCategoryService(
   prisma: Database,
   id: number,
   input: UpdateCategoryBody,
+  env: Env,
 ): Promise<CategoryDto> {
   const existing = await findCategoryById(prisma, id);
   if (!existing) {
     throw AppError.notFound("Category not found");
   }
 
+  const previousUrl = existing.imageUrl;
+
   // Name updates do not auto-change slug; slug changes only when explicitly sent.
+  let category;
   try {
-    const category = await updateCategory(prisma, id, {
+    category = await updateCategory(prisma, id, {
       ...(input.name !== undefined ? { name: input.name } : {}),
       ...(input.slug !== undefined ? { slug: input.slug } : {}),
       ...(input.imageUrl !== undefined ? { imageUrl: input.imageUrl } : {}),
       ...(input.status !== undefined ? { status: input.status } : {}),
     });
-    return toCategoryDto(category);
   } catch (error) {
     if (isUniqueConstraintError(error)) {
       throw AppError.conflict("Category slug already exists");
     }
     throw error;
   }
+
+  if (
+    input.imageUrl !== undefined &&
+    previousUrl &&
+    previousUrl !== input.imageUrl
+  ) {
+    await releaseUnusedImage(env, prisma, previousUrl);
+  }
+
+  return toCategoryDto(category);
 }
 
 /**

@@ -1,9 +1,14 @@
 import { AppError } from "../../common/errors/app-error.js";
 import type { Database } from "../../config/database.js";
+import type { Env } from "../../config/env.js";
 import {
   toPublicProfile,
   type PublicProfileDto,
 } from "../auth/auth.mapper.js";
+import {
+  prepareAvatarFile,
+  releaseUnusedImage,
+} from "../uploads/image-storage.js";
 import type { UpdateProfileBody, UpdateUserBody, ListUsersQuery } from "./user.schema.js";
 import {
   findUserForAdmin,
@@ -31,11 +36,14 @@ export async function updateOwnProfile(
   prisma: Database,
   userId: number,
   input: UpdateProfileBody,
+  env: Env,
 ): Promise<PublicProfileDto> {
   const existing = await prisma.userProfile.findUnique({ where: { userId } });
   if (!existing) {
     throw AppError.notFound("Profile not found");
   }
+
+  const previousUrl = existing.avatarUrl;
 
   const profile = await prisma.userProfile.update({
     where: { userId },
@@ -47,6 +55,60 @@ export async function updateOwnProfile(
     },
     include: { user: { select: { email: true } } },
   });
+
+  if (
+    input.avatarUrl !== undefined &&
+    previousUrl &&
+    previousUrl !== input.avatarUrl
+  ) {
+    await releaseUnusedImage(env, prisma, previousUrl);
+  }
+
+  return toPublicProfile(profile, profile.user.email);
+}
+
+/** Replace the single profile image for this user. The previous file is removed. */
+export async function replaceOwnAvatar(
+  env: Env,
+  prisma: Database,
+  userId: number,
+  bytes: Buffer,
+): Promise<PublicProfileDto> {
+  const existing = await prisma.userProfile.findUnique({
+    where: { userId },
+    include: { user: { select: { email: true } } },
+  });
+  if (!existing) {
+    throw AppError.notFound("Profile not found");
+  }
+
+  const prepared = await prepareAvatarFile(env, userId, bytes);
+  let profile;
+  try {
+    profile = await prisma.userProfile.update({
+      where: { userId },
+      data: { avatarUrl: prepared.url },
+      include: { user: { select: { email: true } } },
+    });
+  } catch (error) {
+    await prepared.abort();
+    throw error;
+  }
+
+  try {
+    await prepared.commit();
+  } catch (error) {
+    await prisma.userProfile.update({
+      where: { userId },
+      data: { avatarUrl: existing.avatarUrl },
+    });
+    await prepared.abort();
+    throw error;
+  }
+
+  if (existing.avatarUrl && existing.avatarUrl !== prepared.url) {
+    await releaseUnusedImage(env, prisma, existing.avatarUrl);
+  }
 
   return toPublicProfile(profile, profile.user.email);
 }

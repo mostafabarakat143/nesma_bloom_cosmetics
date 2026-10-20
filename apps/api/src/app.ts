@@ -28,6 +28,8 @@ import { createDocsRouter } from "./docs/docs.routes.js";
 import { createOrderRouter } from "./modules/orders/order.routes.js";
 import { createProductRouter } from "./modules/products/product.routes.js";
 import { createSubcategoryRouter } from "./modules/subcategories/subcategory.routes.js";
+import { createMediaRouter } from "./modules/uploads/media.routes.js";
+import { createUploadRouter } from "./modules/uploads/upload.routes.js";
 import { createUserRouter } from "./modules/users/user.routes.js";
 
 export type AppDependencies = {
@@ -44,7 +46,12 @@ export function createApp({ env, logger, prisma, mailer }: AppDependencies): Exp
   app.set("trust proxy", 1);
 
   app.use(requestIdMiddleware);
-  app.use(helmet());
+  app.use(
+    helmet({
+      // Catalog and profile images are loaded by the storefront on another origin.
+      crossOriginResourcePolicy: { policy: "cross-origin" },
+    }),
+  );
 
   const corsOrigins = getCorsOrigins(env.CORS_ORIGIN);
   if (corsOrigins !== false) {
@@ -113,6 +120,8 @@ export function createApp({ env, logger, prisma, mailer }: AppDependencies): Exp
     ),
   );
   app.use("/api/v1/users", createUserRouter(env, prisma));
+  app.use("/api/v1/uploads", createUploadRouter(env, prisma));
+  app.use("/api/v1/media", createMediaRouter(env));
   app.use("/api/v1/contact", createContactRouter(env, prisma));
   app.use("/api/v1/admin", createDashboardRouter(env, prisma));
   app.use("/api/v1/categories", createCategoryRouter(env, prisma));

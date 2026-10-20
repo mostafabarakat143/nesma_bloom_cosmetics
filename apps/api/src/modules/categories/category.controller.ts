@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 
 import type { Database } from "../../config/database.js";
+import type { Env } from "../../config/env.js";
 import type {
   CreateCategoryBody,
   ListCategoriesQuery,
@@ -14,7 +15,7 @@ import {
   updateCategoryService,
 } from "./category.service.js";
 
-export function createCategoryController(prisma: Database) {
+export function createCategoryController(env: Env, prisma: Database) {
   return {
     async list(req: Request, res: Response, next: NextFunction): Promise<void> {
       try {
@@ -62,7 +63,7 @@ export function createCategoryController(prisma: Database) {
       try {
         const { id } = req.params as unknown as { id: number };
         const body = req.body as UpdateCategoryBody;
-        const category = await updateCategoryService(prisma, id, body);
+        const category = await updateCategoryService(prisma, id, body, env);
         res.status(200).json({ status: "success", data: { category } });
       } catch (error) {
         next(error);

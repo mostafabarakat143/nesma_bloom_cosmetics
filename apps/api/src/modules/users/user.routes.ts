@@ -15,7 +15,7 @@ import {
 
 export function createUserRouter(env: Env, prisma: Database): ExpressRouter {
   const router: ExpressRouter = Router();
-  const controller = createUserController(prisma);
+  const controller = createUserController(env, prisma);
   const requireAuth = createRequireAuth(env, prisma);
 
   router.get("/me/profile", requireAuth, (req, res, next) =>
@@ -27,6 +27,10 @@ export function createUserRouter(env: Env, prisma: Database): ExpressRouter {
     requireAuth,
     validate({ body: updateProfileBodySchema }),
     (req, res, next) => void controller.updateMyProfile(req, res, next),
+  );
+
+  router.post("/me/avatar", requireAuth, (req, res, next) =>
+    void controller.replaceMyAvatar(req, res, next),
   );
 
   // Stub ADMIN-only route for authorization tests / future admin tools.
