@@ -257,6 +257,8 @@
     "increase": "زيادة الكمية",
     "availableCount": "{count} متاح",
     "available": "متاح للطلب",
+    "stockAvailable": "متاح",
+    "stockUnavailable": "غير متاح",
     "added": "أُضيف إلى السلة.",
     "addedClamped": "أُضيف حتى الكمية المتاحة.",
     "full": "الطلب يمكن أن يضم ٥٠ منتجًا على الأكثر.",

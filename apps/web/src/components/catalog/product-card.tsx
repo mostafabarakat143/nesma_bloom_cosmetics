@@ -12,10 +12,7 @@ export async function ProductCard({ product }: { product: CatalogProduct }) {
   const t = await getTranslations("product");
   const session = await getVerifiedUser();
   const imageAlt = product.image?.altText?.trim() || product.name;
-  const stockLabel =
-    product.stockQty !== null
-      ? t("availableCount", { count: product.stockQty })
-      : t("available");
+  const stockLabel = product.inStock ? t("stockAvailable") : t("stockUnavailable");
   const hasImage = Boolean(
     product.image?.url && isDisplayableImageUrl(product.image.url),
   );
@@ -57,7 +54,7 @@ export async function ProductCard({ product }: { product: CatalogProduct }) {
             <p
               className={`shrink-0 text-xs font-medium leading-none tracking-wide ${mutedClass}`}
             >
-              {product.inStock ? stockLabel : t("outOfStock")}
+              {stockLabel}
             </p>
           </div>
         </Link>

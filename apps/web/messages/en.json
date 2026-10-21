@@ -257,6 +257,8 @@
     "increase": "Increase quantity",
     "availableCount": "{count} available",
     "available": "Available to order",
+    "stockAvailable": "Available",
+    "stockUnavailable": "Not available",
     "added": "Added to your cart.",
     "addedClamped": "Added up to the available quantity.",
     "full": "An order can include at most 50 products.",
