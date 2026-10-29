@@ -9,7 +9,6 @@ export function isPlausibleJwt(token: string): boolean {
   return parts.length === 3 && parts.every((part) => part.length > 0 && JWT_PART.test(part));
 }
 
-/** Reads sub only so the cart can stay visible when Express cannot be reached. Express remains the verifier. */
 export function sessionSubjectId(token: string): number | null {
   const part = token.split(".")[1];
   if (!part) {
@@ -31,7 +30,6 @@ export function sessionSubjectId(token: string): number | null {
   }
 }
 
-/** Reads exp only to size the cookie. Express remains the verifier. */
 export function sessionMaxAgeSeconds(
   token: string,
   nowSeconds = Math.floor(Date.now() / 1000),

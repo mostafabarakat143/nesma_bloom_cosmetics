@@ -1,5 +1,4 @@
 import { getTranslations } from "next-intl/server";
-
 import { AddToOrder } from "@/components/catalog/add-to-order";
 import { isDisplayableImageUrl } from "@/components/catalog/image-text-tone";
 import { ProductImage } from "@/components/catalog/product-image";
@@ -16,7 +15,6 @@ export async function ProductCard({ product }: { product: CatalogProduct }) {
   const hasImage = Boolean(
     product.image?.url && isDisplayableImageUrl(product.image.url),
   );
-  // No image → white fill; use dark label text so it stays readable.
   const onLight = !hasImage;
   const textClass = onLight ? "text-ink" : "text-white";
   const mutedClass = onLight ? "text-ink/80" : "text-white/90";

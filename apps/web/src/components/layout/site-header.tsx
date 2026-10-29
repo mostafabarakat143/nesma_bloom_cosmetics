@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-
 import { SessionCleaner } from "@/components/auth/session-cleaner";
 import { BrandLockup } from "@/components/brand/brand-logo";
 import { LocaleSwitcher } from "@/components/i18n/locale-switcher";
@@ -9,7 +8,6 @@ import { getAccountProfile } from "@/lib/auth/profile";
 import { readSessionToken } from "@/lib/auth/cookies";
 import { sessionSubjectId } from "@/lib/auth/jwt";
 import { getVerifiedUser } from "@/lib/auth/session";
-
 import { AccountNav } from "./account-nav";
 import { CartLink } from "./cart-link";
 import { DesktopNav } from "./desktop-nav";

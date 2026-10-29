@@ -17,7 +17,6 @@ export function AddToOrder({
   ownerId,
   accountUnavailable,
   compact = false,
-  /** When compact on a light image, use dark qty controls. */
   compactOnLight = false,
 }: {
   productId: number;

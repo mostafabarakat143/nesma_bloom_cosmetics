@@ -1,11 +1,9 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-
 import { KnownText } from "@/components/i18n/known-text";
 import { useRouter } from "@/i18n/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
-
 import { ProductImage } from "@/components/catalog/product-image";
 import { EmptyState } from "@/components/catalog/empty-state";
 import { postAuth } from "@/components/auth/post-auth";

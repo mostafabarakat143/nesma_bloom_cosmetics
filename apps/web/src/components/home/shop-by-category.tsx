@@ -1,5 +1,4 @@
 import { getTranslations } from "next-intl/server";
-
 import { CategoryCard } from "@/components/catalog/category-card";
 import { SectionHeading } from "@/components/home/section-heading";
 import { Button } from "@/components/ui/button";
@@ -11,7 +10,6 @@ export async function ShopByCategory({
   categories: CatalogCategory[] | null;
 }) {
   const t = await getTranslations("home");
-
   return (
     <section
       className="mx-auto w-full max-w-6xl px-5 py-16 sm:py-20"

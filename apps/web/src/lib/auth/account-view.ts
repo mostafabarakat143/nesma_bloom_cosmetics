@@ -4,7 +4,6 @@ export type AccountProfileName = {
   avatarUrl: string | null;
 };
 
-/** Display values for the header. Identity still comes from Express `/auth/me`. */
 export type AccountView = {
   email: string;
   label: string;

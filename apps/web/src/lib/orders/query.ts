@@ -1,7 +1,5 @@
 import { firstString, type RawSearchParams } from "@/lib/shop-query";
-
 import { ORDER_STATUSES, type OrderStatus } from "./parse";
-
 export const ORDER_PAGE_SIZE = 20;
 
 export type OrderListQuery = {

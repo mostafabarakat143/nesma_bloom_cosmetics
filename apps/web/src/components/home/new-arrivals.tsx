@@ -1,10 +1,8 @@
 import { getTranslations } from "next-intl/server";
-
 import { ProductCard } from "@/components/catalog/product-card";
 import { SectionHeading } from "@/components/home/section-heading";
 import { Button } from "@/components/ui/button";
 import type { CatalogProduct } from "@/lib/api/catalog";
-
 export async function NewArrivals({
   products,
 }: {

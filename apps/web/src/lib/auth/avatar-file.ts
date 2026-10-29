@@ -1,4 +1,3 @@
-/** Matches the API: one JPEG, PNG, or WebP profile photo, at most 5 MB. */
 export const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 
 export const AVATAR_FILE_MESSAGES = {

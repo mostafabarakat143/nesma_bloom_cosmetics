@@ -42,7 +42,6 @@ export type ShopQuery = {
   sort: ShopSort;
   page: number;
   priceError: string | null;
-  /** "egp" keeps an invalid typed amount in the URL. Valid ranges use integer piastres. */
   priceUrl: "minor" | "egp";
   minPriceRaw: string;
   maxPriceRaw: string;
@@ -59,7 +58,6 @@ export function firstString(value: string | string[] | undefined): string {
   return value ?? "";
 }
 
-/** Positive 32-bit id, or null when the field is empty. "invalid" is never sent to the API. */
 export function parsePositiveId(raw: string): number | null | "invalid" {
   const trimmed = raw.trim();
   if (trimmed === "") {

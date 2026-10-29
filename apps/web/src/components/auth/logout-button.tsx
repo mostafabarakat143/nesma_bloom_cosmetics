@@ -2,7 +2,6 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-
 import { KnownText } from "@/components/i18n/known-text";
 import { useRouter } from "@/i18n/navigation";
 import { MESSAGES } from "@/lib/auth/credentials";

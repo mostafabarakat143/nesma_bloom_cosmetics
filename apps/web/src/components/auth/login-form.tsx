@@ -2,7 +2,6 @@
 
 import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
-
 import { authLinkClass } from "@/components/auth/auth-shell";
 import { PasswordField, TextField } from "@/components/auth/fields";
 import { postAuth } from "@/components/auth/post-auth";

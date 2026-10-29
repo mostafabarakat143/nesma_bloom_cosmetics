@@ -1,7 +1,5 @@
 import { getLocale, getTranslations } from "next-intl/server";
-
 import { Button } from "@/components/ui/button";
-
 export async function AboutPreview() {
   const t = await getTranslations("home");
   const locale = await getLocale();

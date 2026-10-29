@@ -26,10 +26,7 @@ function messageOf(body: unknown): string {
   return "Request failed.";
 }
 
-/**
- * Server-side Express call. The Authorization value, when present, comes from
- * the HttpOnly session cookie. Callers must not pass a browser header through.
- */
+
 export async function callExpress(
   path: string,
   init: RequestInit,

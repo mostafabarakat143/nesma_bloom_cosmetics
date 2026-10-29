@@ -2,18 +2,14 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
-
 import { Link, usePathname } from "@/i18n/navigation";
-
 import { AccountAvatar } from "@/components/account/account-avatar";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { Button } from "@/components/ui/button";
 import type { AccountView } from "@/lib/auth/account-view";
-
 const menuLink =
   "block rounded-2xl px-3 py-3 text-base text-ink hover:bg-blush focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep";
-const loginButton =
-  "inline-flex h-10 items-center justify-center rounded-full bg-rose-deep px-4 text-sm font-medium text-white hover:bg-rose-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep";
-
+const loginButton = "h-10! rounded-full! px-4!";
 export function AccountNav({
   account,
   unavailable = false,
@@ -28,18 +24,14 @@ export function AccountNav({
   if (unavailable) {
     return null;
   }
-
   if (!account) {
     return <SignedOutLinks layout={layout} onCloseCurrent={onCloseCurrent} />;
   }
-
   if (layout === "menu") {
     return <AccountSummary account={account} onCloseCurrent={onCloseCurrent} />;
   }
-
   return <AccountMenu account={account} />;
 }
-
 function SignedOutLinks({
   layout,
   onCloseCurrent,
@@ -49,9 +41,8 @@ function SignedOutLinks({
 }) {
   const pathname = usePathname();
   const t = useTranslations("common");
-
   return (
-    <Link
+    <Button
       href="/login"
       className={layout === "menu" ? `${loginButton} w-full` : loginButton}
       aria-current={pathname === "/login" ? "page" : undefined}
@@ -62,10 +53,9 @@ function SignedOutLinks({
       }}
     >
       {t("login")}
-    </Link>
+    </Button>
   );
 }
-
 function AccountSummary({
   account,
   onCloseCurrent,
@@ -74,7 +64,6 @@ function AccountSummary({
   onCloseCurrent?: () => void;
 }) {
   const t = useTranslations("common");
-
   return (
     <div className="px-3 py-3">
       <div className="flex items-center gap-3">
@@ -162,9 +151,10 @@ function AccountMenu({ account }: { account: AccountView }) {
 
   return (
     <div ref={rootRef} className="relative">
-      <button
+      <Button
         ref={buttonRef}
         type="button"
+        variant="unstyled"
         className="inline-flex max-w-36 cursor-pointer flex-col items-center gap-1 rounded-lg px-1 py-0.5 text-center text-xs leading-tight text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep"
         aria-haspopup="menu"
         aria-expanded={open}
@@ -173,14 +163,14 @@ function AccountMenu({ account }: { account: AccountView }) {
       >
         <AccountAvatar initials={account.initials} avatarUrl={account.avatarUrl} />
         <span className="w-full truncate">{account.fullName}</span>
-      </button>
+      </Button>
       {open ? (
         <div
           ref={menuRef}
           id={menuId}
           role="menu"
           aria-label={t("profile")}
-          className="absolute end-0 top-full z-50 mt-1 w-40 rounded-2xl border border-line bg-surface p-1.5 shadow-[0_8px_24px_rgb(62_52_46/8%)]"
+          className="absolute inset-e-0 top-full z-50 mt-1 w-40 rounded-2xl border border-line bg-surface p-1.5 shadow-[0_8px_24px_rgb(62_52_46/8%)]"
           onKeyDown={onMenuKeyDown}
         >
           <Link

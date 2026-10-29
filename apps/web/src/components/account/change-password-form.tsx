@@ -1,11 +1,9 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-
 import { KnownText } from "@/components/i18n/known-text";
 import { useRouter } from "@/i18n/navigation";
 import { useState, type FormEvent } from "react";
-
 import { PasswordField } from "@/components/auth/fields";
 import { postAuth } from "@/components/auth/post-auth";
 import { Button } from "@/components/ui/button";

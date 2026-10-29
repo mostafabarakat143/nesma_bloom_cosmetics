@@ -1,10 +1,3 @@
-/**
- * Cookie mutations are same-site POSTs.
- * SameSite=Lax withholds the session cookie on cross-site POST.
- * Origin must match this host, and the custom header blocks a classic
- * HTML form, which cannot set it. No second CSRF cookie is required.
- * Browser Authorization headers are never read here.
- */
 export const SAME_ORIGIN_HEADER = "x-nesma-request";
 export const SAME_ORIGIN_VALUE = "same-origin";
 

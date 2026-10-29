@@ -1,6 +1,4 @@
-/** "light" bg → use dark (black) text; "dark" bg → use light (white) text. */
 export type ImageTextTone = "light" | "dark";
-
 export function isDisplayableImageUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
@@ -10,7 +8,6 @@ export function isDisplayableImageUrl(url: string): boolean {
   }
 }
 
-/** Relative luminance 0–1 from sRGB channels (0–255). */
 function relativeLuminance(r: number, g: number, b: number): number {
   const toLinear = (c: number) => {
     const s = c / 255;
@@ -18,11 +15,6 @@ function relativeLuminance(r: number, g: number, b: number): number {
   };
   return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
 }
-
-/**
- * Sample the bottom band of an image to pick readable label text.
- * Returns "light" when the band is bright (use black text).
- */
 export function toneFromImageElement(img: HTMLImageElement): ImageTextTone {
   const canvas = document.createElement("canvas");
   const sampleH = Math.max(8, Math.floor(img.naturalHeight * 0.18));

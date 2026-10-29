@@ -29,8 +29,6 @@ export function AccountAvatar({
   }
 
   return (
-    // Profile URLs come from the customer and are not limited to one image host.
-    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={avatarUrl}
       alt=""

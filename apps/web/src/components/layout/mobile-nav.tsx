@@ -4,6 +4,7 @@ import { Menu, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { Link, usePathname } from "@/i18n/navigation";
 import type { AccountView } from "@/lib/auth/account-view";
 import { mainNav } from "@/lib/navigation";
@@ -90,9 +91,10 @@ export function MobileNav({
 
   return (
     <div ref={rootRef} className="md:hidden">
-      <button
+      <Button
         ref={buttonRef}
         type="button"
+        variant="unstyled"
         className="inline-flex size-11 items-center justify-center rounded-2xl text-ink hover:bg-blush focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep"
         aria-expanded={open}
         aria-controls="mobile-navigation"
@@ -100,7 +102,7 @@ export function MobileNav({
         onClick={() => setOpenPath(open ? null : pathname)}
       >
         {open ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
-      </button>
+      </Button>
       {open ? (
         <div
           className="fixed inset-0 z-40 bg-[rgb(52_42_46/0.28)]"

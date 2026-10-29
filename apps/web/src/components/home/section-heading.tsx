@@ -1,5 +1,4 @@
 import { getLocale } from "next-intl/server";
-
 type SectionHeadingProps = {
   id: string;
   eyebrow?: string;

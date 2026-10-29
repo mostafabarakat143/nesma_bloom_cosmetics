@@ -1,4 +1,3 @@
-/** Server-only Express base URL. Do not prefix this with NEXT_PUBLIC_. */
 export function getApiUrl(): string {
   const url = process.env.API_URL?.trim();
 

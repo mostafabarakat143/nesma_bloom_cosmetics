@@ -1,5 +1,4 @@
 import { cache } from "react";
-
 import { readSessionToken } from "./cookies";
 import { bearerInit, callExpress } from "./express";
 import { parseAccountProfile, type AccountProfile } from "./profile-parse";
@@ -23,6 +22,4 @@ async function loadAccountProfile(): Promise<AccountProfile | null> {
   }
   return parseAccountProfile(result.data.profile);
 }
-
-/** One profile read per render, and only after `/auth/me` has verified the session. */
 export const getAccountProfile = cache(loadAccountProfile);

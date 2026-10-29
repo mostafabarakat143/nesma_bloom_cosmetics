@@ -1,9 +1,6 @@
 import { getTranslations } from "next-intl/server";
-
 import { Link } from "@/i18n/navigation";
-
 import { shopHref, type ShopQuery } from "@/lib/shop-query";
-
 function visiblePages(current: number, total: number): number[] {
   const end = Math.min(total, Math.max(current + 2, 5));
   const start = Math.max(1, end - 4);

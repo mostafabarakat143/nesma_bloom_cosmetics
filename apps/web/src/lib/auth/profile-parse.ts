@@ -36,7 +36,6 @@ export function optionalProfilePhone(value: unknown): string | null {
   return trimmed;
 }
 
-/** Only http(s) URLs are safe to render. Anything else becomes the initials fallback. */
 export function parseAvatarUrl(value: unknown): string | null {
   if (typeof value !== "string") {
     return null;
@@ -84,7 +83,6 @@ export function parseAccountProfile(value: unknown): AccountProfile | null {
   };
 }
 
-/** Profile fields returned by the BFF after a successful save. */
 export function parseSavedProfile(value: unknown): AccountProfile | null {
   if (!isRecord(value) || typeof value.email !== "string" || value.email.trim() === "") {
     return null;

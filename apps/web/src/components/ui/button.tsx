@@ -1,12 +1,13 @@
 import { Link } from "@/i18n/navigation";
 import type { ComponentProps } from "react";
 
-type Variant = "primary" | "secondary" | "ghost";
+type Variant = "primary" | "secondary" | "ghost" | "unstyled";
 
 const variantClass: Record<Variant, string> = {
   primary: "bg-rose-deep text-white hover:bg-rose-hover",
   secondary: "border border-rose bg-surface text-ink hover:bg-blush",
   ghost: "text-rose-deep hover:bg-blush",
+  unstyled: "",
 };
 
 const baseClass =
@@ -24,6 +25,9 @@ type ButtonAsButton = CommonProps &
   ComponentProps<"button"> & { href?: undefined };
 
 function classesFor(variant: Variant = "primary", className = "") {
+  if (variant === "unstyled") {
+    return className;
+  }
   return `${baseClass} ${variantClass[variant]} ${className}`;
 }
 

@@ -4,7 +4,7 @@ import { Hero } from "@/components/home/hero";
 import { NewArrivals } from "@/components/home/new-arrivals";
 import { Newsletter } from "@/components/home/newsletter";
 import { ShopByCategory } from "@/components/home/shop-by-category";
-import { WhyNesma } from "@/components/home/why-nesma";
+import { WhyLamsa } from "@/components/home/why-lamsa";
 import { getCategories, getNewArrivals } from "@/lib/api/catalog";
 
 export default async function HomePage() {
@@ -19,7 +19,7 @@ export default async function HomePage() {
       <Hero />
       <ShopByCategory categories={categories} />
       <NewArrivals products={products} />
-      <WhyNesma />
+      <WhyLamsa />
       <AboutPreview />
       <Newsletter />
     </>

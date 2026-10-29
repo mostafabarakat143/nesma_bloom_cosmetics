@@ -1,8 +1,6 @@
 import { cache } from "react";
-
 import { getApiUrl } from "@/lib/env";
 import { SHOP_PAGE_SIZE, type ShopSort } from "@/lib/shop-query";
-
 export type CatalogCategory = {
   id: number;
   name: string;
@@ -31,7 +29,6 @@ export type CatalogProduct = {
   priceMinor: number;
   currency: string;
   inStock: boolean;
-  /** Public stock hint. Express remains the authority when an order is placed. */
   stockQty: number | null;
   category: { id: number; name: string };
   subcategory: { id: number; name: string };
@@ -358,7 +355,6 @@ export type ShopProductQuery = {
   page: number;
 };
 
-/** Public catalog page. Status and availability stay on the guest-safe values. */
 export function listShopProducts(
   query: ShopProductQuery,
 ): Promise<CatalogPage<CatalogProduct> | null> {
@@ -419,6 +415,4 @@ async function fetchCatalogProduct(id: number): Promise<ProductLookup> {
     return { status: "unavailable" };
   }
 }
-
-/** One product fetch shared by metadata and the product page. */
 export const getCatalogProduct = cache(fetchCatalogProduct);

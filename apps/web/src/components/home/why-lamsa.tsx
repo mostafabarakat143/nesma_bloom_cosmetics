@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 
-export async function WhyNesma() {
+export async function WhyLamsa() {
   const t = await getTranslations("home");
   const reasons = [
     { title: t("calmTitle"), body: t("calmBody") },

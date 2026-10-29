@@ -64,11 +64,6 @@ export function profileUpdateError(errors: ProfileFieldErrors): string {
   );
 }
 
-/**
- * Mirrors the Express profile schema: names 1–100, phone 3–30, avatar URL up to 2048.
- * A blank field is stored as null. Only http(s) avatar URLs are accepted.
- * Email, role, and any other field are rejected.
- */
 export function validateProfileUpdate(
   body: unknown,
 ): { ok: true; value: ProfileUpdate } | { ok: false; errors: ProfileFieldErrors } {

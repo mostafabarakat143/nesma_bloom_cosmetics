@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-
 import { isDisplayableImageUrl } from "@/components/catalog/image-text-tone";
-
 type ProductImageProps = {
   url: string | null;
   alt: string;
@@ -11,7 +9,6 @@ type ProductImageProps = {
   onLoad?: (img: HTMLImageElement) => void;
   onFailed?: () => void;
 };
-
 export function ProductImage({
   url,
   alt,
@@ -21,7 +18,6 @@ export function ProductImage({
 }: ProductImageProps) {
   const safeUrl = url && isDisplayableImageUrl(url) ? url : null;
   const [failed, setFailed] = useState(false);
-
   if (!safeUrl || failed) {
     return (
       <div
@@ -31,10 +27,7 @@ export function ProductImage({
       />
     );
   }
-
   return (
-    // Admin image URLs are arbitrary http(s) hosts. next/image would require a fixed host list.
-    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={safeUrl}
       alt={alt}

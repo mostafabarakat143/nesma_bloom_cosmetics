@@ -1,6 +1,4 @@
 const FALLBACK = "/shop";
-
-/** Same-site relative path only. Blocks protocol-relative and absolute URLs. */
 export function safeNextPath(value: unknown): string {
   if (typeof value !== "string") {
     return FALLBACK;

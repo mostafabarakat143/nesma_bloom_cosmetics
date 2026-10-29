@@ -1,6 +1,5 @@
 const LOCALE_PREFIX = /^\/(ar|en)(?=\/|\?|#|$)/;
 
-/** Removes a leading locale segment so next-intl does not prefix it twice. */
 export function splitLocaleHref(href: string): {
   href: string;
   locale?: "ar" | "en";

@@ -2,7 +2,6 @@
 
 import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
-
 import { authLinkClass } from "@/components/auth/auth-shell";
 import { PasswordField, TextField } from "@/components/auth/fields";
 import { postAuth } from "@/components/auth/post-auth";
@@ -12,7 +11,6 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { splitLocaleHref } from "@/i18n/pathname";
 import { validateRegister, type FieldErrors } from "@/lib/auth/credentials";
 import { safeNextPath } from "@/lib/auth/redirect";
-
 export function RegisterForm({ nextPath }: { nextPath: string }) {
   const router = useRouter();
   const t = useTranslations("auth");
@@ -25,7 +23,7 @@ export function RegisterForm({ nextPath }: { nextPath: string }) {
   const [pending, setPending] = useState(false);
   const loginHref =
     nextPath === "/shop" ? "/login" : `/login?next=${encodeURIComponent(nextPath)}`;
-
+    
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const parsed = validateRegister({ email, password, firstName, lastName });

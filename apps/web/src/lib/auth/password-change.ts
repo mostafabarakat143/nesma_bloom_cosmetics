@@ -64,7 +64,6 @@ export function validatePasswordChange(input: {
   return { ok: true, value: { currentPassword, newPassword } };
 }
 
-/** BFF body. Confirmation stays in the browser and is never forwarded. */
 export function validatePasswordChangeBody(
   body: unknown,
 ): { ok: true; value: PasswordChangeValue } | { ok: false; message: string } {

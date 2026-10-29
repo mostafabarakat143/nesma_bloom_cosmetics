@@ -1,10 +1,8 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-
 import { useRouter } from "@/i18n/navigation";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-
 import { isUsableResetToken } from "@/lib/auth/credentials";
 
 const ResetTokenContext = createContext("");

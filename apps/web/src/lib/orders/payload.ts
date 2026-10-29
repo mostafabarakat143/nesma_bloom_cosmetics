@@ -1,6 +1,5 @@
 export const MAX_ORDER_LINES = 50;
 export const MAX_ORDER_QUANTITY = 100;
-
 export type OrderLine = {
   productId: number;
   quantity: number;

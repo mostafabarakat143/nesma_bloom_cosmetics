@@ -3,7 +3,6 @@ import { ORDER_STATUSES, type OrderStatus } from "@/lib/orders/parse";
 
 const STORAGE_KEY = "nesma_order_draft";
 
-/** Matches Express IDEMPOTENCY_TTL_MS. An older key can be inserted again and create another order. */
 export const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000;
 
 export const EXPIRED_CHECKOUT_MESSAGE =

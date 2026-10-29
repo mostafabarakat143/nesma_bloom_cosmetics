@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
-
 import { isWrongCurrentPassword, validatePasswordChange } from "./auth/password-change";
 import { validateProfileUpdate } from "./auth/profile-update";
 import { safeNextPath } from "./auth/redirect";

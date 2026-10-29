@@ -3,17 +3,13 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
-
 import { usePathname, useRouter } from "@/i18n/navigation";
 import type { AppLocale } from "@/i18n/routing";
-
 import { EgyptFlag, UkFlag } from "./flags";
-
 const locales = [
   { locale: "ar", labelKey: "arabic", Flag: EgyptFlag },
   { locale: "en", labelKey: "english", Flag: UkFlag },
 ] as const;
-
 export function LocaleSwitcher() {
   const locale = useLocale();
   const t = useTranslations("common");
@@ -75,7 +71,7 @@ export function LocaleSwitcher() {
         aria-label={t("language")}
         onClick={() => setOpen((value) => !value)}
       >
-        <CurrentFlag className="h-4 w-6 shrink-0 overflow-hidden rounded-[2px] ring-1 ring-line" />
+        <CurrentFlag className="h-4 w-6 shrink-0 overflow-hidden rounded-xs ring-1 ring-line" />
         <span className="hidden sm:inline">{t(current.labelKey)}</span>
         <span className="sm:hidden">{locale === "ar" ? "ع" : "EN"}</span>
       </button>
@@ -84,7 +80,7 @@ export function LocaleSwitcher() {
           id={menuId}
           role="menu"
           aria-label={t("language")}
-          className="absolute end-0 top-full z-50 mt-1 w-44 rounded-2xl border border-line bg-surface p-1.5 shadow-[0_8px_24px_rgb(62_52_46/8%)]"
+          className="absolute inset-e-0 top-full z-50 mt-1 w-44 rounded-2xl border border-line bg-surface p-1.5 shadow-[0_8px_24px_rgb(62_52_46/8%)]"
         >
           {locales.map((item) => {
             const Flag = item.Flag;
@@ -98,7 +94,7 @@ export function LocaleSwitcher() {
                 className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2 text-start text-sm text-ink hover:bg-blush focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep"
                 onClick={() => choose(item.locale)}
               >
-                <Flag className="h-4 w-6 shrink-0 overflow-hidden rounded-[2px] ring-1 ring-line" />
+                <Flag className="h-4 w-6 shrink-0 overflow-hidden rounded-xs ring-1 ring-line" />
                 <span>{t(item.labelKey)}</span>
               </button>
             );

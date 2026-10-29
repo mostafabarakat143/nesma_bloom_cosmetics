@@ -1,7 +1,5 @@
 import { cache } from "react";
-
 import { redirectTo } from "@/i18n/redirect";
-
 import { parsePublicUser } from "./credentials";
 import { readSessionToken } from "./cookies";
 import { bearerInit, callExpress } from "./express";
@@ -47,11 +45,7 @@ async function loadVerifiedUser(): Promise<VerifiedSession> {
     user: { id: user.id, email: user.email, role: user.role },
   };
 }
-
-/** One Express /me call per render. The display value is never a second cookie. */
 export const getVerifiedUser = cache(loadVerifiedUser);
-
-/** Future protected pages must go through Express. A cookie alone is not access. */
 export async function requireUser(nextPath: string): Promise<SessionUser> {
   const session = await getVerifiedUser();
   if (session.state === "authenticated") {
