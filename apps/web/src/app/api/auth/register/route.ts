@@ -1,17 +1,17 @@
-import {
-  firstError,
-  MESSAGES,
-  validateRegister,
-} from "@/lib/auth/credentials";
-import { attachSession, clearSession } from "@/lib/auth/cookies";
-import { callExpress, readIssuedSession, revokeToken } from "@/lib/auth/express";
+import { createValidation } from "@/shared/validation";
+import { attachSession, clearSession } from "@/features/auth/lib/cookies";
+import { firstError, validateRegister } from "@/features/auth/lib/credentials";
+
 import {
   jsonError,
   jsonSuccess,
   readJson,
   untrustedResponse,
-} from "@/lib/auth/http";
-import { safeNextPath } from "@/lib/auth/redirect";
+} from "@/shared/http/response";
+import { safeNextPath, readIssuedSession } from "@/features/auth/lib/session";
+import { authServerService } from "@/features/auth/services/auth.server";
+
+const defaultValidation = createValidation();
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
   const body = await readJson(request);
   if (body === "invalid") {
-    return jsonError(400, MESSAGES.malformed);
+    return jsonError(400, defaultValidation.messages.malformed);
   }
 
   const parsed = validateRegister(body);
@@ -34,17 +34,10 @@ export async function POST(request: Request) {
   const redirectTo = safeNextPath(
     typeof body === "object" && body && "next" in body ? body.next : undefined,
   );
-  const result = await callExpress("/api/v1/auth/register", {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      "content-type": "application/json",
-    },
-    body: JSON.stringify(parsed.value),
-  });
+  const result = await authServerService.register(parsed.value);
 
   if (result.kind === "unreachable") {
-    return jsonError(503, MESSAGES.unavailable);
+    return jsonError(503, defaultValidation.messages.unavailable);
   }
   if (result.kind === "error") {
     return jsonError(result.status, result.message);
@@ -53,16 +46,16 @@ export async function POST(request: Request) {
   const issued = readIssuedSession(result.data);
   if (!issued || issued.user.role !== "CUSTOMER") {
     if (issued) {
-      await revokeToken(issued.token);
+      await authServerService.revokeToken(issued.token);
     }
-    return jsonError(502, MESSAGES.unavailable);
+    return jsonError(502, defaultValidation.messages.unavailable);
   }
 
   const response = jsonSuccess(201, { redirectTo });
   if (!attachSession(response, issued.token)) {
-    await revokeToken(issued.token);
+    await authServerService.revokeToken(issued.token);
     clearSession(response);
-    return jsonError(401, MESSAGES.sessionEnded);
+    return jsonError(401, defaultValidation.messages.sessionEnded);
   }
 
   return response;

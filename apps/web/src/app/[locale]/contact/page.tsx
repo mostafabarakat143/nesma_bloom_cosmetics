@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
-import { ContactForm } from "@/components/contact/contact-form";
 import { PageContainer } from "@/components/layout/page-container";
+import { ContactForm } from "@/features/contact/components/contact-form";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("contact");

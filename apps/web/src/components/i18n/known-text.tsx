@@ -1,14 +1,18 @@
 "use client";
+
+import { createValidation } from "@/shared/validation";
+
 import { useTranslations } from "next-intl";
-import { knownMessageKey } from "@/i18n/known-messages";
+
+const defaultValidation = createValidation();
 export function useKnownMessage() {
-  const t = useTranslations("messages");
+  const t = useTranslations("validation");
   return (message: string) => {
-    const key = knownMessageKey(message);
+    const key = defaultValidation.messageKey(message);
     return key ? t(key) : message;
   };
 }
-export function KnownText({ value }: { value: string }) {
+export function KnownText({ value }: { value: string; }) {
   const translate = useKnownMessage();
   return translate(value);
 }

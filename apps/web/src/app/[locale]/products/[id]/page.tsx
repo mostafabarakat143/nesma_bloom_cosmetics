@@ -2,17 +2,17 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 
-import { AddToOrder } from "@/components/catalog/add-to-order";
-import { ProductGallery } from "@/components/catalog/product-gallery";
 import { PageContainer } from "@/components/layout/page-container";
 import { Button } from "@/components/ui/button";
-import { getCatalogProduct } from "@/lib/api/catalog";
-import { getVerifiedUser } from "@/lib/auth/session";
+import { getVerifiedUser } from "@/features/auth/services/session.server";
+import { AddToOrder } from "@/features/catalog/components/add-to-order";
+import { ProductGallery } from "@/features/catalog/components/product-gallery";
+import { parsePositiveId } from "@/features/catalog/lib/shop-query";
+import { getCatalogProduct } from "@/features/catalog/services/catalog.server";
 import { formatMinorPrice } from "@/lib/money";
-import { parsePositiveId } from "@/lib/shop-query";
 
 type ProductPageProps = {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string; }>;
 };
 
 export async function generateMetadata({
@@ -82,16 +82,16 @@ export default async function ProductPage({ params }: ProductPageProps) {
           name={product.name}
         />
         <div className="min-w-0">
-          <p className="text-sm break-words text-muted">
+          <p className="text-sm wrap-break-word text-muted">
             {product.category.name}
             <span aria-hidden="true"> / </span>
             {product.subcategory.name}
           </p>
-          <h1 className="mt-2 font-display text-5xl leading-tight break-words text-ink">
+          <h1 className="mt-2 font-display text-5xl leading-tight wrap-break-word text-ink">
             {product.name}
           </h1>
           {product.description ? (
-            <p className="mt-6 leading-relaxed break-words whitespace-pre-line text-muted">
+            <p className="mt-6 leading-relaxed wrap-break-word whitespace-pre-line text-muted">
               {product.description}
             </p>
           ) : null}

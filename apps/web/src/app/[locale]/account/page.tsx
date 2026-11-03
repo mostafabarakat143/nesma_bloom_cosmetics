@@ -1,11 +1,12 @@
+import { ErrorMessage } from "@/components/ui/error-message";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
-import { AccountLinks } from "@/components/account/account-links";
-import { ProfileForm } from "@/components/account/profile-form";
 import { PageContainer } from "@/components/layout/page-container";
-import { getAccountProfile } from "@/lib/auth/profile";
-import { requireUser } from "@/lib/auth/session";
+import { AccountLinks } from "@/features/account/components/account-links";
+import { ProfileForm } from "@/features/account/components/profile-form";
+import { getAccountProfile } from "@/features/account/services/profile-read.server";
+import { requireUser } from "@/features/auth/services/session.server";
 
 export const dynamic = "force-dynamic";
 
@@ -32,9 +33,7 @@ export default async function AccountPage() {
           {profile ? (
             <ProfileForm profile={{ ...profile, email: profile.email || user.email }} />
           ) : (
-            <p role="alert" className="text-sm text-rose-deep">
-              {t("profileError")}
-            </p>
+            <ErrorMessage message={t("profileError")} className="text-sm text-rose-deep" translate={false} />
           )}
         </div>
       </section>

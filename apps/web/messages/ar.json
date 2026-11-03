@@ -68,7 +68,6 @@
     "email": "البريد الإلكتروني",
     "emailPlaceholder": "you@example.com",
     "notify": "أخبريني",
-    "subscribeInvalid": "أدخلي بريدًا إلكترونيًا.",
     "subscribeThanks": "شكرًا. سنكتب عندما يصل شيء جديد.",
     "loading": "جارٍ التحميل…"
   },
@@ -109,13 +108,7 @@
     "messagePlaceholder": "كيف نساعدك؟",
     "send": "إرسال الرسالة",
     "sending": "جارٍ الإرسال",
-    "nameError": "أدخلي اسمك.",
-    "phoneError": "أدخلي رقم هاتفك.",
-    "emailRequired": "أدخلي بريدك الإلكتروني.",
-    "emailInvalid": "أدخلي بريدًا إلكترونيًا صحيحًا.",
-    "messageError": "أدخلي رسالتك.",
-    "notice": "تم إرسال رسالتك. سنرد عليك.",
-    "sendError": "تعذر إرسال الرسالة. حاولي مرة أخرى."
+    "notice": "تم إرسال رسالتك. سنرد عليك."
   },
   "auth": {
     "account": "الحساب",
@@ -358,7 +351,7 @@
     "wrongBody": "تعذر تحميل الصفحة. حاولي مرة أخرى.",
     "tryAgain": "حاولي مرة أخرى"
   },
-  "messages": {
+  "validation": {
     "emailRequired": "البريد الإلكتروني مطلوب.",
     "emailInvalid": "أدخلي بريدًا إلكترونيًا صحيحًا.",
     "emailTooLong": "البريد الإلكتروني غير صالح.",
@@ -398,6 +391,32 @@
     "confirmMismatch": "كلمتا المرور الجديدتان غير متطابقتين.",
     "newDifferent": "كلمة المرور الجديدة يجب أن تختلف عن الحالية.",
     "passwordFieldsOnly": "يمكن إرسال كلمة المرور الحالية والجديدة فقط.",
-    "emptyOrder": "طلبك فارغ."
+    "emptyOrder": "طلبك فارغ.",
+    "validationFailed": "يرجى التحقق من البيانات المدخلة.",
+    "orderFieldsOnly": "يمكن إرسال عناصر الطلب فقط.",
+    "orderItemsRequired": "عناصر الطلب مطلوبة.",
+    "orderItemsEmpty": "يجب أن يحتوي الطلب على عنصر واحد على الأقل.",
+    "orderItemsMax": "يمكن أن يحتوي الطلب على 50 منتجًا مختلفًا كحد أقصى.",
+    "orderLineFields": "يمكن إرسال المنتج والكمية فقط.",
+    "productIdInteger": "يجب أن يكون معرّف المنتج عددًا صحيحًا.",
+    "productIdPositive": "يجب أن يكون معرّف المنتج عددًا صحيحًا موجبًا.",
+    "quantityInteger": "يجب أن تكون الكمية عددًا صحيحًا.",
+    "quantityMin": "يجب ألا تقل الكمية عن 1.",
+    "quantityMax": "يجب ألا تزيد الكمية عن 100.",
+    "duplicateProducts": "لا يُسمح بتكرار معرّفات المنتجات.",
+    "contactInvalid": "تحققي من الاسم والهاتف والبريد الإلكتروني والرسالة، ثم حاولي مرة أخرى.",
+    "authenticationRequired": "يرجى تسجيل الدخول.",
+    "idempotencyRequired": "مفتاح تأكيد الطلب مطلوب.",
+    "orderNotFound": "الطلب غير موجود.",
+    "productNotFound": "المنتج غير موجود.",
+    "requestFailed": "تعذّر إتمام الطلب.",
+    "contactName": "أدخلي اسمك.",
+    "contactPhone": "أدخلي رقم هاتفك.",
+    "contactEmailRequired": "أدخلي بريدك الإلكتروني.",
+    "contactEmailInvalid": "أدخلي بريدًا إلكترونيًا صحيحًا.",
+    "contactMessage": "أدخلي رسالتك.",
+    "contactSendError": "تعذر إرسال الرسالة. حاولي مرة أخرى.",
+    "newsletterEmail": "أدخلي بريدًا إلكترونيًا.",
+    "checkoutExpired": "مرّ أكثر من 24 ساعة على محاولة إتمام الطلب، لذلك لم تُرسل مرة أخرى. أنشئي الطلب فقط إذا كنتِ ما زلتِ ترغبين في طلب جديد."
   }
 }

@@ -1,7 +1,10 @@
-import { MESSAGES } from "@/lib/auth/credentials";
-import { clearSession, readSessionToken } from "@/lib/auth/cookies";
-import { revokeToken } from "@/lib/auth/express";
-import { jsonError, jsonSuccess, untrustedResponse } from "@/lib/auth/http";
+import { createValidation } from "@/shared/validation";
+import { clearSession, readSessionToken } from "@/features/auth/lib/cookies";
+
+import { jsonError, jsonSuccess, untrustedResponse } from "@/shared/http/response";
+import { authServerService } from "@/features/auth/services/auth.server";
+
+const defaultValidation = createValidation();
 
 export const dynamic = "force-dynamic";
 
@@ -15,15 +18,15 @@ export async function POST(request: Request) {
   if (!token) {
     const response = jsonSuccess(200, {
       revoked: false,
-      message: MESSAGES.sessionEnded,
+      message: defaultValidation.messages.sessionEnded,
     });
     clearSession(response);
     return response;
   }
 
-  const result = await revokeToken(token);
+  const result = await authServerService.revokeToken(token);
   if (result.kind === "unreachable") {
-    const response = jsonError(503, MESSAGES.revokeUnconfirmed);
+    const response = jsonError(503, defaultValidation.messages.revokeUnconfirmed);
     clearSession(response);
     return response;
   }
@@ -31,7 +34,7 @@ export async function POST(request: Request) {
   if (result.kind === "error" && result.status === 401) {
     const response = jsonSuccess(200, {
       revoked: false,
-      message: MESSAGES.sessionEnded,
+      message: defaultValidation.messages.sessionEnded,
     });
     clearSession(response);
     return response;
@@ -43,7 +46,7 @@ export async function POST(request: Request) {
 
   const response = jsonSuccess(200, {
     revoked: true,
-    message: MESSAGES.loggedOut,
+    message: defaultValidation.messages.loggedOut,
   });
   clearSession(response);
   return response;

@@ -68,7 +68,6 @@
     "email": "Email address",
     "emailPlaceholder": "you@example.com",
     "notify": "Notify me",
-    "subscribeInvalid": "Enter an email address.",
     "subscribeThanks": "Thanks. We’ll write when something new arrives.",
     "loading": "Loading…"
   },
@@ -109,13 +108,7 @@
     "messagePlaceholder": "How can we help?",
     "send": "Send message",
     "sending": "Sending",
-    "nameError": "Enter your name.",
-    "phoneError": "Enter your phone number.",
-    "emailRequired": "Enter your email.",
-    "emailInvalid": "Enter an email address.",
-    "messageError": "Enter your message.",
-    "notice": "Your message was sent. We will get back to you.",
-    "sendError": "We could not send your message. Please try again."
+    "notice": "Your message was sent. We will get back to you."
   },
   "auth": {
     "account": "Account",
@@ -358,7 +351,7 @@
     "wrongBody": "The page could not be loaded. Please try again.",
     "tryAgain": "Try again"
   },
-  "messages": {
+  "validation": {
     "emailRequired": "Email is required.",
     "emailInvalid": "Please enter a valid email address.",
     "emailTooLong": "Email is invalid.",
@@ -398,6 +391,32 @@
     "confirmMismatch": "New passwords do not match.",
     "newDifferent": "New password must be different from the current password.",
     "passwordFieldsOnly": "Only the current and new password can be submitted.",
-    "emptyOrder": "Your order is empty."
+    "emptyOrder": "Your order is empty.",
+    "validationFailed": "Validation failed.",
+    "orderFieldsOnly": "Only order items can be submitted.",
+    "orderItemsRequired": "Items are required.",
+    "orderItemsEmpty": "Order must include at least one item.",
+    "orderItemsMax": "Order may include at most 50 distinct products.",
+    "orderLineFields": "Only a product and quantity can be submitted.",
+    "productIdInteger": "Product ID must be a whole number.",
+    "productIdPositive": "Product ID must be a positive integer.",
+    "quantityInteger": "Quantity must be a whole number.",
+    "quantityMin": "Quantity must be at least 1.",
+    "quantityMax": "Quantity may be at most 100.",
+    "duplicateProducts": "Duplicate product IDs are not allowed.",
+    "contactInvalid": "Check the name, phone, email, and message, then try again.",
+    "authenticationRequired": "Authentication required",
+    "idempotencyRequired": "Idempotency-Key header is required",
+    "orderNotFound": "Order not found",
+    "productNotFound": "Product not found",
+    "requestFailed": "Request failed.",
+    "contactName": "Enter your name.",
+    "contactPhone": "Enter your phone number.",
+    "contactEmailRequired": "Enter your email.",
+    "contactEmailInvalid": "Enter an email address.",
+    "contactMessage": "Enter your message.",
+    "contactSendError": "We could not send your message. Please try again.",
+    "newsletterEmail": "Enter an email address.",
+    "checkoutExpired": "This checkout request is older than 24 hours, so it was not sent again. Place the order only if you still want a new one."
   }
 }

@@ -1,23 +1,24 @@
-import { clearSession, readSessionToken } from "@/lib/auth/cookies";
-import { bearerInit, callExpress } from "@/lib/auth/express";
-import { MESSAGES } from "@/lib/auth/credentials";
+import { createValidation } from "@/shared/validation";
+
+import { isRecord } from "@/shared/lib/guards";
+import { parseAccountProfile } from "@/features/account/lib/profile-parse";
+import {
+  profileUpdateError,
+  validateProfileUpdate,
+} from "@/features/account/lib/profile-update";
+import { accountServerService } from "@/features/account/services/account.server";
+import { clearSession, readSessionToken } from "@/features/auth/lib/cookies";
+
 import {
   jsonError,
   jsonSuccess,
   readJson,
   untrustedResponse,
-} from "@/lib/auth/http";
-import { parseAccountProfile } from "@/lib/auth/profile-parse";
-import {
-  profileUpdateError,
-  validateProfileUpdate,
-} from "@/lib/auth/profile-update";
+} from "@/shared/http/response";
+
+const defaultValidation = createValidation();
 
 export const dynamic = "force-dynamic";
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
 
 export async function PATCH(request: Request) {
   const rejected = untrustedResponse(request);
@@ -27,14 +28,14 @@ export async function PATCH(request: Request) {
 
   const token = await readSessionToken();
   if (!token) {
-    const response = jsonError(401, "Authentication required");
+    const response = jsonError(401, defaultValidation.message("authenticationRequired"));
     clearSession(response);
     return response;
   }
 
   const body = await readJson(request);
   if (body === "invalid") {
-    return jsonError(400, MESSAGES.malformed);
+    return jsonError(400, defaultValidation.messages.malformed);
   }
 
   const parsed = validateProfileUpdate(body);
@@ -42,18 +43,10 @@ export async function PATCH(request: Request) {
     return jsonError(400, profileUpdateError(parsed.errors));
   }
 
-  const result = await callExpress("/api/v1/users/me/profile", {
-    ...bearerInit(token, "PATCH"),
-    headers: {
-      accept: "application/json",
-      "content-type": "application/json",
-      authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(parsed.value),
-  });
+  const result = await accountServerService.updateProfile(token, parsed.value);
 
   if (result.kind === "unreachable") {
-    return jsonError(503, MESSAGES.unavailable);
+    return jsonError(503, defaultValidation.messages.unavailable);
   }
   if (result.kind === "error") {
     const response = jsonError(result.status, result.message);
@@ -65,7 +58,7 @@ export async function PATCH(request: Request) {
 
   const profile = isRecord(result.data) ? parseAccountProfile(result.data.profile) : null;
   if (!profile) {
-    return jsonError(502, MESSAGES.unavailable);
+    return jsonError(502, defaultValidation.messages.unavailable);
   }
 
   return jsonSuccess(200, {

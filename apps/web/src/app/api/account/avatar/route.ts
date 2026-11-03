@@ -1,15 +1,16 @@
-import { clearSession, readSessionToken } from "@/lib/auth/cookies";
-import { callExpress } from "@/lib/auth/express";
-import { AVATAR_FILE_MESSAGES, avatarFileError } from "@/lib/auth/avatar-file";
-import { MESSAGES } from "@/lib/auth/credentials";
-import { jsonError, jsonSuccess, untrustedResponse } from "@/lib/auth/http";
-import { parseAccountProfile } from "@/lib/auth/profile-parse";
+import { createValidation } from "@/shared/validation";
+
+import { isRecord } from "@/shared/lib/guards";
+import { AVATAR_FILE_MESSAGES, avatarFileError } from "@/features/account/lib/avatar-file";
+import { parseAccountProfile } from "@/features/account/lib/profile-parse";
+import { accountServerService } from "@/features/account/services/account.server";
+import { clearSession, readSessionToken } from "@/features/auth/lib/cookies";
+
+import { jsonError, jsonSuccess, untrustedResponse } from "@/shared/http/response";
+
+const defaultValidation = createValidation();
 
 export const dynamic = "force-dynamic";
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
 
 export async function POST(request: Request) {
   const rejected = untrustedResponse(request);
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
 
   const token = await readSessionToken();
   if (!token) {
-    const response = jsonError(401, "Authentication required");
+    const response = jsonError(401, defaultValidation.message("authenticationRequired"));
     clearSession(response);
     return response;
   }
@@ -52,21 +53,10 @@ export async function POST(request: Request) {
   const outbound = new FormData();
   outbound.append("file", file, file.name || "avatar");
 
-  const result = await callExpress(
-    "/api/v1/users/me/avatar",
-    {
-      method: "POST",
-      headers: {
-        accept: "application/json",
-        authorization: `Bearer ${token}`,
-      },
-      body: outbound,
-    },
-    30_000,
-  );
+  const result = await accountServerService.uploadAvatar(token, outbound);
 
   if (result.kind === "unreachable") {
-    return jsonError(503, MESSAGES.unavailable);
+    return jsonError(503, defaultValidation.messages.unavailable);
   }
   if (result.kind === "error") {
     const response = jsonError(result.status, result.message);
@@ -78,7 +68,7 @@ export async function POST(request: Request) {
 
   const profile = isRecord(result.data) ? parseAccountProfile(result.data.profile) : null;
   if (!profile) {
-    return jsonError(502, MESSAGES.unavailable);
+    return jsonError(502, defaultValidation.messages.unavailable);
   }
 
   return jsonSuccess(200, {

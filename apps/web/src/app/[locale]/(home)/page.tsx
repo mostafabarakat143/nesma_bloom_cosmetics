@@ -1,11 +1,11 @@
-import { AboutPreview } from "@/components/home/about-preview";
-import { AnnouncementBar } from "@/components/home/announcement-bar";
-import { Hero } from "@/components/home/hero";
-import { NewArrivals } from "@/components/home/new-arrivals";
-import { Newsletter } from "@/components/home/newsletter";
-import { ShopByCategory } from "@/components/home/shop-by-category";
-import { WhyLamsa } from "@/components/home/why-lamsa";
-import { getCategories, getNewArrivals } from "@/lib/api/catalog";
+import { getCategories, getNewArrivals } from "@/features/catalog/services/catalog.server";
+import { AboutPreview } from "@/features/home/components/about-preview";
+import { AnnouncementBar } from "@/features/home/components/announcement-bar";
+import { Hero } from "@/features/home/components/hero";
+import { NewArrivals } from "@/features/home/components/new-arrivals";
+import { Newsletter } from "@/features/home/components/newsletter";
+import { ShopByCategory } from "@/features/home/components/shop-by-category";
+import { WhyLamsa } from "@/features/home/components/why-lamsa";
 
 export default async function HomePage() {
   const [categories, products] = await Promise.all([

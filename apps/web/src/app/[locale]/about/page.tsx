@@ -27,7 +27,7 @@ export default async function AboutPage() {
           </h1>
           <p className="mt-4 text-lg leading-relaxed text-muted">{t("intro")}</p>
         </div>
-        <div className="relative aspect-[4/3] overflow-hidden rounded-[2rem] border border-line">
+        <div className="relative aspect-4/3 overflow-hidden rounded-4xl border border-line">
           <Image
             src="/about-ritual.jpg"
             alt={t("ritualAlt")}
@@ -41,7 +41,7 @@ export default async function AboutPage() {
 
       <ul className="mt-12 grid gap-6 md:grid-cols-3">
         {practices.map((item) => (
-          <li key={item.title} className="rounded-[1.5rem] border border-line bg-surface p-6">
+          <li key={item.title} className="rounded-3xl border border-line bg-surface p-6">
             <h2 className="font-display text-3xl text-ink">{item.title}</h2>
             <p className="mt-3 text-sm leading-relaxed text-muted">{item.text}</p>
           </li>
@@ -49,7 +49,7 @@ export default async function AboutPage() {
       </ul>
 
       <section className="mt-16 grid items-center gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="relative aspect-[4/3] overflow-hidden rounded-[2rem] border border-line">
+        <div className="relative aspect-4/3 overflow-hidden rounded-4xl border border-line">
           <Image
             src="/about-line.jpg"
             alt={t("lineAlt")}

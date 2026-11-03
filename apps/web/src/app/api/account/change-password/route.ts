@@ -1,11 +1,15 @@
-import { clearSession, readSessionToken } from "@/lib/auth/cookies";
-import { MESSAGES } from "@/lib/auth/credentials";
-import { bearerInit, callExpress } from "@/lib/auth/express";
-import { jsonError, jsonSuccess, readJson, untrustedResponse } from "@/lib/auth/http";
+import { createValidation } from "@/shared/validation";
+
 import {
   isWrongCurrentPassword,
   validatePasswordChangeBody,
-} from "@/lib/auth/password-change";
+} from "@/features/account/lib/password-change";
+import { accountServerService } from "@/features/account/services/account.server";
+import { clearSession, readSessionToken } from "@/features/auth/lib/cookies";
+
+import { jsonError, jsonSuccess, readJson, untrustedResponse } from "@/shared/http/response";
+
+const defaultValidation = createValidation();
 
 export const dynamic = "force-dynamic";
 
@@ -17,14 +21,14 @@ export async function POST(request: Request) {
 
   const token = await readSessionToken();
   if (!token) {
-    const response = jsonError(401, "Authentication required");
+    const response = jsonError(401, defaultValidation.message("authenticationRequired"));
     clearSession(response);
     return response;
   }
 
   const body = await readJson(request);
   if (body === "invalid") {
-    return jsonError(400, MESSAGES.malformed);
+    return jsonError(400, defaultValidation.messages.malformed);
   }
 
   const parsed = validatePasswordChangeBody(body);
@@ -32,13 +36,10 @@ export async function POST(request: Request) {
     return jsonError(400, parsed.message);
   }
 
-  const result = await callExpress("/api/v1/auth/change-password", {
-    ...bearerInit(token, "POST", { "content-type": "application/json" }),
-    body: JSON.stringify(parsed.value),
-  });
+  const result = await accountServerService.changePassword(token, parsed.value);
 
   if (result.kind === "unreachable") {
-    return jsonError(503, MESSAGES.unavailable);
+    return jsonError(503, defaultValidation.messages.unavailable);
   }
   if (result.kind === "error") {
     const response = jsonError(result.status, result.message);
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
   }
 
   const response = jsonSuccess(200, {
-    message: MESSAGES.passwordChanged,
+    message: defaultValidation.messages.passwordChanged,
   });
   clearSession(response);
   return response;

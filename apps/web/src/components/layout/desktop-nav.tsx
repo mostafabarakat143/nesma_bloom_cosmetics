@@ -1,7 +1,7 @@
 "use client";
+import { Link, usePathname, mainNav } from "@/i18n/navigation";
+
 import { useTranslations } from "next-intl";
-import { Link, usePathname } from "@/i18n/navigation";
-import { mainNav } from "@/lib/navigation";
 
 export function DesktopNav() {
   const pathname = usePathname();

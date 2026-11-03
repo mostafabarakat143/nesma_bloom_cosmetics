@@ -1,21 +1,18 @@
-import {
-  firstError,
-  MESSAGES,
-  validateForgot,
-} from "@/lib/auth/credentials";
-import { callExpress } from "@/lib/auth/express";
+import { createValidation } from "@/shared/validation";
+import { isRecord } from "@/shared/lib/guards";
+import { firstError, validateForgot } from "@/features/auth/lib/credentials";
+
 import {
   jsonError,
   jsonSuccess,
   readJson,
   untrustedResponse,
-} from "@/lib/auth/http";
+} from "@/shared/http/response";
+import { authServerService } from "@/features/auth/services/auth.server";
+
+const defaultValidation = createValidation();
 
 export const dynamic = "force-dynamic";
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
 
 export async function POST(request: Request) {
   const rejected = untrustedResponse(request);
@@ -25,7 +22,7 @@ export async function POST(request: Request) {
 
   const body = await readJson(request);
   if (body === "invalid") {
-    return jsonError(400, MESSAGES.malformed);
+    return jsonError(400, defaultValidation.messages.malformed);
   }
 
   const parsed = validateForgot(body);
@@ -33,17 +30,10 @@ export async function POST(request: Request) {
     return jsonError(400, firstError(parsed.errors));
   }
 
-  const result = await callExpress("/api/v1/auth/forgot-password", {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      "content-type": "application/json",
-    },
-    body: JSON.stringify(parsed.value),
-  });
+  const result = await authServerService.forgotPassword(parsed.value);
 
   if (result.kind === "unreachable") {
-    return jsonError(503, MESSAGES.unavailable);
+    return jsonError(503, defaultValidation.messages.unavailable);
   }
   if (result.kind === "error") {
     return jsonError(result.status, result.message);
@@ -52,10 +42,10 @@ export async function POST(request: Request) {
   const raw =
     isRecord(result.data) && typeof result.data.message === "string"
       ? result.data.message
-      : MESSAGES.forgot;
+      : defaultValidation.messages.forgot;
   const message =
     raw.includes("token=") || raw.includes("reset-password?")
-      ? MESSAGES.forgot
+      ? defaultValidation.messages.forgot
       : raw;
 
   return jsonSuccess(200, { message });

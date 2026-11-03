@@ -4,17 +4,17 @@ import { getTranslations } from "next-intl/server";
 import { redirectTo } from "@/i18n/redirect";
 import { Suspense } from "react";
 
-import { EmptyState } from "@/components/catalog/empty-state";
-import { Pagination } from "@/components/catalog/pagination";
-import { ProductFilters } from "@/components/catalog/product-filters";
-import { ProductGrid } from "@/components/catalog/product-grid";
 import { PageContainer } from "@/components/layout/page-container";
+import { EmptyState } from "@/features/catalog/components/empty-state";
+import { Pagination } from "@/features/catalog/components/pagination";
+import { ProductFilters } from "@/features/catalog/components/product-filters";
+import { ProductGrid } from "@/features/catalog/components/product-grid";
+import { parseShopQuery, shopHref, type ShopQuery } from "@/features/catalog/lib/shop-query";
 import {
   listFilterCategories,
   listFilterSubcategories,
   listShopProducts,
-} from "@/lib/api/catalog";
-import { parseShopQuery, shopHref, type ShopQuery } from "@/lib/shop-query";
+} from "@/features/catalog/services/catalog.server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("shop");
@@ -27,9 +27,9 @@ type ShopPageProps = {
 
 function withoutIncompatibleFilters(
   query: ShopQuery,
-  categories: { id: number }[] | null,
+  categories: { id: number; }[] | null,
   categoryPages: number | null,
-  subcategories: { id: number; categoryId: number }[] | null,
+  subcategories: { id: number; categoryId: number; }[] | null,
   subcategoryPages: number | null,
 ): ShopQuery | null {
   if (
@@ -69,7 +69,7 @@ async function ShopLoadingState() {
   );
 }
 
-async function ShopProductResults({ query }: { query: ShopQuery }) {
+async function ShopProductResults({ query }: { query: ShopQuery; }) {
   const products = await listShopProducts({
     q: query.q,
     categoryId: query.categoryId,
@@ -82,11 +82,11 @@ async function ShopProductResults({ query }: { query: ShopQuery }) {
 
   const hasFilters = Boolean(
     query.q ||
-      query.categoryId !== null ||
-      query.subcategoryId !== null ||
-      query.minPriceMinor !== null ||
-      query.maxPriceMinor !== null ||
-      query.sort !== "newest",
+    query.categoryId !== null ||
+    query.subcategoryId !== null ||
+    query.minPriceMinor !== null ||
+    query.maxPriceMinor !== null ||
+    query.sort !== "newest",
   );
 
   const t = await getTranslations("shop");

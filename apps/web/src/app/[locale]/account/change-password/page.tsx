@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
-import { AccountLinks } from "@/components/account/account-links";
-import { ChangePasswordForm } from "@/components/account/change-password-form";
 import { PageContainer } from "@/components/layout/page-container";
-import { requireUser } from "@/lib/auth/session";
+import { AccountLinks } from "@/features/account/components/account-links";
+import { ChangePasswordForm } from "@/features/account/components/change-password-form";
+import { requireUser } from "@/features/auth/services/session.server";
 
 export const dynamic = "force-dynamic";
 

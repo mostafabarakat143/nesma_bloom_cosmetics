@@ -5,9 +5,8 @@ import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Link, usePathname } from "@/i18n/navigation";
-import type { AccountView } from "@/lib/auth/account-view";
-import { mainNav } from "@/lib/navigation";
+import type { AccountView } from "@/features/account/lib/account-view";
+import { Link, usePathname, mainNav } from "@/i18n/navigation";
 
 import { AccountNav } from "./account-nav";
 

@@ -1,12 +1,12 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { AccountAvatar } from "@/features/account/components/account-avatar";
+import type { AccountView } from "@/features/account/lib/account-view";
+import { LogoutButton } from "@/features/auth/components/logout-button";
+import { Link, usePathname } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
-import { Link, usePathname } from "@/i18n/navigation";
-import { AccountAvatar } from "@/components/account/account-avatar";
-import { LogoutButton } from "@/components/auth/logout-button";
-import { Button } from "@/components/ui/button";
-import type { AccountView } from "@/lib/auth/account-view";
 const menuLink =
   "block rounded-2xl px-3 py-3 text-base text-ink hover:bg-blush focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-deep";
 const loginButton = "h-10! rounded-full! px-4!";
@@ -78,7 +78,7 @@ function AccountSummary({
   );
 }
 
-function AccountMenu({ account }: { account: AccountView }) {
+function AccountMenu({ account }: { account: AccountView; }) {
   const pathname = usePathname();
   const t = useTranslations("common");
   const [openPath, setOpenPath] = useState<string | null>(null);
@@ -187,4 +187,3 @@ function AccountMenu({ account }: { account: AccountView }) {
     </div>
   );
 }
-

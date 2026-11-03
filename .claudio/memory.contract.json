@@ -3,7 +3,7 @@
   "workspaceId": "19af4d6b182205a4",
   "workspaceName": "food-ordering-monorepo",
   "enabled": true,
-  "updatedAt": "2026-10-29T11:01:59.574Z",
+  "updatedAt": "2026-11-03T13:59:58.248Z",
   "detectedStack": {
     "languages": [
       "JavaScript/TypeScript"
@@ -68,31 +68,29 @@
       "apps/web/src/app/api/auth/reset-password/route.ts",
       "apps/web/src/app/[locale]/checkout/page.tsx",
       "apps/web/src/app/[locale]/login/page.tsx",
-      "apps/web/src/components/auth/auth-shell.tsx",
-      "apps/web/src/components/auth/fields.tsx",
-      "apps/web/src/components/auth/forgot-password-form.tsx",
-      "apps/web/src/components/auth/login-form.tsx",
-      "apps/web/src/components/auth/logout-button.tsx",
-      "apps/web/src/components/auth/post-auth.ts",
-      "apps/web/src/components/auth/register-form.tsx",
-      "apps/web/src/components/auth/reset-password-form.tsx",
-      "apps/web/src/components/auth/reset-token.tsx",
-      "apps/web/src/components/auth/session-cleaner.tsx",
-      "apps/web/src/components/checkout/checkout-view.tsx",
-      "apps/web/src/lib/auth/account-view.ts",
-      "apps/web/src/lib/auth/avatar-file.ts",
-      "apps/web/src/lib/auth/cookies.ts",
-      "apps/web/src/lib/auth/credentials.ts",
-      "apps/web/src/lib/auth/express.ts",
-      "apps/web/src/lib/auth/http.ts",
-      "apps/web/src/lib/auth/jwt.ts",
-      "apps/web/src/lib/auth/origin.ts",
-      "apps/web/src/lib/auth/password-change.ts",
-      "apps/web/src/lib/auth/profile-parse.ts",
-      "apps/web/src/lib/auth/profile-update.ts",
-      "apps/web/src/lib/auth/profile.ts",
-      "apps/web/src/lib/auth/redirect.ts",
-      "apps/web/src/lib/auth/session.ts",
+      "apps/web/src/features/auth/components/auth-shell.tsx",
+      "apps/web/src/features/auth/components/forgot-password-form.tsx",
+      "apps/web/src/features/auth/components/login-form.tsx",
+      "apps/web/src/features/auth/components/logout-button.tsx",
+      "apps/web/src/features/auth/components/register-form.tsx",
+      "apps/web/src/features/auth/components/reset-password-form.tsx",
+      "apps/web/src/features/auth/components/reset-token.tsx",
+      "apps/web/src/features/auth/components/session-cleaner.tsx",
+      "apps/web/src/features/auth/hooks/use-auth-mutations.ts",
+      "apps/web/src/features/auth/hooks/use-forgot-password-form.ts",
+      "apps/web/src/features/auth/hooks/use-login-form.ts",
+      "apps/web/src/features/auth/hooks/use-logout-button.ts",
+      "apps/web/src/features/auth/hooks/use-register-form.ts",
+      "apps/web/src/features/auth/hooks/use-reset-password-form.ts",
+      "apps/web/src/features/auth/hooks/use-session-cleaner.ts",
+      "apps/web/src/features/auth/lib/cookies.ts",
+      "apps/web/src/features/auth/lib/credentials.ts",
+      "apps/web/src/features/auth/lib/session.ts",
+      "apps/web/src/features/auth/services/auth.server.ts",
+      "apps/web/src/features/auth/services/auth.service.ts",
+      "apps/web/src/features/auth/services/session.server.ts",
+      "apps/web/src/features/auth/types.ts",
+      "apps/web/src/shared/lib/guards.ts",
       "infra/.env",
       "infra/.env.example",
       "infra/docker-compose.yml",
@@ -111,7 +109,7 @@
         "evidence": {
           "file": "package.json"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.529Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.212Z"
       }
     ],
     "packageManager": [
@@ -125,7 +123,7 @@
         "evidence": {
           "file": "package.json"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.529Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.218Z"
       }
     ],
     "architectureRules": [],
@@ -141,7 +139,7 @@
         "evidence": {
           "file": "infra/README.md"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.571Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.247Z"
       },
       {
         "id": "5b41f3f476da3b73",
@@ -153,7 +151,19 @@
         "evidence": {
           "file": "infra/docker-compose.yml"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.570Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.246Z"
+      },
+      {
+        "id": "30b99e83c2898b7b",
+        "text": "Guards: apps/web/src/shared/lib/guards.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/shared/lib/guards.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.245Z"
       },
       {
         "id": "2a13966d738b89dd",
@@ -165,7 +175,7 @@
         "evidence": {
           "file": "infra/.env"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.569Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.245Z"
       },
       {
         "id": "7ecf6de722bc9315",
@@ -177,307 +187,259 @@
         "evidence": {
           "file": "infra/.env.example"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.569Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.245Z"
       },
       {
-        "id": "f463569b17b5901a",
-        "text": "Auth code: apps/web/src/lib/auth/redirect.ts",
+        "id": "7ce1b714c56d1b9c",
+        "text": "Auth code: apps/web/src/features/auth/services/session.server.ts",
         "kind": "risk",
         "source": "repo_detected",
         "confidence": "confirmed",
         "scope": "workspace",
         "evidence": {
-          "file": "apps/web/src/lib/auth/redirect.ts"
+          "file": "apps/web/src/features/auth/services/session.server.ts"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.568Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.244Z"
       },
       {
-        "id": "e9797e2303b7db68",
-        "text": "Auth code: apps/web/src/lib/auth/session.ts",
+        "id": "9338e28bac3ba2c2",
+        "text": "Auth code: apps/web/src/features/auth/types.ts",
         "kind": "risk",
         "source": "repo_detected",
         "confidence": "confirmed",
         "scope": "workspace",
         "evidence": {
-          "file": "apps/web/src/lib/auth/session.ts"
+          "file": "apps/web/src/features/auth/types.ts"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.568Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.244Z"
       },
       {
-        "id": "1ebad66d0e2fd8a3",
-        "text": "Auth code: apps/web/src/lib/auth/password-change.ts",
+        "id": "6564bf9bb2b31b11",
+        "text": "Auth code: apps/web/src/features/auth/lib/session.ts",
         "kind": "risk",
         "source": "repo_detected",
         "confidence": "confirmed",
         "scope": "workspace",
         "evidence": {
-          "file": "apps/web/src/lib/auth/password-change.ts"
+          "file": "apps/web/src/features/auth/lib/session.ts"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.567Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.243Z"
       },
       {
-        "id": "f2641129b898640f",
-        "text": "Auth code: apps/web/src/lib/auth/profile-parse.ts",
+        "id": "8f4a3dcfe9c00a82",
+        "text": "Auth code: apps/web/src/features/auth/services/auth.server.ts",
         "kind": "risk",
         "source": "repo_detected",
         "confidence": "confirmed",
         "scope": "workspace",
         "evidence": {
-          "file": "apps/web/src/lib/auth/profile-parse.ts"
+          "file": "apps/web/src/features/auth/services/auth.server.ts"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.567Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.243Z"
       },
       {
-        "id": "04affa221fb30b14",
-        "text": "Auth code: apps/web/src/lib/auth/profile-update.ts",
+        "id": "00c9aaa59b0084f2",
+        "text": "Auth code: apps/web/src/features/auth/services/auth.service.ts",
         "kind": "risk",
         "source": "repo_detected",
         "confidence": "confirmed",
         "scope": "workspace",
         "evidence": {
-          "file": "apps/web/src/lib/auth/profile-update.ts"
+          "file": "apps/web/src/features/auth/services/auth.service.ts"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.567Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.243Z"
       },
       {
-        "id": "0f6bbcd9a549410a",
-        "text": "Auth code: apps/web/src/lib/auth/profile.ts",
+        "id": "d89a273e358f01f7",
+        "text": "Auth code: apps/web/src/features/auth/hooks/use-session-cleaner.ts",
         "kind": "risk",
         "source": "repo_detected",
         "confidence": "confirmed",
         "scope": "workspace",
         "evidence": {
-          "file": "apps/web/src/lib/auth/profile.ts"
+          "file": "apps/web/src/features/auth/hooks/use-session-cleaner.ts"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.567Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.242Z"
       },
       {
-        "id": "3936218999328baa",
-        "text": "Auth code: apps/web/src/lib/auth/express.ts",
+        "id": "3abccb86cc4256e8",
+        "text": "Auth code: apps/web/src/features/auth/lib/cookies.ts",
         "kind": "risk",
         "source": "repo_detected",
         "confidence": "confirmed",
         "scope": "workspace",
         "evidence": {
-          "file": "apps/web/src/lib/auth/express.ts"
+          "file": "apps/web/src/features/auth/lib/cookies.ts"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.566Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.242Z"
       },
       {
-        "id": "b240b7b1a4126968",
-        "text": "Auth code: apps/web/src/lib/auth/http.ts",
+        "id": "af75478d51c60086",
+        "text": "Credentials path: apps/web/src/features/auth/lib/credentials.ts",
         "kind": "risk",
         "source": "repo_detected",
         "confidence": "confirmed",
         "scope": "workspace",
         "evidence": {
-          "file": "apps/web/src/lib/auth/http.ts"
+          "file": "apps/web/src/features/auth/lib/credentials.ts"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.566Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.242Z"
       },
       {
-        "id": "e1d8ae8df0475d4c",
-        "text": "Auth code: apps/web/src/lib/auth/jwt.ts",
+        "id": "0f53855e9bc8a3b1",
+        "text": "Auth code: apps/web/src/features/auth/hooks/use-register-form.ts",
         "kind": "risk",
         "source": "repo_detected",
         "confidence": "confirmed",
         "scope": "workspace",
         "evidence": {
-          "file": "apps/web/src/lib/auth/jwt.ts"
+          "file": "apps/web/src/features/auth/hooks/use-register-form.ts"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.566Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.241Z"
       },
       {
-        "id": "10af60a8a477baee",
-        "text": "Auth code: apps/web/src/lib/auth/origin.ts",
+        "id": "df33774101857122",
+        "text": "Auth code: apps/web/src/features/auth/hooks/use-reset-password-form.ts",
         "kind": "risk",
         "source": "repo_detected",
         "confidence": "confirmed",
         "scope": "workspace",
         "evidence": {
-          "file": "apps/web/src/lib/auth/origin.ts"
+          "file": "apps/web/src/features/auth/hooks/use-reset-password-form.ts"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.566Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.241Z"
       },
       {
-        "id": "d7d5361f1a25d543",
-        "text": "Auth code: apps/web/src/lib/auth/account-view.ts",
+        "id": "f80a4b410073e79e",
+        "text": "Auth code: apps/web/src/features/auth/hooks/use-logout-button.ts",
         "kind": "risk",
         "source": "repo_detected",
         "confidence": "confirmed",
         "scope": "workspace",
         "evidence": {
-          "file": "apps/web/src/lib/auth/account-view.ts"
+          "file": "apps/web/src/features/auth/hooks/use-logout-button.ts"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.565Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.240Z"
       },
       {
-        "id": "acb995724b7080da",
-        "text": "Auth code: apps/web/src/lib/auth/avatar-file.ts",
+        "id": "48b8ed35386d0194",
+        "text": "Auth code: apps/web/src/features/auth/hooks/use-auth-mutations.ts",
         "kind": "risk",
         "source": "repo_detected",
         "confidence": "confirmed",
         "scope": "workspace",
         "evidence": {
-          "file": "apps/web/src/lib/auth/avatar-file.ts"
+          "file": "apps/web/src/features/auth/hooks/use-auth-mutations.ts"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.565Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.239Z"
       },
       {
-        "id": "0652e0dfe921f062",
-        "text": "Auth code: apps/web/src/lib/auth/cookies.ts",
+        "id": "30ecbc9aba193e1e",
+        "text": "Auth code: apps/web/src/features/auth/hooks/use-forgot-password-form.ts",
         "kind": "risk",
         "source": "repo_detected",
         "confidence": "confirmed",
         "scope": "workspace",
         "evidence": {
-          "file": "apps/web/src/lib/auth/cookies.ts"
+          "file": "apps/web/src/features/auth/hooks/use-forgot-password-form.ts"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.565Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.239Z"
       },
       {
-        "id": "fe2af0445022fa9d",
-        "text": "Credentials path: apps/web/src/lib/auth/credentials.ts",
+        "id": "42caeb3190c9e042",
+        "text": "Auth code: apps/web/src/features/auth/hooks/use-login-form.ts",
         "kind": "risk",
         "source": "repo_detected",
         "confidence": "confirmed",
         "scope": "workspace",
         "evidence": {
-          "file": "apps/web/src/lib/auth/credentials.ts"
+          "file": "apps/web/src/features/auth/hooks/use-login-form.ts"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.565Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.239Z"
       },
       {
-        "id": "285ce4cbc400b3c6",
-        "text": "Checkout flow: apps/web/src/components/checkout/checkout-view.tsx",
+        "id": "063f2bcf0d52b8c8",
+        "text": "Auth code: apps/web/src/features/auth/components/session-cleaner.tsx",
         "kind": "risk",
         "source": "repo_detected",
         "confidence": "confirmed",
         "scope": "workspace",
         "evidence": {
-          "file": "apps/web/src/components/checkout/checkout-view.tsx"
+          "file": "apps/web/src/features/auth/components/session-cleaner.tsx"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.564Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.238Z"
       },
       {
-        "id": "448cd3658d514983",
-        "text": "Auth code: apps/web/src/components/auth/session-cleaner.tsx",
+        "id": "21fd4215f50f181b",
+        "text": "Auth code: apps/web/src/features/auth/components/register-form.tsx",
         "kind": "risk",
         "source": "repo_detected",
         "confidence": "confirmed",
         "scope": "workspace",
         "evidence": {
-          "file": "apps/web/src/components/auth/session-cleaner.tsx"
+          "file": "apps/web/src/features/auth/components/register-form.tsx"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.563Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.237Z"
       },
       {
-        "id": "93c3901cb32d801b",
-        "text": "Auth code: apps/web/src/components/auth/reset-token.tsx",
+        "id": "76b271ed632848ca",
+        "text": "Auth code: apps/web/src/features/auth/components/reset-password-form.tsx",
         "kind": "risk",
         "source": "repo_detected",
         "confidence": "confirmed",
         "scope": "workspace",
         "evidence": {
-          "file": "apps/web/src/components/auth/reset-token.tsx"
+          "file": "apps/web/src/features/auth/components/reset-password-form.tsx"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.562Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.237Z"
       },
       {
-        "id": "b4d6139955d1003b",
-        "text": "Auth code: apps/web/src/components/auth/reset-password-form.tsx",
+        "id": "b3fe31f15cc98d4c",
+        "text": "Auth code: apps/web/src/features/auth/components/reset-token.tsx",
         "kind": "risk",
         "source": "repo_detected",
         "confidence": "confirmed",
         "scope": "workspace",
         "evidence": {
-          "file": "apps/web/src/components/auth/reset-password-form.tsx"
+          "file": "apps/web/src/features/auth/components/reset-token.tsx"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.561Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.237Z"
       },
       {
-        "id": "39a23e48776c8b89",
-        "text": "Auth code: apps/web/src/components/auth/register-form.tsx",
+        "id": "9f606e3c1591170f",
+        "text": "Auth code: apps/web/src/features/auth/components/forgot-password-form.tsx",
         "kind": "risk",
         "source": "repo_detected",
         "confidence": "confirmed",
         "scope": "workspace",
         "evidence": {
-          "file": "apps/web/src/components/auth/register-form.tsx"
+          "file": "apps/web/src/features/auth/components/forgot-password-form.tsx"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.560Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.236Z"
       },
       {
-        "id": "47e8e0ed15177081",
-        "text": "Auth code: apps/web/src/components/auth/post-auth.ts",
+        "id": "3761607e02bfa705",
+        "text": "Auth code: apps/web/src/features/auth/components/login-form.tsx",
         "kind": "risk",
         "source": "repo_detected",
         "confidence": "confirmed",
         "scope": "workspace",
         "evidence": {
-          "file": "apps/web/src/components/auth/post-auth.ts"
+          "file": "apps/web/src/features/auth/components/login-form.tsx"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.556Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.236Z"
       },
       {
-        "id": "aabfc874096e4004",
-        "text": "Auth code: apps/web/src/components/auth/logout-button.tsx",
+        "id": "d89f0720c75c5076",
+        "text": "Auth code: apps/web/src/features/auth/components/logout-button.tsx",
         "kind": "risk",
         "source": "repo_detected",
         "confidence": "confirmed",
         "scope": "workspace",
         "evidence": {
-          "file": "apps/web/src/components/auth/logout-button.tsx"
+          "file": "apps/web/src/features/auth/components/logout-button.tsx"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.553Z"
-      },
-      {
-        "id": "8841e1bb0f1650b8",
-        "text": "Auth code: apps/web/src/components/auth/forgot-password-form.tsx",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/web/src/components/auth/forgot-password-form.tsx"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.552Z"
-      },
-      {
-        "id": "20972fc202944423",
-        "text": "Auth code: apps/web/src/components/auth/login-form.tsx",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/web/src/components/auth/login-form.tsx"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.552Z"
-      },
-      {
-        "id": "2e110b73d6c8cc27",
-        "text": "Auth code: apps/web/src/components/auth/fields.tsx",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/web/src/components/auth/fields.tsx"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.551Z"
-      },
-      {
-        "id": "1af6626f694b2c24",
-        "text": "Auth code: apps/web/src/app/api/auth/reset-password/route.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/web/src/app/api/auth/reset-password/route.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.550Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.236Z"
       },
       {
         "id": "419c0406f9541428",
@@ -489,7 +451,7 @@
         "evidence": {
           "file": "apps/web/src/app/[locale]/checkout/page.tsx"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.550Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.235Z"
       },
       {
         "id": "2153e5a4b617e2b8",
@@ -501,7 +463,927 @@
         "evidence": {
           "file": "apps/web/src/app/[locale]/login/page.tsx"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.550Z",
+        "lastVerifiedAt": "2026-11-03T13:59:58.235Z"
+      },
+      {
+        "id": "dc2332b0b46d09c8",
+        "text": "Auth code: apps/web/src/features/auth/components/auth-shell.tsx",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/features/auth/components/auth-shell.tsx"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.235Z"
+      },
+      {
+        "id": "680db47222aa8543",
+        "text": "Auth code: apps/web/src/app/api/auth/register/route.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/app/api/auth/register/route.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.234Z"
+      },
+      {
+        "id": "1af6626f694b2c24",
+        "text": "Auth code: apps/web/src/app/api/auth/reset-password/route.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/app/api/auth/reset-password/route.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.234Z",
+        "archived": true
+      },
+      {
+        "id": "a5fba4ad6548410e",
+        "text": "Auth code: apps/web/src/app/api/auth/login/route.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/app/api/auth/login/route.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.233Z",
+        "archived": true
+      },
+      {
+        "id": "10a157d3dbb80206",
+        "text": "Auth code: apps/web/src/app/api/auth/logout/route.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/app/api/auth/logout/route.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.233Z",
+        "archived": true
+      },
+      {
+        "id": "d10e2c92dc7781f5",
+        "text": "Environment file: apps/web/.env.example",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/.env.example"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.232Z",
+        "archived": true
+      },
+      {
+        "id": "4107b0f0cc56838f",
+        "text": "Environment file: apps/web/.env.local",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/.env.local"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.232Z",
+        "archived": true
+      },
+      {
+        "id": "7817e363031fe0c3",
+        "text": "Auth code: apps/web/src/app/api/auth/forgot-password/route.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/app/api/auth/forgot-password/route.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.232Z",
+        "archived": true
+      },
+      {
+        "id": "b2a8aa5dd6565e6b",
+        "text": "Admin area: apps/api/tests/integration/admin.test.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/tests/integration/admin.test.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.231Z",
+        "archived": true
+      },
+      {
+        "id": "81e0ce82fab15862",
+        "text": "Auth code: apps/api/tests/integration/auth.test.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/tests/integration/auth.test.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.231Z",
+        "archived": true
+      },
+      {
+        "id": "112b6496d0d8c1f5",
+        "text": "Auth code: apps/api/src/modules/auth/token.service.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/src/modules/auth/token.service.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.230Z",
+        "archived": true
+      },
+      {
+        "id": "9b031d8d0f837f73",
+        "text": "Admin area: apps/api/tests/helpers/admin.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/tests/helpers/admin.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.230Z",
+        "archived": true
+      },
+      {
+        "id": "8128b75c7a82c013",
+        "text": "Auth code: apps/api/tests/helpers/auth.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/tests/helpers/auth.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.230Z",
+        "archived": true
+      },
+      {
+        "id": "804514732dffd873",
+        "text": "Auth code: apps/api/src/modules/auth/revocation-cleanup.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/src/modules/auth/revocation-cleanup.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.229Z",
+        "archived": true
+      },
+      {
+        "id": "77380cdcff1118e9",
+        "text": "Auth code: apps/api/src/modules/auth/auth.service.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/src/modules/auth/auth.service.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.228Z",
+        "archived": true
+      },
+      {
+        "id": "2ac0f1d51679139e",
+        "text": "Auth code: apps/api/src/modules/auth/password-reset.mailer.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/src/modules/auth/password-reset.mailer.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.228Z",
+        "archived": true
+      },
+      {
+        "id": "666a2e0d8918d921",
+        "text": "Auth code: apps/api/src/modules/auth/password.service.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/src/modules/auth/password.service.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.228Z",
+        "archived": true
+      },
+      {
+        "id": "0739e1f81da25c73",
+        "text": "Auth code: apps/api/src/modules/auth/auth.schema.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/src/modules/auth/auth.schema.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.227Z",
+        "archived": true
+      },
+      {
+        "id": "5f8d7d8368ae9b13",
+        "text": "Admin area: apps/api/src/modules/admin/dashboard.service.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/src/modules/admin/dashboard.service.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.226Z",
+        "archived": true
+      },
+      {
+        "id": "84e39c463d5f9ff6",
+        "text": "Auth code: apps/api/src/modules/auth/auth.controller.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/src/modules/auth/auth.controller.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.226Z",
+        "archived": true
+      },
+      {
+        "id": "01af0da6999528e1",
+        "text": "Auth code: apps/api/src/modules/auth/auth.mapper.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/src/modules/auth/auth.mapper.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.226Z",
+        "archived": true
+      },
+      {
+        "id": "047f32c88b2b76bc",
+        "text": "Auth code: apps/api/src/modules/auth/auth.routes.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/src/modules/auth/auth.routes.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.226Z",
+        "archived": true
+      },
+      {
+        "id": "ed5a2339256e4f97",
+        "text": "Admin area: apps/api/src/modules/admin/dashboard.routes.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/src/modules/admin/dashboard.routes.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.225Z",
+        "archived": true
+      },
+      {
+        "id": "9c480a4dc33fb526",
+        "text": "Admin area: apps/api/src/modules/admin/dashboard.schema.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/src/modules/admin/dashboard.schema.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.225Z",
+        "archived": true
+      },
+      {
+        "id": "cccd0d8281d34f96",
+        "text": "Internal area: apps/api/src/generated/prisma/internal/prismaNamespace.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/src/generated/prisma/internal/prismaNamespace.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.224Z",
+        "archived": true
+      },
+      {
+        "id": "86de5ec871652ddb",
+        "text": "Internal area: apps/api/src/generated/prisma/internal/prismaNamespaceBrowser.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/src/generated/prisma/internal/prismaNamespaceBrowser.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.224Z",
+        "archived": true
+      },
+      {
+        "id": "5dab05d80d270eea",
+        "text": "Admin area: apps/api/src/modules/admin/dashboard.controller.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/src/modules/admin/dashboard.controller.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.224Z",
+        "archived": true
+      },
+      {
+        "id": "ad831509c8c07fa9",
+        "text": "DB schema: apps/api/prisma/schema.prisma",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/prisma/schema.prisma"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.223Z",
+        "archived": true
+      },
+      {
+        "id": "8de2a21d69f194b3",
+        "text": "Auth code: apps/api/src/common/middlewares/auth.middleware.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/src/common/middlewares/auth.middleware.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.223Z",
+        "archived": true
+      },
+      {
+        "id": "424c3e9be83a1b7a",
+        "text": "Internal area: apps/api/src/generated/prisma/internal/class.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/src/generated/prisma/internal/class.ts"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.223Z",
+        "archived": true
+      },
+      {
+        "id": "fa08fd77e36dd521",
+        "text": "Database migrations: apps/api/prisma/migrations/20261017020000_password_change_and_reset/migration.sql",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/prisma/migrations/20261017020000_password_change_and_reset/migration.sql"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.222Z",
+        "archived": true
+      },
+      {
+        "id": "318872e41a264dac",
+        "text": "Database migrations: apps/api/prisma/migrations/20261019150000_category_image_and_contact_messages/migration.sql",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/prisma/migrations/20261019150000_category_image_and_contact_messages/migration.sql"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.222Z",
+        "archived": true
+      },
+      {
+        "id": "cf416211ee69bb8f",
+        "text": "Database migrations: apps/api/prisma/migrations/migration_lock.toml",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/prisma/migrations/migration_lock.toml"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.222Z",
+        "archived": true
+      },
+      {
+        "id": "f25971dd01c2c18e",
+        "text": "Database migrations: apps/api/prisma/proposed/uuid-to-int/migration.sql",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/prisma/proposed/uuid-to-int/migration.sql"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.222Z",
+        "archived": true
+      },
+      {
+        "id": "bbc537f529a69497",
+        "text": "Database migrations: apps/api/prisma/migrations/20261015140000_uuid_to_int/migration.sql",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/prisma/migrations/20261015140000_uuid_to_int/migration.sql"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.221Z",
+        "archived": true
+      },
+      {
+        "id": "865f05605bf19a07",
+        "text": "Database migrations: apps/api/prisma/migrations/20261015180000_revoked_access_tokens/migration.sql",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/prisma/migrations/20261015180000_revoked_access_tokens/migration.sql"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.221Z",
+        "archived": true
+      },
+      {
+        "id": "79600ba6b4b7ebb4",
+        "text": "Database migrations: apps/api/prisma/migrations/20261017010000_drop_refresh_tokens/migration.sql",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/prisma/migrations/20261017010000_drop_refresh_tokens/migration.sql"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.221Z",
+        "archived": true
+      },
+      {
+        "id": "adc379fecc2c5e69",
+        "text": "Database migrations: apps/api/prisma/migrations/20261014131501_init_ecommerce_schema/migration.sql",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/prisma/migrations/20261014131501_init_ecommerce_schema/migration.sql"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.220Z",
+        "archived": true
+      },
+      {
+        "id": "0f03583e434b2912",
+        "text": "Database migrations: apps/api/prisma/migrations/20261014140400_add_refresh_tokens/migration.sql",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/prisma/migrations/20261014140400_add_refresh_tokens/migration.sql"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.220Z",
+        "archived": true
+      },
+      {
+        "id": "8314a4776044dd9d",
+        "text": "Database migrations: apps/api/prisma/migrations/20261014192000_order_idempotency_and_refresh_replaced_by/migration.sql",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/prisma/migrations/20261014192000_order_idempotency_and_refresh_replaced_by/migration.sql"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.220Z",
+        "archived": true
+      },
+      {
+        "id": "8b772d92637261a7",
+        "text": "Environment file: apps/api/.env",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/.env"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.219Z",
+        "archived": true
+      },
+      {
+        "id": "365b19c2dd0cf267",
+        "text": "Environment file: apps/api/.env.example",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/api/.env.example"
+        },
+        "lastVerifiedAt": "2026-11-03T13:59:58.219Z",
+        "archived": true
+      },
+      {
+        "id": "d412521b19a96676",
+        "text": "Auth code: apps/web/src/features/auth/lib/redirect.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/features/auth/lib/redirect.ts"
+        },
+        "lastVerifiedAt": "2026-10-29T12:38:58.292Z",
+        "archived": true
+      },
+      {
+        "id": "5feec4d777173f21",
+        "text": "Auth code: apps/web/src/features/auth/lib/issued-session.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/features/auth/lib/issued-session.ts"
+        },
+        "lastVerifiedAt": "2026-10-29T12:38:58.291Z",
+        "archived": true
+      },
+      {
+        "id": "42e2c5b2c7934abd",
+        "text": "Auth code: apps/web/src/features/auth/lib/jwt.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/features/auth/lib/jwt.ts"
+        },
+        "lastVerifiedAt": "2026-10-29T12:38:58.291Z",
+        "archived": true
+      },
+      {
+        "id": "b650c9ac954ac11a",
+        "text": "Auth code: apps/web/src/features/auth/lib/http.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/features/auth/lib/http.ts"
+        },
+        "lastVerifiedAt": "2026-10-29T11:37:50.538Z",
+        "archived": true
+      },
+      {
+        "id": "4b7e1315545f57e3",
+        "text": "Auth code: apps/web/src/features/auth/lib/origin.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/features/auth/lib/origin.ts"
+        },
+        "lastVerifiedAt": "2026-10-29T11:37:50.538Z",
+        "archived": true
+      },
+      {
+        "id": "f463569b17b5901a",
+        "text": "Auth code: apps/web/src/lib/auth/redirect.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/lib/auth/redirect.ts"
+        },
+        "lastVerifiedAt": "2026-10-29T11:01:59.568Z",
+        "archived": true
+      },
+      {
+        "id": "e9797e2303b7db68",
+        "text": "Auth code: apps/web/src/lib/auth/session.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/lib/auth/session.ts"
+        },
+        "lastVerifiedAt": "2026-10-29T11:01:59.568Z",
+        "archived": true
+      },
+      {
+        "id": "1ebad66d0e2fd8a3",
+        "text": "Auth code: apps/web/src/lib/auth/password-change.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/lib/auth/password-change.ts"
+        },
+        "lastVerifiedAt": "2026-10-29T11:01:59.567Z",
+        "archived": true
+      },
+      {
+        "id": "f2641129b898640f",
+        "text": "Auth code: apps/web/src/lib/auth/profile-parse.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/lib/auth/profile-parse.ts"
+        },
+        "lastVerifiedAt": "2026-10-29T11:01:59.567Z",
+        "archived": true
+      },
+      {
+        "id": "04affa221fb30b14",
+        "text": "Auth code: apps/web/src/lib/auth/profile-update.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/lib/auth/profile-update.ts"
+        },
+        "lastVerifiedAt": "2026-10-29T11:01:59.567Z",
+        "archived": true
+      },
+      {
+        "id": "0f6bbcd9a549410a",
+        "text": "Auth code: apps/web/src/lib/auth/profile.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/lib/auth/profile.ts"
+        },
+        "lastVerifiedAt": "2026-10-29T11:01:59.567Z",
+        "archived": true
+      },
+      {
+        "id": "3936218999328baa",
+        "text": "Auth code: apps/web/src/lib/auth/express.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/lib/auth/express.ts"
+        },
+        "lastVerifiedAt": "2026-10-29T11:01:59.566Z",
+        "archived": true
+      },
+      {
+        "id": "b240b7b1a4126968",
+        "text": "Auth code: apps/web/src/lib/auth/http.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/lib/auth/http.ts"
+        },
+        "lastVerifiedAt": "2026-10-29T11:01:59.566Z",
+        "archived": true
+      },
+      {
+        "id": "e1d8ae8df0475d4c",
+        "text": "Auth code: apps/web/src/lib/auth/jwt.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/lib/auth/jwt.ts"
+        },
+        "lastVerifiedAt": "2026-10-29T11:01:59.566Z",
+        "archived": true
+      },
+      {
+        "id": "10af60a8a477baee",
+        "text": "Auth code: apps/web/src/lib/auth/origin.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/lib/auth/origin.ts"
+        },
+        "lastVerifiedAt": "2026-10-29T11:01:59.566Z",
+        "archived": true
+      },
+      {
+        "id": "d7d5361f1a25d543",
+        "text": "Auth code: apps/web/src/lib/auth/account-view.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/lib/auth/account-view.ts"
+        },
+        "lastVerifiedAt": "2026-10-29T11:01:59.565Z",
+        "archived": true
+      },
+      {
+        "id": "acb995724b7080da",
+        "text": "Auth code: apps/web/src/lib/auth/avatar-file.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/lib/auth/avatar-file.ts"
+        },
+        "lastVerifiedAt": "2026-10-29T11:01:59.565Z",
+        "archived": true
+      },
+      {
+        "id": "0652e0dfe921f062",
+        "text": "Auth code: apps/web/src/lib/auth/cookies.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/lib/auth/cookies.ts"
+        },
+        "lastVerifiedAt": "2026-10-29T11:01:59.565Z",
+        "archived": true
+      },
+      {
+        "id": "fe2af0445022fa9d",
+        "text": "Credentials path: apps/web/src/lib/auth/credentials.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/lib/auth/credentials.ts"
+        },
+        "lastVerifiedAt": "2026-10-29T11:01:59.565Z",
+        "archived": true
+      },
+      {
+        "id": "285ce4cbc400b3c6",
+        "text": "Checkout flow: apps/web/src/components/checkout/checkout-view.tsx",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/components/checkout/checkout-view.tsx"
+        },
+        "lastVerifiedAt": "2026-10-29T11:01:59.564Z",
+        "archived": true
+      },
+      {
+        "id": "448cd3658d514983",
+        "text": "Auth code: apps/web/src/components/auth/session-cleaner.tsx",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/components/auth/session-cleaner.tsx"
+        },
+        "lastVerifiedAt": "2026-10-29T11:01:59.563Z",
+        "archived": true
+      },
+      {
+        "id": "93c3901cb32d801b",
+        "text": "Auth code: apps/web/src/components/auth/reset-token.tsx",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/components/auth/reset-token.tsx"
+        },
+        "lastVerifiedAt": "2026-10-29T11:01:59.562Z",
+        "archived": true
+      },
+      {
+        "id": "b4d6139955d1003b",
+        "text": "Auth code: apps/web/src/components/auth/reset-password-form.tsx",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/components/auth/reset-password-form.tsx"
+        },
+        "lastVerifiedAt": "2026-10-29T11:01:59.561Z",
+        "archived": true
+      },
+      {
+        "id": "39a23e48776c8b89",
+        "text": "Auth code: apps/web/src/components/auth/register-form.tsx",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/components/auth/register-form.tsx"
+        },
+        "lastVerifiedAt": "2026-10-29T11:01:59.560Z",
+        "archived": true
+      },
+      {
+        "id": "47e8e0ed15177081",
+        "text": "Auth code: apps/web/src/components/auth/post-auth.ts",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/components/auth/post-auth.ts"
+        },
+        "lastVerifiedAt": "2026-10-29T11:01:59.556Z",
+        "archived": true
+      },
+      {
+        "id": "aabfc874096e4004",
+        "text": "Auth code: apps/web/src/components/auth/logout-button.tsx",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/components/auth/logout-button.tsx"
+        },
+        "lastVerifiedAt": "2026-10-29T11:01:59.553Z",
+        "archived": true
+      },
+      {
+        "id": "8841e1bb0f1650b8",
+        "text": "Auth code: apps/web/src/components/auth/forgot-password-form.tsx",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/components/auth/forgot-password-form.tsx"
+        },
+        "lastVerifiedAt": "2026-10-29T11:01:59.552Z",
+        "archived": true
+      },
+      {
+        "id": "20972fc202944423",
+        "text": "Auth code: apps/web/src/components/auth/login-form.tsx",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/components/auth/login-form.tsx"
+        },
+        "lastVerifiedAt": "2026-10-29T11:01:59.552Z",
+        "archived": true
+      },
+      {
+        "id": "2e110b73d6c8cc27",
+        "text": "Auth code: apps/web/src/components/auth/fields.tsx",
+        "kind": "risk",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/src/components/auth/fields.tsx"
+        },
+        "lastVerifiedAt": "2026-10-29T11:01:59.551Z",
         "archived": true
       },
       {
@@ -516,526 +1398,6 @@
         },
         "lastVerifiedAt": "2026-10-29T11:01:59.550Z",
         "archived": true
-      },
-      {
-        "id": "7817e363031fe0c3",
-        "text": "Auth code: apps/web/src/app/api/auth/forgot-password/route.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/web/src/app/api/auth/forgot-password/route.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.549Z",
-        "archived": true
-      },
-      {
-        "id": "a5fba4ad6548410e",
-        "text": "Auth code: apps/web/src/app/api/auth/login/route.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/web/src/app/api/auth/login/route.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.549Z",
-        "archived": true
-      },
-      {
-        "id": "10a157d3dbb80206",
-        "text": "Auth code: apps/web/src/app/api/auth/logout/route.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/web/src/app/api/auth/logout/route.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.549Z",
-        "archived": true
-      },
-      {
-        "id": "680db47222aa8543",
-        "text": "Auth code: apps/web/src/app/api/auth/register/route.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/web/src/app/api/auth/register/route.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.549Z",
-        "archived": true
-      },
-      {
-        "id": "b2a8aa5dd6565e6b",
-        "text": "Admin area: apps/api/tests/integration/admin.test.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/tests/integration/admin.test.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.548Z",
-        "archived": true
-      },
-      {
-        "id": "81e0ce82fab15862",
-        "text": "Auth code: apps/api/tests/integration/auth.test.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/tests/integration/auth.test.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.548Z",
-        "archived": true
-      },
-      {
-        "id": "d10e2c92dc7781f5",
-        "text": "Environment file: apps/web/.env.example",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/web/.env.example"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.548Z",
-        "archived": true
-      },
-      {
-        "id": "4107b0f0cc56838f",
-        "text": "Environment file: apps/web/.env.local",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/web/.env.local"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.548Z",
-        "archived": true
-      },
-      {
-        "id": "666a2e0d8918d921",
-        "text": "Auth code: apps/api/src/modules/auth/password.service.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/src/modules/auth/password.service.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.547Z",
-        "archived": true
-      },
-      {
-        "id": "804514732dffd873",
-        "text": "Auth code: apps/api/src/modules/auth/revocation-cleanup.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/src/modules/auth/revocation-cleanup.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.547Z",
-        "archived": true
-      },
-      {
-        "id": "112b6496d0d8c1f5",
-        "text": "Auth code: apps/api/src/modules/auth/token.service.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/src/modules/auth/token.service.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.547Z",
-        "archived": true
-      },
-      {
-        "id": "9b031d8d0f837f73",
-        "text": "Admin area: apps/api/tests/helpers/admin.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/tests/helpers/admin.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.547Z",
-        "archived": true
-      },
-      {
-        "id": "8128b75c7a82c013",
-        "text": "Auth code: apps/api/tests/helpers/auth.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/tests/helpers/auth.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.547Z",
-        "archived": true
-      },
-      {
-        "id": "047f32c88b2b76bc",
-        "text": "Auth code: apps/api/src/modules/auth/auth.routes.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/src/modules/auth/auth.routes.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.546Z",
-        "archived": true
-      },
-      {
-        "id": "0739e1f81da25c73",
-        "text": "Auth code: apps/api/src/modules/auth/auth.schema.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/src/modules/auth/auth.schema.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.546Z",
-        "archived": true
-      },
-      {
-        "id": "77380cdcff1118e9",
-        "text": "Auth code: apps/api/src/modules/auth/auth.service.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/src/modules/auth/auth.service.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.546Z",
-        "archived": true
-      },
-      {
-        "id": "2ac0f1d51679139e",
-        "text": "Auth code: apps/api/src/modules/auth/password-reset.mailer.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/src/modules/auth/password-reset.mailer.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.546Z",
-        "archived": true
-      },
-      {
-        "id": "5f8d7d8368ae9b13",
-        "text": "Admin area: apps/api/src/modules/admin/dashboard.service.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/src/modules/admin/dashboard.service.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.545Z",
-        "archived": true
-      },
-      {
-        "id": "84e39c463d5f9ff6",
-        "text": "Auth code: apps/api/src/modules/auth/auth.controller.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/src/modules/auth/auth.controller.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.545Z",
-        "archived": true
-      },
-      {
-        "id": "01af0da6999528e1",
-        "text": "Auth code: apps/api/src/modules/auth/auth.mapper.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/src/modules/auth/auth.mapper.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.545Z",
-        "archived": true
-      },
-      {
-        "id": "ed5a2339256e4f97",
-        "text": "Admin area: apps/api/src/modules/admin/dashboard.routes.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/src/modules/admin/dashboard.routes.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.544Z",
-        "archived": true
-      },
-      {
-        "id": "9c480a4dc33fb526",
-        "text": "Admin area: apps/api/src/modules/admin/dashboard.schema.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/src/modules/admin/dashboard.schema.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.544Z",
-        "archived": true
-      },
-      {
-        "id": "cccd0d8281d34f96",
-        "text": "Internal area: apps/api/src/generated/prisma/internal/prismaNamespace.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/src/generated/prisma/internal/prismaNamespace.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.543Z",
-        "archived": true
-      },
-      {
-        "id": "86de5ec871652ddb",
-        "text": "Internal area: apps/api/src/generated/prisma/internal/prismaNamespaceBrowser.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/src/generated/prisma/internal/prismaNamespaceBrowser.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.543Z",
-        "archived": true
-      },
-      {
-        "id": "5dab05d80d270eea",
-        "text": "Admin area: apps/api/src/modules/admin/dashboard.controller.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/src/modules/admin/dashboard.controller.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.543Z",
-        "archived": true
-      },
-      {
-        "id": "8de2a21d69f194b3",
-        "text": "Auth code: apps/api/src/common/middlewares/auth.middleware.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/src/common/middlewares/auth.middleware.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.542Z",
-        "archived": true
-      },
-      {
-        "id": "424c3e9be83a1b7a",
-        "text": "Internal area: apps/api/src/generated/prisma/internal/class.ts",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/src/generated/prisma/internal/class.ts"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.542Z",
-        "archived": true
-      },
-      {
-        "id": "f25971dd01c2c18e",
-        "text": "Database migrations: apps/api/prisma/proposed/uuid-to-int/migration.sql",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/prisma/proposed/uuid-to-int/migration.sql"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.541Z",
-        "archived": true
-      },
-      {
-        "id": "ad831509c8c07fa9",
-        "text": "DB schema: apps/api/prisma/schema.prisma",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/prisma/schema.prisma"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.541Z",
-        "archived": true
-      },
-      {
-        "id": "cf416211ee69bb8f",
-        "text": "Database migrations: apps/api/prisma/migrations/migration_lock.toml",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/prisma/migrations/migration_lock.toml"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.540Z",
-        "archived": true
-      },
-      {
-        "id": "318872e41a264dac",
-        "text": "Database migrations: apps/api/prisma/migrations/20261019150000_category_image_and_contact_messages/migration.sql",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/prisma/migrations/20261019150000_category_image_and_contact_messages/migration.sql"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.539Z",
-        "archived": true
-      },
-      {
-        "id": "fa08fd77e36dd521",
-        "text": "Database migrations: apps/api/prisma/migrations/20261017020000_password_change_and_reset/migration.sql",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/prisma/migrations/20261017020000_password_change_and_reset/migration.sql"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.538Z",
-        "archived": true
-      },
-      {
-        "id": "865f05605bf19a07",
-        "text": "Database migrations: apps/api/prisma/migrations/20261015180000_revoked_access_tokens/migration.sql",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/prisma/migrations/20261015180000_revoked_access_tokens/migration.sql"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.537Z",
-        "archived": true
-      },
-      {
-        "id": "79600ba6b4b7ebb4",
-        "text": "Database migrations: apps/api/prisma/migrations/20261017010000_drop_refresh_tokens/migration.sql",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/prisma/migrations/20261017010000_drop_refresh_tokens/migration.sql"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.537Z",
-        "archived": true
-      },
-      {
-        "id": "bbc537f529a69497",
-        "text": "Database migrations: apps/api/prisma/migrations/20261015140000_uuid_to_int/migration.sql",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/prisma/migrations/20261015140000_uuid_to_int/migration.sql"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.536Z",
-        "archived": true
-      },
-      {
-        "id": "8314a4776044dd9d",
-        "text": "Database migrations: apps/api/prisma/migrations/20261014192000_order_idempotency_and_refresh_replaced_by/migration.sql",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/prisma/migrations/20261014192000_order_idempotency_and_refresh_replaced_by/migration.sql"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.535Z",
-        "archived": true
-      },
-      {
-        "id": "0f03583e434b2912",
-        "text": "Database migrations: apps/api/prisma/migrations/20261014140400_add_refresh_tokens/migration.sql",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/prisma/migrations/20261014140400_add_refresh_tokens/migration.sql"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.534Z",
-        "archived": true
-      },
-      {
-        "id": "adc379fecc2c5e69",
-        "text": "Database migrations: apps/api/prisma/migrations/20261014131501_init_ecommerce_schema/migration.sql",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/prisma/migrations/20261014131501_init_ecommerce_schema/migration.sql"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.533Z",
-        "archived": true
-      },
-      {
-        "id": "8b772d92637261a7",
-        "text": "Environment file: apps/api/.env",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/.env"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.531Z",
-        "archived": true
-      },
-      {
-        "id": "365b19c2dd0cf267",
-        "text": "Environment file: apps/api/.env.example",
-        "kind": "risk",
-        "source": "repo_detected",
-        "confidence": "confirmed",
-        "scope": "workspace",
-        "evidence": {
-          "file": "apps/api/.env.example"
-        },
-        "lastVerifiedAt": "2026-10-29T11:01:59.531Z",
-        "archived": true
       }
     ],
     "forbiddenActions": [
@@ -1046,7 +1408,7 @@
         "source": "repo_detected",
         "confidence": "confirmed",
         "scope": "workspace",
-        "lastVerifiedAt": "2026-10-29T11:01:59.571Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.247Z"
       }
     ],
     "allowedCommands": [
@@ -1060,7 +1422,7 @@
         "evidence": {
           "file": "package.json"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.530Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.218Z"
       },
       {
         "id": "0a32fce877502912",
@@ -1072,7 +1434,7 @@
         "evidence": {
           "file": "package.json"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.530Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.218Z"
       },
       {
         "id": "36a6e0422e9a32b6",
@@ -1084,7 +1446,7 @@
         "evidence": {
           "file": "package.json"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.530Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.218Z"
       },
       {
         "id": "9c231dcbf403c485",
@@ -1096,7 +1458,7 @@
         "evidence": {
           "file": "package.json"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.530Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.219Z"
       },
       {
         "id": "559742dd6063de0c",
@@ -1108,7 +1470,7 @@
         "evidence": {
           "file": "package.json"
         },
-        "lastVerifiedAt": "2026-10-29T11:01:59.530Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.219Z"
       },
       {
         "id": "e401da05c33b809b",
@@ -1123,7 +1485,7 @@
         "appliesTo": [
           "apps/api"
         ],
-        "lastVerifiedAt": "2026-10-29T11:01:59.572Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.247Z"
       },
       {
         "id": "c09fe68b5f3c16ae",
@@ -1138,7 +1500,7 @@
         "appliesTo": [
           "apps/api"
         ],
-        "lastVerifiedAt": "2026-10-29T11:01:59.572Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.247Z"
       },
       {
         "id": "09effa85bca5a146",
@@ -1153,7 +1515,7 @@
         "appliesTo": [
           "apps/api"
         ],
-        "lastVerifiedAt": "2026-10-29T11:01:59.572Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.247Z"
       },
       {
         "id": "b49deac676a22f4b",
@@ -1168,7 +1530,7 @@
         "appliesTo": [
           "apps/api"
         ],
-        "lastVerifiedAt": "2026-10-29T11:01:59.572Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.247Z"
       },
       {
         "id": "c10c7934262074f9",
@@ -1183,7 +1545,7 @@
         "appliesTo": [
           "apps/api"
         ],
-        "lastVerifiedAt": "2026-10-29T11:01:59.573Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.247Z"
       },
       {
         "id": "cf6959c0bb9a9813",
@@ -1198,7 +1560,7 @@
         "appliesTo": [
           "apps/web"
         ],
-        "lastVerifiedAt": "2026-10-29T11:01:59.573Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.248Z"
       },
       {
         "id": "b4a7c5676d999d08",
@@ -1213,7 +1575,7 @@
         "appliesTo": [
           "apps/web"
         ],
-        "lastVerifiedAt": "2026-10-29T11:01:59.573Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.248Z"
       },
       {
         "id": "7db53c648b6f4885",
@@ -1228,7 +1590,7 @@
         "appliesTo": [
           "apps/web"
         ],
-        "lastVerifiedAt": "2026-10-29T11:01:59.573Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.248Z"
       },
       {
         "id": "cecd24ed79a8f1d6",
@@ -1243,7 +1605,7 @@
         "appliesTo": [
           "apps/web"
         ],
-        "lastVerifiedAt": "2026-10-29T11:01:59.573Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.248Z"
       },
       {
         "id": "f7aaf841eb65179d",
@@ -1258,7 +1620,7 @@
         "appliesTo": [
           "apps/web"
         ],
-        "lastVerifiedAt": "2026-10-29T11:01:59.573Z"
+        "lastVerifiedAt": "2026-11-03T13:59:58.248Z"
       },
       {
         "id": "d945edee8f911742",
@@ -1273,7 +1635,67 @@
         "appliesTo": [
           "apps/web"
         ],
-        "lastVerifiedAt": "2026-10-29T11:01:59.573Z"
+        "lastVerifiedAt": "2026-10-29T11:37:50.540Z"
+      },
+      {
+        "id": "d658b5fb694f5787",
+        "text": "npm run test (in apps/web) -> tsx --import ./tests/register.mjs --test tests/storefront.test.mts tests/services.test.mts tests/architecture.test.mts",
+        "kind": "command",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/package.json"
+        },
+        "appliesTo": [
+          "apps/web"
+        ],
+        "lastVerifiedAt": "2026-10-29T12:26:25.292Z"
+      },
+      {
+        "id": "40d1b3ce782dd959",
+        "text": "npm run test (in apps/web) -> tsx --import ./tests/register.mjs --test tests/storefront.test.mts tests/services.test.mts tests/architecture.test.mts tests/validation.test.mts",
+        "kind": "command",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/package.json"
+        },
+        "appliesTo": [
+          "apps/web"
+        ],
+        "lastVerifiedAt": "2026-10-29T12:53:05.445Z"
+      },
+      {
+        "id": "a9fcb4f9fb6c44c3",
+        "text": "npm run test (in apps/web) -> tsx --import ./tests/register.mjs --test tests/storefront.test.mts tests/services.test.mts tests/architecture.test.mts tests/validation.test.mts tests/errors.test.mts",
+        "kind": "command",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/package.json"
+        },
+        "appliesTo": [
+          "apps/web"
+        ],
+        "lastVerifiedAt": "2026-10-29T13:03:43.971Z"
+      },
+      {
+        "id": "a15eb614aec2922c",
+        "text": "npm run test (in apps/web) -> tsx --import ./tests/register.mjs --test tests/storefront.test.mts tests/services.test.mts tests/architecture.test.mts tests/validation.test.mts tests/errors.test.tsx",
+        "kind": "command",
+        "source": "repo_detected",
+        "confidence": "confirmed",
+        "scope": "workspace",
+        "evidence": {
+          "file": "apps/web/package.json"
+        },
+        "appliesTo": [
+          "apps/web"
+        ],
+        "lastVerifiedAt": "2026-11-03T13:59:58.248Z"
       }
     ],
     "businessRules": [],
@@ -1336,7 +1758,7 @@
           "appliesTo": [
             "apps/api"
           ],
-          "lastVerifiedAt": "2026-10-29T11:01:59.525Z"
+          "lastVerifiedAt": "2026-11-03T13:59:58.211Z"
         },
         {
           "id": "apps/api:fact:Framework detected: Express.",
@@ -1351,7 +1773,7 @@
           "appliesTo": [
             "apps/api"
           ],
-          "lastVerifiedAt": "2026-10-29T11:01:59.525Z"
+          "lastVerifiedAt": "2026-11-03T13:59:58.211Z"
         },
         {
           "id": "apps/api:convention:Tests use Vitest.",
@@ -1366,7 +1788,7 @@
           "appliesTo": [
             "apps/api"
           ],
-          "lastVerifiedAt": "2026-10-29T11:01:59.525Z"
+          "lastVerifiedAt": "2026-11-03T13:59:58.211Z"
         },
         {
           "id": "apps/api:command:npm run dev -> tsx watch src/server.ts",
@@ -1381,7 +1803,7 @@
           "appliesTo": [
             "apps/api"
           ],
-          "lastVerifiedAt": "2026-10-29T11:01:59.525Z"
+          "lastVerifiedAt": "2026-11-03T13:59:58.211Z"
         },
         {
           "id": "apps/api:command:npm run build -> prisma generate && tsc",
@@ -1396,7 +1818,7 @@
           "appliesTo": [
             "apps/api"
           ],
-          "lastVerifiedAt": "2026-10-29T11:01:59.525Z"
+          "lastVerifiedAt": "2026-11-03T13:59:58.211Z"
         },
         {
           "id": "apps/api:command:npm run start -> node dist/server.js",
@@ -1411,7 +1833,7 @@
           "appliesTo": [
             "apps/api"
           ],
-          "lastVerifiedAt": "2026-10-29T11:01:59.525Z"
+          "lastVerifiedAt": "2026-11-03T13:59:58.211Z"
         },
         {
           "id": "apps/api:command:npm run typecheck -> prisma generate && ",
@@ -1426,7 +1848,7 @@
           "appliesTo": [
             "apps/api"
           ],
-          "lastVerifiedAt": "2026-10-29T11:01:59.525Z"
+          "lastVerifiedAt": "2026-11-03T13:59:58.211Z"
         },
         {
           "id": "apps/api:command:npm run test -> vitest run",
@@ -1441,7 +1863,7 @@
           "appliesTo": [
             "apps/api"
           ],
-          "lastVerifiedAt": "2026-10-29T11:01:59.525Z"
+          "lastVerifiedAt": "2026-11-03T13:59:58.211Z"
         },
         {
           "id": "apps/api:command:npm run db:migrate -> prisma migrate dep",
@@ -1456,7 +1878,7 @@
           "appliesTo": [
             "apps/api"
           ],
-          "lastVerifiedAt": "2026-10-29T11:01:59.525Z"
+          "lastVerifiedAt": "2026-11-03T13:59:58.211Z"
         }
       ]
     },
@@ -1477,7 +1899,9 @@
         ],
         "orm": [],
         "authLibraries": [],
-        "validationLibraries": [],
+        "validationLibraries": [
+          "Zod"
+        ],
         "paymentLibraries": [],
         "testTools": [],
         "scripts": {
@@ -1486,7 +1910,7 @@
           "start": "next start",
           "lint": "eslint .",
           "typecheck": "tsc --noEmit",
-          "test": "node ../api/node_modules/tsx/dist/cli.mjs --import ./tests/register.mjs --test src/lib/storefront.test.mts"
+          "test": "tsx --import ./tests/register.mjs --test tests/storefront.test.mts tests/services.test.mts tests/architecture.test.mts tests/validation.test.mts tests/errors.test.tsx"
         },
         "importantDirs": [
           "src"
@@ -1507,7 +1931,7 @@
           "appliesTo": [
             "apps/web"
           ],
-          "lastVerifiedAt": "2026-10-29T11:01:59.528Z"
+          "lastVerifiedAt": "2026-11-03T13:59:58.211Z"
         },
         {
           "id": "apps/web:fact:Framework detected: Next.js.",
@@ -1522,7 +1946,7 @@
           "appliesTo": [
             "apps/web"
           ],
-          "lastVerifiedAt": "2026-10-29T11:01:59.528Z"
+          "lastVerifiedAt": "2026-11-03T13:59:58.211Z"
         },
         {
           "id": "apps/web:fact:Framework detected: React.",
@@ -1537,7 +1961,7 @@
           "appliesTo": [
             "apps/web"
           ],
-          "lastVerifiedAt": "2026-10-29T11:01:59.528Z"
+          "lastVerifiedAt": "2026-11-03T13:59:58.211Z"
         },
         {
           "id": "apps/web:command:npm run dev -> next dev",
@@ -1552,7 +1976,7 @@
           "appliesTo": [
             "apps/web"
           ],
-          "lastVerifiedAt": "2026-10-29T11:01:59.528Z"
+          "lastVerifiedAt": "2026-11-03T13:59:58.211Z"
         },
         {
           "id": "apps/web:command:npm run build -> next build",
@@ -1567,7 +1991,7 @@
           "appliesTo": [
             "apps/web"
           ],
-          "lastVerifiedAt": "2026-10-29T11:01:59.528Z"
+          "lastVerifiedAt": "2026-11-03T13:59:58.211Z"
         },
         {
           "id": "apps/web:command:npm run start -> next start",
@@ -1582,7 +2006,7 @@
           "appliesTo": [
             "apps/web"
           ],
-          "lastVerifiedAt": "2026-10-29T11:01:59.528Z"
+          "lastVerifiedAt": "2026-11-03T13:59:58.211Z"
         },
         {
           "id": "apps/web:command:npm run lint -> eslint .",
@@ -1597,7 +2021,7 @@
           "appliesTo": [
             "apps/web"
           ],
-          "lastVerifiedAt": "2026-10-29T11:01:59.528Z"
+          "lastVerifiedAt": "2026-11-03T13:59:58.211Z"
         },
         {
           "id": "apps/web:command:npm run typecheck -> tsc --noEmit",
@@ -1612,11 +2036,11 @@
           "appliesTo": [
             "apps/web"
           ],
-          "lastVerifiedAt": "2026-10-29T11:01:59.528Z"
+          "lastVerifiedAt": "2026-11-03T13:59:58.211Z"
         },
         {
-          "id": "apps/web:command:npm run test -> node ../api/node_modules",
-          "text": "npm run test -> node ../api/node_modules/tsx/dist/cli.mjs --import ./tests/register.mjs --test src/lib/storefront.test.mts",
+          "id": "apps/web:command:npm run test -> tsx --import ./tests/reg",
+          "text": "npm run test -> tsx --import ./tests/register.mjs --test tests/storefront.test.mts tests/services.test.mts tests/architecture.test.mts tests/validation.test.mts tests/errors.test.tsx",
           "kind": "command",
           "source": "repo_detected",
           "confidence": "confirmed",
@@ -1627,7 +2051,7 @@
           "appliesTo": [
             "apps/web"
           ],
-          "lastVerifiedAt": "2026-10-29T11:01:59.528Z"
+          "lastVerifiedAt": "2026-11-03T13:59:58.211Z"
         }
       ]
     }

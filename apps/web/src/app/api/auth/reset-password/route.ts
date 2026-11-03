@@ -1,24 +1,20 @@
-import {
-  firstError,
-  isUsableResetToken,
-  MESSAGES,
-  validateNewPassword,
-} from "@/lib/auth/credentials";
-import { clearSession } from "@/lib/auth/cookies";
-import { callExpress } from "@/lib/auth/express";
+import { createValidation } from "@/shared/validation";
+import { isRecord } from "@/shared/lib/guards";
+import { clearSession } from "@/features/auth/lib/cookies";
+import { firstError, isUsableResetToken, validateNewPassword } from "@/features/auth/lib/credentials";
+
 import {
   jsonError,
   jsonSuccess,
   readJson,
   scrubSecrets,
   untrustedResponse,
-} from "@/lib/auth/http";
+} from "@/shared/http/response";
+import { authServerService } from "@/features/auth/services/auth.server";
+
+const defaultValidation = createValidation();
 
 export const dynamic = "force-dynamic";
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
 
 export async function POST(request: Request) {
   const rejected = untrustedResponse(request);
@@ -28,12 +24,12 @@ export async function POST(request: Request) {
 
   const body = await readJson(request);
   if (body === "invalid") {
-    return jsonError(400, MESSAGES.malformed);
+    return jsonError(400, defaultValidation.messages.malformed);
   }
 
   const token = isRecord(body) && typeof body.token === "string" ? body.token.trim() : "";
   if (!isUsableResetToken(token)) {
-    return jsonError(400, MESSAGES.resetInvalid);
+    return jsonError(400, defaultValidation.messages.resetInvalid);
   }
 
   const parsed = validateNewPassword(body);
@@ -41,17 +37,10 @@ export async function POST(request: Request) {
     return jsonError(400, firstError(parsed.errors));
   }
 
-  const result = await callExpress("/api/v1/auth/reset-password", {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({ token, newPassword: parsed.value }),
-  });
+  const result = await authServerService.resetPassword({ token, newPassword: parsed.value });
 
   if (result.kind === "unreachable") {
-    return jsonError(503, MESSAGES.unavailable);
+    return jsonError(503, defaultValidation.messages.unavailable);
   }
   if (result.kind === "error") {
     return jsonError(
@@ -63,7 +52,7 @@ export async function POST(request: Request) {
   const message =
     isRecord(result.data) && typeof result.data.message === "string"
       ? scrubSecrets(result.data.message, [token, parsed.value])
-      : MESSAGES.resetSuccess;
+      : defaultValidation.messages.resetSuccess;
 
   const response = jsonSuccess(200, { message });
   clearSession(response);

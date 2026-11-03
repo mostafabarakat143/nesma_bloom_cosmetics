@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
-import { CheckoutView } from "@/components/checkout/checkout-view";
 import { PageContainer } from "@/components/layout/page-container";
-import { requireUser } from "@/lib/auth/session";
+import { requireUser } from "@/features/auth/services/session.server";
+import { CheckoutView } from "@/features/orders/components/checkout-view";
 
 export const dynamic = "force-dynamic";
 

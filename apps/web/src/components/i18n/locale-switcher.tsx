@@ -1,10 +1,10 @@
 "use client";
 
+import { usePathname, useRouter } from "@/i18n/navigation";
+import type { AppLocale } from "@/i18n/routing";
 import { useLocale, useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
-import { usePathname, useRouter } from "@/i18n/navigation";
-import type { AppLocale } from "@/i18n/routing";
 import { EgyptFlag, UkFlag } from "./flags";
 const locales = [
   { locale: "ar", labelKey: "arabic", Flag: EgyptFlag },

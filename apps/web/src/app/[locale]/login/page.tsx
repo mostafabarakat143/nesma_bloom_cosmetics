@@ -3,11 +3,11 @@ import { getTranslations } from "next-intl/server";
 
 import { redirectTo } from "@/i18n/redirect";
 
-import { AuthShell } from "@/components/auth/auth-shell";
-import { LoginForm } from "@/components/auth/login-form";
 import { PageContainer } from "@/components/layout/page-container";
-import { safeNextPath } from "@/lib/auth/redirect";
-import { getVerifiedUser } from "@/lib/auth/session";
+import { AuthShell } from "@/features/auth/components/auth-shell";
+import { LoginForm } from "@/features/auth/components/login-form";
+import { safeNextPath } from "@/features/auth/lib/session";
+import { getVerifiedUser } from "@/features/auth/services/session.server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("auth");
@@ -17,7 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; expired?: string; notice?: string }>;
+  searchParams: Promise<{ next?: string; expired?: string; notice?: string; }>;
 }) {
   const params = await searchParams;
   const nextPath = safeNextPath(params.next);
@@ -27,7 +27,7 @@ export default async function LoginPage({
   }
 
   const t = await getTranslations("auth");
-  const messages = await getTranslations("messages");
+  const messages = await getTranslations("validation");
   const notice =
     params.notice === "password-changed"
       ? messages("passwordChanged")

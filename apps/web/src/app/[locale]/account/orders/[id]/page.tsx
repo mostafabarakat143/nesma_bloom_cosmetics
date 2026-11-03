@@ -1,25 +1,26 @@
+import { ErrorMessage } from "@/components/ui/error-message";
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 
 import { redirectTo } from "@/i18n/redirect";
 
-import { AccountLinks } from "@/components/account/account-links";
-import { OrderActions } from "@/components/account/order-actions";
-import { ProductImage } from "@/components/catalog/product-image";
 import { PageContainer } from "@/components/layout/page-container";
 import { Button } from "@/components/ui/button";
-import { getCatalogProduct } from "@/lib/api/catalog";
-import { requireUser } from "@/lib/auth/session";
+import { AccountLinks } from "@/features/account/components/account-links";
+import { requireUser } from "@/features/auth/services/session.server";
+import { ProductImage } from "@/features/catalog/components/product-image";
+import { parsePositiveId } from "@/features/catalog/lib/shop-query";
+import { getCatalogProduct } from "@/features/catalog/services/catalog.server";
+import { OrderActions } from "@/features/orders/components/order-actions";
+import { OrderTime } from "@/features/orders/components/order-time";
+import { loadOrder } from "@/features/orders/services/orders-read.server";
 import { formatMinorPrice } from "@/lib/money";
-import { loadOrder } from "@/lib/orders/load";
-import { OrderTime } from "@/components/account/order-time";
-import { parsePositiveId } from "@/lib/shop-query";
 
 export const dynamic = "force-dynamic";
 
 type OrderPageProps = {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string; }>;
 };
 
 export async function generateMetadata({ params }: OrderPageProps): Promise<Metadata> {
@@ -62,9 +63,7 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
     return (
       <PageContainer>
         <h1 className="font-display text-5xl text-ink">{t("unavailable")}</h1>
-        <p role="alert" className="mt-4 max-w-xl text-muted">
-          {t("detailUnavailable")}
-        </p>
+        <ErrorMessage message={t("detailUnavailable")} className="mt-4 max-w-xl text-muted" translate={false} />
         <div className="mt-8">
           <Button href={`/account/orders/${orderId}`} variant="secondary">
             {t("tryAgain")}

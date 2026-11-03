@@ -8,6 +8,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { Toaster } from "@/components/ui/toast";
 import { routing } from "@/i18n/routing";
+import { QueryProvider } from "@/shared/query-provider";
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -18,7 +19,7 @@ export default async function LocaleLayout({
   params,
 }: {
   children: ReactNode;
-  params: Promise<{ locale: string }>;
+  params: Promise<{ locale: string; }>;
 }) {
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) {
@@ -31,19 +32,21 @@ export default async function LocaleLayout({
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
-      <LocaleDocument />
-      <a
-        href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:start-4 focus:z-[60] focus:rounded-2xl focus:bg-rose-deep focus:px-4 focus:py-2 focus:text-white"
-      >
-        {t("skip")}
-      </a>
-      <SiteHeader />
-      <main id="main" className="w-full flex-1">
-        {children}
-      </main>
-      <SiteFooter />
-      <Toaster />
+      <QueryProvider>
+        <LocaleDocument />
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:inset-s-4 focus:z-60 focus:rounded-2xl focus:bg-rose-deep focus:px-4 focus:py-2 focus:text-white"
+        >
+          {t("skip")}
+        </a>
+        <SiteHeader />
+        <main id="main" className="w-full flex-1">
+          {children}
+        </main>
+        <SiteFooter />
+        <Toaster />
+      </QueryProvider>
     </NextIntlClientProvider>
   );
 }

@@ -6,10 +6,12 @@ Full-stack cosmetics e-commerce monorepo (API first). Express.js 5 + Prisma 7 + 
 
 ```text
 apps/api          Express API (auth, catalog, orders)
+apps/web          Next.js storefront with feature services and custom hooks
 infra/            Docker Compose PostgreSQL 16
 ```
 
-Next.js storefront is not implemented yet.
+See [the frontend guide](apps/web/README.md) for its feature architecture,
+environment setup, and checks.
 
 ## Technology stack
 

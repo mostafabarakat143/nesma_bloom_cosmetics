@@ -4,17 +4,17 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { redirectTo } from "@/i18n/redirect";
 
-import { AccountLinks } from "@/components/account/account-links";
-import { EmptyState } from "@/components/catalog/empty-state";
 import { PageContainer } from "@/components/layout/page-container";
 import { Button } from "@/components/ui/button";
 import { PageLinks } from "@/components/ui/page-links";
-import { requireUser } from "@/lib/auth/session";
+import { AccountLinks } from "@/features/account/components/account-links";
+import { requireUser } from "@/features/auth/services/session.server";
+import { EmptyState } from "@/features/catalog/components/empty-state";
+import { OrderTime } from "@/features/orders/components/order-time";
+import { ORDER_STATUSES } from "@/features/orders/lib/parse";
+import { ordersHref, parseOrderListQuery, type OrderListQuery } from "@/features/orders/lib/query";
+import { loadMyOrders } from "@/features/orders/services/orders-read.server";
 import { formatMinorPrice } from "@/lib/money";
-import { loadMyOrders } from "@/lib/orders/load";
-import { OrderTime } from "@/components/account/order-time";
-import { ORDER_STATUSES } from "@/lib/orders/parse";
-import { ordersHref, parseOrderListQuery, type OrderListQuery } from "@/lib/orders/query";
 
 export const dynamic = "force-dynamic";
 

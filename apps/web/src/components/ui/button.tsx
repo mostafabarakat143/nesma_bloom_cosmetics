@@ -19,10 +19,10 @@ type CommonProps = {
 };
 
 type ButtonAsLink = CommonProps &
-  Omit<ComponentProps<typeof Link>, "className"> & { href: string };
+  Omit<ComponentProps<typeof Link>, "className"> & { href: string; };
 
 type ButtonAsButton = CommonProps &
-  ComponentProps<"button"> & { href?: undefined };
+  ComponentProps<"button"> & { href?: undefined; };
 
 function classesFor(variant: Variant = "primary", className = "") {
   if (variant === "unstyled") {

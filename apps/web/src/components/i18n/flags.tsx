@@ -1,6 +1,6 @@
 import { useId } from "react";
 
-export function EgyptFlag({ className }: { className?: string }) {
+export function EgyptFlag({ className }: { className?: string; }) {
   return (
     <svg viewBox="0 0 60 40" className={className} aria-hidden="true">
       <rect width="60" height="13.34" fill="#CE1126" />
@@ -11,7 +11,7 @@ export function EgyptFlag({ className }: { className?: string }) {
   );
 }
 
-export function UkFlag({ className }: { className?: string }) {
+export function UkFlag({ className }: { className?: string; }) {
   const clipId = useId();
   return (
     <svg viewBox="0 0 60 30" className={className} aria-hidden="true">

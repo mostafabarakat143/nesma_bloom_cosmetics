@@ -2,28 +2,13 @@
 
 import { useTranslations } from "next-intl";
 
-import { PageContainer } from "@/components/layout/page-container";
-import { Button } from "@/components/ui/button";
+import { ErrorState, type PageErrorProps } from "@/components/ui/error-state";
 
-export default function Error({
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
+export default function Error({ reset }: PageErrorProps) {
   const t = useTranslations("errors");
 
   return (
-    <PageContainer>
-      <section className="max-w-xl">
-        <h1 className="font-display text-5xl text-ink">{t("wrongTitle")}</h1>
-        <p className="mt-4 text-lg text-muted">{t("wrongBody")}</p>
-        <div className="mt-8">
-          <Button type="button" onClick={() => reset()}>
-            {t("tryAgain")}
-          </Button>
-        </div>
-      </section>
-    </PageContainer>
+    <ErrorState title={t("wrongTitle")} message={t("wrongBody")}
+      retryLabel={t("tryAgain")} onRetry={reset} />
   );
 }

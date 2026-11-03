@@ -3,11 +3,11 @@ import { getTranslations } from "next-intl/server";
 
 import { redirectTo } from "@/i18n/redirect";
 
-import { AuthShell } from "@/components/auth/auth-shell";
-import { RegisterForm } from "@/components/auth/register-form";
 import { PageContainer } from "@/components/layout/page-container";
-import { safeNextPath } from "@/lib/auth/redirect";
-import { getVerifiedUser } from "@/lib/auth/session";
+import { AuthShell } from "@/features/auth/components/auth-shell";
+import { RegisterForm } from "@/features/auth/components/register-form";
+import { safeNextPath } from "@/features/auth/lib/session";
+import { getVerifiedUser } from "@/features/auth/services/session.server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("auth");
@@ -17,7 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RegisterPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; }>;
 }) {
   const params = await searchParams;
   const nextPath = safeNextPath(params.next);

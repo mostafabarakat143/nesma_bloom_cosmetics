@@ -1,0 +1,46 @@
+import { Button } from "@/components/ui/button";
+import { CategoryCard } from "@/features/catalog/components/category-card";
+import type { CatalogCategory } from "@/features/catalog/types";
+import { SectionHeading } from "@/features/home/components/section-heading";
+import { getTranslations } from "next-intl/server";
+
+export async function ShopByCategory({
+  categories,
+}: {
+  categories: CatalogCategory[] | null;
+}) {
+  const t = await getTranslations("home");
+  return (
+    <section
+      className="mx-auto w-full max-w-6xl px-5 py-16 sm:py-20"
+      aria-labelledby="categories-heading"
+    >
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <SectionHeading id="categories-heading" title={t("shopByCategory")} />
+        <Button href="/shop" variant="ghost">
+          {t("shopNow")}
+        </Button>
+      </div>
+      {categories === null ? (
+        <p className="mt-8 text-lg text-muted">
+          {t("categoriesUnavailable")}
+        </p>
+      ) : categories.length === 0 ? (
+        <p className="mt-8 text-lg text-muted">
+          {t("categoriesEmpty")}
+        </p>
+      ) : (
+        <ul className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 lg:gap-5">
+          {categories.map((category) => (
+            <li key={category.id} className="min-w-0">
+              <CategoryCard
+                category={category}
+                href={`/shop?categoryId=${category.id}`}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}

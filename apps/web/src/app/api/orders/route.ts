@@ -1,15 +1,16 @@
-import { clearSession, readSessionToken } from "@/lib/auth/cookies";
-import { MESSAGES } from "@/lib/auth/credentials";
-import { bearerInit, callExpress } from "@/lib/auth/express";
-import { jsonError, jsonSuccess, readJson, untrustedResponse } from "@/lib/auth/http";
-import { parseOrder } from "@/lib/orders/parse";
-import { parseIdempotencyKey, validateOrderItems } from "@/lib/orders/payload";
+import { createValidation } from "@/shared/validation";
+
+import { isRecord } from "@/shared/lib/guards";
+import { clearSession, readSessionToken } from "@/features/auth/lib/cookies";
+
+import { jsonError, jsonSuccess, readJson, untrustedResponse } from "@/shared/http/response";
+import { parseOrder } from "@/features/orders/lib/parse";
+import { parseIdempotencyKey, validateOrderItems } from "@/features/orders/lib/payload";
+import { ordersServerService } from "@/features/orders/services/orders.server";
+
+const defaultValidation = createValidation();
 
 export const dynamic = "force-dynamic";
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
 
 export async function POST(request: Request) {
   const rejected = untrustedResponse(request);
@@ -19,19 +20,19 @@ export async function POST(request: Request) {
 
   const token = await readSessionToken();
   if (!token) {
-    const response = jsonError(401, "Authentication required");
+    const response = jsonError(401, defaultValidation.message("authenticationRequired"));
     clearSession(response);
     return response;
   }
 
   const key = parseIdempotencyKey(request.headers.get("idempotency-key"));
   if (!key) {
-    return jsonError(400, "Idempotency-Key header is required");
+    return jsonError(400, defaultValidation.message("idempotencyRequired"));
   }
 
   const body = await readJson(request);
   if (body === "invalid") {
-    return jsonError(400, MESSAGES.malformed);
+    return jsonError(400, defaultValidation.messages.malformed);
   }
 
   const parsed = validateOrderItems(body);
@@ -39,16 +40,10 @@ export async function POST(request: Request) {
     return jsonError(400, parsed.message);
   }
 
-  const result = await callExpress("/api/v1/orders", {
-    ...bearerInit(token, "POST", {
-      "content-type": "application/json",
-      "idempotency-key": key,
-    }),
-    body: JSON.stringify({ items: parsed.items }),
-  });
+  const result = await ordersServerService.create(token, key, parsed.items);
 
   if (result.kind === "unreachable") {
-    return jsonError(503, MESSAGES.unavailable);
+    return jsonError(503, defaultValidation.messages.unavailable);
   }
   if (result.kind === "error") {
     const response = jsonError(result.status, result.message);
@@ -60,7 +55,7 @@ export async function POST(request: Request) {
 
   const order = isRecord(result.data) ? parseOrder(result.data.order) : null;
   if (!order) {
-    return jsonError(502, MESSAGES.unavailable);
+    return jsonError(502, defaultValidation.messages.unavailable);
   }
 
   return jsonSuccess(result.status === 201 ? 201 : 200, {
