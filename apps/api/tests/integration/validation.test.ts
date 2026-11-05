@@ -11,16 +11,27 @@ describe("request validation", () => {
     await prisma.$disconnect();
   });
 
-  it("rejects invalid echo bodies with HTTP 400", async () => {
+  it("returns 413 when a JSON body exceeds the API size limit", async () => {
     const response = await request(app)
-      .post("/api/v1/health/echo")
+      .post("/api/v1/auth/register")
+      .send({ message: "x".repeat(110_000) });
+    expect(response.status).toBe(413);
+    expect(response.body).toEqual({
+      status: "error",
+      message: "Request body is too large.",
+    });
+  });
+
+  it("rejects invalid registration emails with HTTP 400", async () => {
+    const response = await request(app)
+      .post("/api/v1/auth/register")
       .set("Origin", TEST_ORIGIN)
-      .send({ message: "" });
+      .send({ email: "invalid-email", password: "Password123!" });
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       status: "error",
-      message: "Message is required.",
+      message: "Please enter a valid email address.",
     });
   });
 
@@ -37,16 +48,4 @@ describe("request validation", () => {
     });
   });
 
-  it("accepts valid echo bodies", async () => {
-    const response = await request(app)
-      .post("/api/v1/health/echo")
-      .set("Origin", TEST_ORIGIN)
-      .send({ message: "hello" });
-
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual({
-      status: "success",
-      data: { message: "hello" },
-    });
-  });
 });

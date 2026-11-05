@@ -18,6 +18,17 @@ export function createErrorMiddleware(env: Env, logger: Logger) {
   ): void {
     const requestId = req.requestId;
 
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "type" in err &&
+      err.type === "entity.too.large"
+    ) {
+      logger.warn({ requestId, code: "PAYLOAD_TOO_LARGE" }, "Request body exceeded size limit");
+      sendError(res, 413, "Request body is too large.");
+      return;
+    }
+
     if (isJsonSyntaxError(err)) {
       logger.warn({ requestId, code: "BAD_REQUEST" }, "Malformed JSON in request body");
       sendError(res, 400, "Malformed JSON in request body.");

@@ -11,8 +11,7 @@
     "test": "vitest run",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
-    "db:validate": "prisma validate",
-    "docs:postman": "tsx scripts/generate-postman.mts"
+    "db:validate": "prisma validate"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.2.2",

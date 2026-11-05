@@ -5,7 +5,7 @@ import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 import type { Database } from "../../config/database.js";
 import type { Env } from "../../config/env.js";
 import { AppError } from "../../common/errors/app-error.js";
-import { parsePositiveIntId } from "../../common/validation/ids.js";
+import { MAX_DB_INT, parsePositiveIntId } from "../../common/validation/ids.js";
 import type { UserRole } from "../../generated/prisma/client.js";
 
 const UUID_RE =
@@ -13,6 +13,7 @@ const UUID_RE =
 
 export type BearerTokenClaims = {
   sub: number;
+  authVersion: number;
   jti: string;
   /** Unix seconds */
   iat: number;
@@ -35,10 +36,11 @@ function secretKey(env: Env): Uint8Array {
 export async function signBearerToken(
   env: Env,
   userId: number,
+  authVersion: number,
 ): Promise<string> {
   const jti = randomUUID();
 
-  return new SignJWT({})
+  return new SignJWT({ authVersion })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(String(userId))
     .setJti(jti)
@@ -50,7 +52,7 @@ export async function signBearerToken(
 }
 
 /**
- * Cryptographic JWT verification (signature, exp, iss, aud, sub, jti).
+ * Cryptographic JWT verification (signature, exp, iss, aud, sub, jti, authVersion).
  * Does not check revocation or user status.
  */
 export async function verifyBearerToken(
@@ -71,6 +73,7 @@ export async function verifyBearerToken(
 
 function parseBearerClaims(payload: JWTPayload): BearerTokenClaims {
   const sub = parsePositiveIntId(payload.sub);
+  const authVersion = payload.authVersion;
   const jti = typeof payload.jti === "string" ? payload.jti : null;
   const iat =
     typeof payload.iat === "number" && Number.isFinite(payload.iat)
@@ -83,6 +86,10 @@ function parseBearerClaims(payload: JWTPayload): BearerTokenClaims {
 
   if (
     sub === null ||
+    typeof authVersion !== "number" ||
+    !Number.isInteger(authVersion) ||
+    authVersion < 0 ||
+    authVersion > MAX_DB_INT ||
     jti === null ||
     !UUID_RE.test(jti) ||
     iat === null ||
@@ -91,7 +98,7 @@ function parseBearerClaims(payload: JWTPayload): BearerTokenClaims {
     throw AppError.unauthorized("Authentication required");
   }
 
-  return { sub, jti, iat, exp };
+  return { sub, authVersion, jti, iat, exp };
 }
 
 export async function isJtiRevoked(
@@ -132,7 +139,7 @@ export async function revokeAccessToken(
 async function loadUserForAuth(prisma: Database, userId: number) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { status: true, role: true, passwordChangedAt: true },
+    select: { status: true, role: true, authVersion: true },
   });
 
   if (!user) {
@@ -140,22 +147,6 @@ async function loadUserForAuth(prisma: Database, userId: number) {
   }
 
   return user;
-}
-
-/**
- * A password change sets passwordChangedAt. Any JWT issued at or before that
- * instant is no longer proof of the current password.
- */
-export function assertTokenIssuedAfterPasswordChange(
-  iat: number,
-  passwordChangedAt: Date | null,
-): void {
-  if (
-    passwordChangedAt &&
-    iat * 1000 <= passwordChangedAt.getTime()
-  ) {
-    throw AppError.unauthorized("Authentication required");
-  }
 }
 
 /**
@@ -176,7 +167,9 @@ export async function authenticateBearerRequest(
   if (user.status !== "ACTIVE") {
     throw AppError.unauthorized("Authentication required");
   }
-  assertTokenIssuedAfterPasswordChange(claims.iat, user.passwordChangedAt);
+  if (claims.authVersion !== user.authVersion) {
+    throw AppError.unauthorized("Authentication required");
+  }
 
   return {
     id: claims.sub,
@@ -187,10 +180,8 @@ export async function authenticateBearerRequest(
 }
 
 /**
- * Logout-only auth: verify JWT cryptographically and load user id/exp/jti.
- * Allows already-revoked jti so logout stays idempotent. Still requires ACTIVE user
- * to associate the revoke row; disabled users may still clear a token via revoke
- * without needing role — we only need a valid sub.
+ * Logout-only auth: verify JWT and require the current account version.
+ * Allows already-revoked jti and disabled accounts so logout stays idempotent.
  */
 export async function authenticateBearerForLogout(
   env: Env,
@@ -199,16 +190,10 @@ export async function authenticateBearerForLogout(
 ): Promise<AuthenticatedPrincipal> {
   const claims = await verifyBearerToken(env, token);
 
-  const user = await prisma.user.findUnique({
-    where: { id: claims.sub },
-    select: { role: true, status: true, passwordChangedAt: true },
-  });
-
-  if (!user) {
+  const user = await loadUserForAuth(prisma, claims.sub);
+  if (claims.authVersion !== user.authVersion) {
     throw AppError.unauthorized("Authentication required");
   }
-
-  assertTokenIssuedAfterPasswordChange(claims.iat, user.passwordChangedAt);
 
   // Prefer DB role when ACTIVE; DISABLED still allowed to revoke their token.
   return {

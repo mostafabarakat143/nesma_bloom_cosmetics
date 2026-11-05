@@ -1,6 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
 
-import { AppError } from "../errors/app-error.js";
 import type { Database } from "../../config/database.js";
 import type { Env } from "../../config/env.js";
 import {
@@ -35,11 +34,8 @@ export function createOptionalAuth(env: Env, prisma: Database) {
 
       next();
     } catch (error) {
-      if (error instanceof AppError && error.statusCode === 401) {
-        next(error);
-        return;
-      }
-      next(AppError.unauthorized("Authentication required"));
+      // Preserve auth failures and infrastructure errors for the shared handler.
+      next(error);
     }
   };
 }

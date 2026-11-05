@@ -10,7 +10,6 @@ import type { Logger } from "./config/logger.js";
 import { createErrorMiddleware } from "./common/middlewares/error.middleware.js";
 import { notFoundMiddleware } from "./common/middlewares/not-found.middleware.js";
 import { requestIdMiddleware } from "./common/middlewares/request-id.middleware.js";
-import { validate } from "./common/middlewares/validate.middleware.js";
 import { createDashboardRouter } from "./modules/admin/dashboard.routes.js";
 import { createAuthRouter } from "./modules/auth/auth.routes.js";
 import { createContactRouter } from "./modules/contact/contact.routes.js";
@@ -19,11 +18,6 @@ import {
   type PasswordResetMailer,
 } from "./modules/auth/password-reset.mailer.js";
 import { createCategoryRouter } from "./modules/categories/category.routes.js";
-import { healthRouter } from "./modules/health/health.routes.js";
-import {
-  healthEchoBodySchema,
-  type HealthEchoBody,
-} from "./modules/health/health.schema.js";
 import { createDocsRouter } from "./docs/docs.routes.js";
 import { createOrderRouter } from "./modules/orders/order.routes.js";
 import { createProductRouter } from "./modules/products/product.routes.js";
@@ -93,21 +87,6 @@ export function createApp({ env, logger, prisma, mailer }: AppDependencies): Exp
       },
       autoLogging: env.NODE_ENV !== "test",
     }),
-  );
-
-  app.use("/health", healthRouter);
-  app.use("/api/v1/health", healthRouter);
-
-  app.post(
-    "/api/v1/health/echo",
-    validate({ body: healthEchoBodySchema }),
-    (req, res) => {
-      const body = req.body as HealthEchoBody;
-      res.status(200).json({
-        status: "success",
-        data: { message: body.message },
-      });
-    },
   );
 
   app.use(

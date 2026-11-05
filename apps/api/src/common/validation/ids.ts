@@ -5,20 +5,27 @@ export const MAX_DB_INT = 2_147_483_647;
 
 /**
  * Positive database ID from path/query/JSON.
- * Coerces numeric strings; rejects non-integers, zero, negatives, and unsafe values.
+ * Accepts numbers or digit-only strings. Never coerces booleans, arrays, or objects.
  */
-export const positiveIntIdSchema = z.coerce
-  .number({ error: () => "ID is invalid." })
-  .int("ID must be a whole number.")
-  .positive("ID must be a positive integer.")
-  .max(MAX_DB_INT, "ID is out of range.");
+export const positiveIntIdSchema = createPositiveIntIdSchema("ID", "ID is invalid.");
 
 export function positiveIntIdField(label: string) {
-  return z.coerce
-    .number({ error: () => `${label} is required.` })
-    .int(`${label} must be a whole number.`)
-    .positive(`${label} must be a positive integer.`)
-    .max(MAX_DB_INT, `${label} is out of range.`);
+  return createPositiveIntIdSchema(label, `${label} is required.`);
+}
+
+function createPositiveIntIdSchema(label: string, missingMessage: string) {
+  return z.preprocess(
+    (value) =>
+      typeof value === "string" && /^\d+$/.test(value) ? Number(value) : value,
+    z
+      .number({
+        error: (issue) =>
+          issue.input === undefined ? missingMessage : `${label} is invalid.`,
+      })
+      .int(`${label} must be a whole number.`)
+      .positive(`${label} must be a positive integer.`)
+      .max(MAX_DB_INT, `${label} is out of range.`),
+  );
 }
 
 /** Parse JWT claim / string form of an integer ID. */

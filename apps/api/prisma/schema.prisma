@@ -72,8 +72,10 @@ model User {
   id           Int        @id @default(autoincrement())
   email        String     @unique @db.VarChar(255)
   passwordHash      String     @map("password_hash") @db.VarChar(255)
-  /// Set when the password changes. JWTs issued at or before this time are rejected.
+  /// Audit timestamp. JWT invalidation uses authVersion rather than clock precision.
   passwordChangedAt DateTime?  @map("password_changed_at") @db.Timestamptz(3)
+  /// Incremented atomically with password changes; JWTs must carry this version.
+  authVersion       Int        @default(0) @map("auth_version")
   role              UserRole   @default(CUSTOMER)
   status            UserStatus @default(ACTIVE)
   createdAt         DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)

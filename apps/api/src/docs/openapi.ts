@@ -15,8 +15,9 @@ export const openApiDocument = {
       "Register and login return a single Bearer JWT in `data.token` (default TTL 7 days / `JWT_TTL_SECONDS=604800`).",
       "Protected routes require header: `Authorization: Bearer <token>`.",
       "",
-      "JWT claims: `sub` (user id), `jti`, `iat`, `exp`, `iss`, `aud`.",
+      "JWT claims: `sub` (user id), `jti`, `iat`, `exp`, `iss`, `aud`, `authVersion`.",
       "Authorization uses the live user role and ACTIVE status from PostgreSQL — never a role claim in the JWT.",
+      "The token authVersion must match the account. Password changes/resets increment it atomically and invalidate earlier tokens, including concurrent old-password logins.",
       "Logout revokes the token jti server-side (idempotent). Revoked tokens receive 401 on all other protected routes.",
       "",
       "## Idempotency",
@@ -27,6 +28,7 @@ export const openApiDocument = {
       "",
       "## Money",
       "All amounts are integer EGP piastres (`priceMinor`, `totalMinor`).",
+      "JSON requests exceeding BODY_SIZE_LIMIT receive HTTP 413 with the standard error response.",
       "",
       "## Order statuses",
       "`PENDING` → `CONFIRMED` → `FULFILLED` (ADMIN).",
@@ -43,7 +45,6 @@ export const openApiDocument = {
   },
   servers: [{ url: "http://localhost:4000", description: "Local API" }],
   tags: [
-    { name: "Health" },
     { name: "Auth" },
     { name: "Users" },
     { name: "Uploads" },
@@ -154,13 +155,6 @@ export const openApiDocument = {
     },
   },
   paths: {
-    "/health": {
-      get: {
-        tags: ["Health"],
-        summary: "Liveness",
-        responses: { "200": { description: "OK" } },
-      },
-    },
     "/api/v1/auth/register": {
       post: {
         tags: ["Auth"],
@@ -218,7 +212,7 @@ export const openApiDocument = {
         tags: ["Auth"],
         summary: "Change password",
         description:
-          "Requires the current password. Sets password_changed_at so every existing Bearer JWT, including this one, is rejected. Log in again to receive a new token.",
+          "Requires the current password. Atomically changes the password and increments auth_version so every existing Bearer JWT, including this one, is rejected. Log in again to receive a new token.",
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
@@ -269,7 +263,7 @@ export const openApiDocument = {
         tags: ["Auth"],
         summary: "Reset password with a one-time token",
         description:
-          "Consumes a single-use reset token and sets password_changed_at, which rejects every existing Bearer JWT.",
+          "Consumes a single-use reset token and atomically changes the password and increments auth_version, which rejects every existing Bearer JWT.",
         requestBody: {
           required: true,
           content: {

@@ -71,6 +71,7 @@ describe("auth and profiles (Bearer JWT)", () => {
     expect(typeof claims.jti).toBe("string");
     expect(typeof claims.exp).toBe("number");
     expect(typeof claims.iat).toBe("number");
+    expect(claims.authVersion).toBe(0);
     expect((claims.exp as number) - (claims.iat as number)).toBe(
       env.JWT_TTL_SECONDS,
     );
@@ -300,8 +301,6 @@ describe("auth and profiles (Bearer JWT)", () => {
       .set(authHeaders(token));
     expect(stale.status).toBe(401);
 
-    await new Promise((resolve) => setTimeout(resolve, 1100));
-
     const oldLogin = await request(app)
       .post("/api/v1/auth/login")
       .set("Origin", TEST_ORIGIN)
@@ -314,6 +313,7 @@ describe("auth and profiles (Bearer JWT)", () => {
       .send({ email, password: "NewPassword123!" });
     expect(nextLogin.status).toBe(200);
     const nextToken = extractToken(nextLogin);
+    expect(decodeJwt(nextToken).authVersion).toBe(1);
 
     const me = await request(app)
       .get("/api/v1/auth/me")
@@ -355,13 +355,14 @@ describe("auth and profiles (Bearer JWT)", () => {
       .set(authHeaders(token));
     expect(stale.status).toBe(401);
 
-    await new Promise((resolve) => setTimeout(resolve, 1100));
-
     const login = await request(app)
       .post("/api/v1/auth/login")
       .set("Origin", TEST_ORIGIN)
       .send({ email, password: "ResetPassword123!" });
     expect(login.status).toBe(200);
+    const currentToken = extractToken(login);
+    expect(decodeJwt(currentToken).authVersion).toBe(1);
+    expect((await request(app).get("/api/v1/auth/me").set(authHeaders(currentToken))).status).toBe(200);
   });
 
   it("rejects an expired password reset token", async () => {

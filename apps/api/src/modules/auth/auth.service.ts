@@ -4,6 +4,7 @@ import { AppError } from "../../common/errors/app-error.js";
 import type { Database } from "../../config/database.js";
 import type { Env } from "../../config/env.js";
 import type { Logger } from "../../config/logger.js";
+import type { User } from "../../generated/prisma/client.js";
 import {
   normalizeEmail,
   type ChangePasswordBody,
@@ -125,13 +126,18 @@ export async function changePassword(
   }
 
   const passwordHash = await hashPassword(input.newPassword);
-  await prisma.user.update({
-    where: { id: user.id },
+  const updated = await prisma.user.updateMany({
+    // Do not overwrite a password changed concurrently after verification.
+    where: { id: user.id, authVersion: user.authVersion, status: "ACTIVE" },
     data: {
       passwordHash,
       passwordChangedAt: new Date(),
+      authVersion: { increment: 1 },
     },
   });
+  if (updated.count !== 1) {
+    throw AppError.unauthorized("Authentication required");
+  }
 }
 
 /**
@@ -191,18 +197,19 @@ export async function resetPassword(
   input: ResetPasswordBody,
 ): Promise<void> {
   const tokenHash = hashResetToken(input.token);
-  const now = new Date();
   const row = await prisma.passwordResetToken.findUnique({
     where: { tokenHash },
     include: {
-      user: { select: { id: true, status: true, passwordHash: true } },
+      user: {
+        select: { id: true, status: true, passwordHash: true, authVersion: true },
+      },
     },
   });
 
   if (
     !row ||
     row.usedAt ||
-    row.expiresAt <= now ||
+    row.expiresAt <= new Date() ||
     row.user.status !== "ACTIVE"
   ) {
     throw AppError.badRequest("This reset link is invalid or has expired.");
@@ -218,6 +225,8 @@ export async function resetPassword(
   const passwordHash = await hashPassword(input.newPassword);
 
   await prisma.$transaction(async (tx) => {
+    // Recheck expiry after password hashing, immediately before consuming the link.
+    const now = new Date();
     const marked = await tx.passwordResetToken.updateMany({
       where: {
         id: row.id,
@@ -231,13 +240,22 @@ export async function resetPassword(
       throw AppError.badRequest("This reset link is invalid or has expired.");
     }
 
-    await tx.user.update({
-      where: { id: row.user.id },
+    const updated = await tx.user.updateMany({
+      where: {
+        id: row.user.id,
+        authVersion: row.user.authVersion,
+        status: "ACTIVE",
+      },
       data: {
         passwordHash,
         passwordChangedAt: now,
+        authVersion: { increment: 1 },
       },
     });
+    if (updated.count !== 1) {
+      // Roll back token consumption as well as the attempted password update.
+      throw AppError.badRequest("This reset link is invalid or has expired.");
+    }
   });
 }
 
@@ -280,18 +298,10 @@ export async function getCurrentUser(
 
 async function issueBearerAuth(
   env: Env,
-  user: {
-    id: number;
-    email: string;
-    role: "CUSTOMER" | "ADMIN";
-    status: "ACTIVE" | "DISABLED";
-    passwordChangedAt: Date | null;
-    createdAt: Date;
-    updatedAt: Date;
-    passwordHash: string;
-  },
+  user: User,
 ): Promise<AuthResult> {
-  const token = await signBearerToken(env, user.id);
+  // Use the version read with the verified password hash, even if a reset races login.
+  const token = await signBearerToken(env, user.id, user.authVersion);
   return {
     user: toPublicUser(user),
     token,

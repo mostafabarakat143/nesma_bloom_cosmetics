@@ -20,13 +20,14 @@ environment setup, and checks.
 - Zod validation, Pino logging
 - Argon2id passwords, 7-day Bearer JWT, server-side jti revocation
 - Vitest + Supertest against `nesma_bloom_test`
-- OpenAPI 3.1 + Swagger UI + generated Postman collection
+- OpenAPI 3.1 + Swagger UI
 
 ## API conventions
 
 - **IDs:** positive integers (`1`, `2`, …), one PostgreSQL `IDENTITY` sequence per table. Path/query/body IDs reject non-integers and unsafe values.
 - **Errors:** client JSON is only `{ "status": "error", "message": "..." }` (no `code`, `details`, or `requestId`).
 - **Money:** integer EGP piastres (`priceMinor`, `totalMinor`, etc.).
+- **Request size:** JSON bodies exceeding `BODY_SIZE_LIMIT` return HTTP 413.
 
 ## Prerequisites
 
@@ -98,6 +99,12 @@ pnpm db:generate
 
 Apply the same migrations to the **test** database by setting `DATABASE_URL` explicitly to the `DATABASE_URL_TEST` value for one deploy (never point either URL at production). Integration tests expect the schema on `nesma_bloom_test`.
 
+Test setup refuses database names other than `nesma_bloom_test`, URL query
+parameters that override connection routing, and `NODE_ENV` values other than
+`test`. This validation also applies to per-test URL overrides and runs before a
+test database client is created. Keep the dedicated test database separate from
+application data; integration fixtures delete test records.
+
 ## Development commands
 
 From repo root:
@@ -108,7 +115,6 @@ pnpm --filter @cosmetics/api dev
 pnpm --filter @cosmetics/api typecheck
 pnpm --filter @cosmetics/api build
 pnpm --filter @cosmetics/api test
-pnpm --filter @cosmetics/api docs:postman
 ```
 
 ## API documentation
@@ -118,23 +124,14 @@ When docs are enabled (default outside production):
 - Swagger UI: [http://localhost:4000/api/docs](http://localhost:4000/api/docs)
 - OpenAPI JSON: [http://localhost:4000/api/openapi.json](http://localhost:4000/api/openapi.json)
 
-Generate Postman Collection v2.1:
-
-```powershell
-cd apps/api
-pnpm docs:postman
-```
-
-Import `apps/api/docs/postman/Nesma-Bloom-API.postman_collection.json`. Set `baseUrl`. Register or Login stores `data.token` in the collection variable `token`. Protected requests send `Authorization: Bearer {{token}}`. Never commit real credentials or JWTs.
-
 ## Authentication workflow
 
 1. `POST /api/v1/auth/register` or `/login` returns `{ user, token }`.
-2. The token is a 7-day JWT (`JWT_TTL_SECONDS=604800`) with `sub`, `jti`, `iat`, `exp`, `iss`, and `aud`.
+2. The token is a 7-day JWT (`JWT_TTL_SECONDS=604800`) with `sub`, `jti`, `iat`, `exp`, `iss`, `aud`, and `authVersion`.
 3. Protected calls send `Authorization: Bearer <token>`.
 4. `POST /api/v1/auth/logout` revokes that `jti`. Repeating logout with the same token returns 200. Every other protected route rejects it with 401.
 5. Disabled users lose API access immediately. Authorization roles are read from PostgreSQL on each request, not from the JWT.
-6. `POST /api/v1/auth/change-password` requires the current password. It records `password_changed_at`, so every existing JWT is rejected and the user logs in again.
+6. `POST /api/v1/auth/change-password` requires the current password. Password changes and resets increment the account's `auth_version` atomically with the password update. Tokens must carry the matching version, so existing JWTs are rejected and immediate login works without a timestamp delay. `password_changed_at` remains an audit timestamp.
 7. `POST /api/v1/auth/forgot-password` always returns the same message. The reset token is stored only as a SHA-256 hash and is not returned in the response. When `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, and `SMTP_FROM` are set, the link is emailed. Without SMTP, development prints the link in the API log. `POST /api/v1/auth/reset-password` uses that token once and also invalidates existing JWTs.
 
 ## Orders lifecycle
@@ -156,12 +153,24 @@ CONFIRMED → CANCELLED             (ADMIN)
 
 ## Deployment preparation
 
+Apply migration `20261105120000_auth_version` before starting the updated API.
+JWTs issued before this release lack the required version claim; users must log
+in again after the update. The response format and frontend cookie flow are
+unchanged.
+
 1. Set strong secrets and `COOKIE_SECURE=true`.
 2. Set `NODE_ENV=production` and explicit `CORS_ORIGIN`.
 3. Leave `ENABLE_API_DOCS` unset/false unless you intentionally expose Swagger.
 4. Run migrations against the target database.
 5. Run `pnpm --filter @cosmetics/api build` and start `node dist/server.js` (or your process manager).
-6. Point health checks at `/health`.
+
+Keep tests in the repository and run them before deployment. The API TypeScript
+configuration compiles `src/` into `dist/` and excludes `tests/` and
+`vitest.config.ts`. Package the built `dist/` directory and production dependencies
+for the running API; omit tests and test configuration from the runtime artifact.
+This is a packaging choice: copying the entire repository to a server would still
+copy the test source files. Keep the Prisma schema, configuration, migrations, and
+CLI available in the deployment step that applies database migrations.
 
 ## License
 
