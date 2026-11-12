@@ -143,7 +143,6 @@ export async function listProducts(
   assertCanFilterStatus(query.status, user);
   assertCanFilterAvailability(query.availability, user);
 
-  // ACTIVE listings enforce ancestor ACTIVE in SQL for both findMany and count.
   const requireActiveParents = query.status === "ACTIVE";
 
   const { items, totalItems } = await findProductsPage(prisma, {
@@ -291,9 +290,6 @@ export async function updateProductService(
   }
 }
 
-/**
- * Soft-delete via archival. Idempotent. Does not delete images or order items.
- */
 export async function archiveProductService(
   prisma: Database,
   id: number,

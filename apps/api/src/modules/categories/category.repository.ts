@@ -31,9 +31,6 @@ function buildWhere(
   return where;
 }
 
-/**
- * Secondary sort by id keeps pagination stable when primary values tie.
- */
 function buildOrderBy(
   sortBy: CategoryListFilters["sortBy"],
   sortOrder: CategoryListFilters["sortOrder"],

@@ -74,8 +74,6 @@ export async function listSubcategories(
 ): Promise<PaginatedSubcategories> {
   assertCanFilterStatus(query.status, user);
 
-  // ACTIVE listings (public default and admin storefront view): enforce parent ACTIVE in SQL
-  // for both findMany and count. ADMIN ARCHIVED/ALL may include archived parents.
   const requireActiveParent = query.status === "ACTIVE";
 
   const { items, totalItems } = await findSubcategoriesPage(prisma, {
@@ -186,7 +184,6 @@ export async function updateSubcategoryService(
 
   assertActiveAllowedUnderParent(nextStatus, parent.status);
 
-  // Name updates do not auto-change slug; slug changes only when explicitly sent.
   try {
     const updated = await updateSubcategory(prisma, id, {
       ...(input.name !== undefined ? { name: input.name } : {}),
@@ -210,9 +207,6 @@ export async function updateSubcategoryService(
   }
 }
 
-/**
- * Soft-delete via archival. Idempotent. Does not hard-delete products.
- */
 export async function archiveSubcategoryService(
   prisma: Database,
   id: number,

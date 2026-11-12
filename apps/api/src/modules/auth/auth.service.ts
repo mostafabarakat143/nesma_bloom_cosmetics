@@ -87,7 +87,6 @@ export async function loginUser(
 
   const user = await prisma.user.findUnique({ where: { email } });
 
-  // Generic 401 for missing user, bad password, and disabled accounts.
   if (!user) {
     await dummyPasswordWork();
     throw AppError.unauthorized(GENERIC_AUTH_ERROR);
@@ -127,7 +126,7 @@ export async function changePassword(
 
   const passwordHash = await hashPassword(input.newPassword);
   const updated = await prisma.user.updateMany({
-    // Do not overwrite a password changed concurrently after verification.
+
     where: { id: user.id, authVersion: user.authVersion, status: "ACTIVE" },
     data: {
       passwordHash,
@@ -140,10 +139,6 @@ export async function changePassword(
   }
 }
 
-/**
- * Always completes without saying whether the email exists.
- * The raw token is handed to the mailer only.
- */
 export async function requestPasswordReset(
   prisma: Database,
   env: Env,
@@ -225,7 +220,7 @@ export async function resetPassword(
   const passwordHash = await hashPassword(input.newPassword);
 
   await prisma.$transaction(async (tx) => {
-    // Recheck expiry after password hashing, immediately before consuming the link.
+
     const now = new Date();
     const marked = await tx.passwordResetToken.updateMany({
       where: {
@@ -253,7 +248,7 @@ export async function resetPassword(
       },
     });
     if (updated.count !== 1) {
-      // Roll back token consumption as well as the attempted password update.
+
       throw AppError.badRequest("This reset link is invalid or has expired.");
     }
   });
@@ -273,7 +268,6 @@ function hashResetToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-/** Idempotent Mode B revoke by jti. */
 export async function logoutUser(
   prisma: Database,
   options: { userId: number; jti: string; exp: number },
@@ -300,7 +294,7 @@ async function issueBearerAuth(
   env: Env,
   user: User,
 ): Promise<AuthResult> {
-  // Use the version read with the verified password hash, even if a reset races login.
+
   const token = await signBearerToken(env, user.id, user.authVersion);
   return {
     user: toPublicUser(user),
@@ -308,7 +302,6 @@ async function issueBearerAuth(
   };
 }
 
-/** Mitigate timing oracle when user is missing. */
 async function dummyPasswordWork(): Promise<void> {
   await hashPassword("invalid-password-timing-pad");
 }

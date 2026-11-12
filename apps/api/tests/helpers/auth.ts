@@ -2,7 +2,6 @@ import type { Response } from "supertest";
 
 export const TEST_ORIGIN = "http://localhost:3000";
 
-/** Authorization header for Bearer JWT protected routes. */
 export function authHeaders(token: string): Record<string, string> {
   return {
     Origin: TEST_ORIGIN,

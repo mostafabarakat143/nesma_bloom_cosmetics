@@ -8,7 +8,6 @@ export type PasswordResetMessage = {
   resetUrl: string;
 };
 
-/** Sends the raw reset link once. Callers must not persist or return that link. */
 export type PasswordResetMailer = (
   message: PasswordResetMessage,
 ) => Promise<void>;
@@ -21,10 +20,6 @@ type SmtpSettings = {
   from: string;
 };
 
-/**
- * Sends the reset link by SMTP when SMTP_* is fully configured.
- * With no SMTP settings, development prints the link in the server log.
- */
 export function createPasswordResetMailer(
   env: Env,
   logger: Logger,

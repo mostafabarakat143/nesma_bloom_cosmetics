@@ -6,7 +6,6 @@ import {
   positiveIntIdSchema,
 } from "../../common/validation/ids.js";
 
-/** PostgreSQL INTEGER upper bound (signed 32-bit). */
 const PG_INT_MAX = 2_147_483_647;
 
 const slugSchema = z

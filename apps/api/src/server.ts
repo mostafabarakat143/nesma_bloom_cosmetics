@@ -25,7 +25,7 @@ async function bootstrap(): Promise<void> {
   const server: Server = app.listen(env.PORT, () => {
     logger.info(
       { port: env.PORT },
-      `Nesma Bloom Cosmetics API listening on http://localhost:${env.PORT}`,
+      `Lamsa Cosmetics API listening on http://localhost:${env.PORT}`,
     );
   });
 
@@ -66,7 +66,6 @@ async function bootstrap(): Promise<void> {
     void shutdown("SIGINT");
   });
 
-  // Windows consoles may deliver Ctrl+Break as SIGBREAK.
   process.on("SIGBREAK", () => {
     void shutdown("SIGBREAK");
   });

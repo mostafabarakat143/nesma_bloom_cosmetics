@@ -258,11 +258,6 @@ export type CreateOrderResult = {
   created: boolean;
 };
 
-/**
- * Create order with required Idempotency-Key.
- * Concurrency gate: INSERT … ON CONFLICT DO NOTHING on (user_id, key).
- * PROCESSING rows are never committed (full rollback on failure).
- */
 async function createOrderInTransaction(
   prisma: Database,
   userId: number,
@@ -290,7 +285,6 @@ async function createOrderInTransaction(
         return { order, created: true };
       }
 
-      // Conflict — transaction is still healthy (ON CONFLICT DO NOTHING).
       const existing = await findOrderIdempotencyKey(tx, userId, idempotencyKey);
       if (!existing) {
         continue;
@@ -316,7 +310,6 @@ async function createOrderInTransaction(
         return { order: toOrderDto(order), created: false };
       }
 
-      // Should not observe committed PROCESSING; treat as conflict.
       throw AppError.conflict("Idempotency-Key request is already in progress");
     }
 
@@ -474,7 +467,7 @@ async function cancelOrderInTransaction(
       throw AppError.notFound("Order not found");
     }
     if (current.status === "CANCELLED") {
-      // Lost the race to another cancel — already restocked once.
+
       return toOrderDto(current);
     }
     throw AppError.conflict("Order cannot be cancelled in its current status");
@@ -491,7 +484,6 @@ export async function cancelOrderService(
     throw AppError.notFound("Order not found");
   }
 
-  // Ownership / admin check before revealing cancellation status semantics.
   if (user.role !== "ADMIN" && existing.userId !== user.id) {
     throw AppError.notFound("Order not found");
   }

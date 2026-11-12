@@ -49,10 +49,6 @@ export type CheckoutProduct = {
   };
 };
 
-/**
- * Row-lock products in deterministic id order so checkout sees a consistent
- * snapshot and concurrent admin price/status updates wait until commit.
- */
 export async function lockProductsForUpdate(
   tx: TxClient,
   productIds: number[],
@@ -157,10 +153,6 @@ export async function decrementStockIfAvailable(
 
 const PG_INT_MAX = 2_147_483_647;
 
-/**
- * Restock with INTEGER overflow guard. Uses a conditional update so overflow
- * cannot partially apply; caller should treat count !== 1 as failure.
- */
 export async function incrementStockIfSafe(
   tx: TxClient,
   productId: number,

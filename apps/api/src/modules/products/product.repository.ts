@@ -41,7 +41,7 @@ export type ParentSubcategory = {
 
 export type ProductListFilters = {
   status: CatalogStatus | "ALL";
-  /** When true, require ACTIVE subcategory and ACTIVE category. */
+
   requireActiveParents: boolean;
   availability: ListProductsQuery["availability"];
   categoryId?: number;

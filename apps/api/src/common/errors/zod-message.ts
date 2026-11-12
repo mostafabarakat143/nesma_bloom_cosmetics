@@ -1,8 +1,3 @@
-/**
- * Turn the first Zod issue into a single human-readable API message.
- * Prefer schema-level custom messages; fall back to path-aware defaults.
- */
-
 type ZodIssueLike = {
   code: string;
   path: PropertyKey[];

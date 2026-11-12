@@ -56,7 +56,7 @@ async function ordersOverTime(
   const rows =
     query.bucket === "day"
       ? await prisma.$queryRaw<Array<{ period: string; count: number }>>(
-          Prisma.sql`
+        Prisma.sql`
             SELECT to_char(
                      date_trunc('day', "created_at" AT TIME ZONE 'UTC'),
                      'YYYY-MM-DD'
@@ -67,9 +67,9 @@ async function ordersOverTime(
             GROUP BY 1
             ORDER BY 1 ASC
           `,
-        )
+      )
       : await prisma.$queryRaw<Array<{ period: string; count: number }>>(
-          Prisma.sql`
+        Prisma.sql`
             SELECT to_char(
                      date_trunc('month', "created_at" AT TIME ZONE 'UTC'),
                      'YYYY-MM'
@@ -80,7 +80,7 @@ async function ordersOverTime(
             GROUP BY 1
             ORDER BY 1 ASC
           `,
-        );
+      );
 
   return rows.map((row) => ({
     period: row.period,

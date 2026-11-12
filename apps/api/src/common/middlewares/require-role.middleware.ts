@@ -3,10 +3,6 @@ import type { NextFunction, Request, Response } from "express";
 import { AppError } from "../errors/app-error.js";
 import type { UserRole } from "../../generated/prisma/client.js";
 
-/**
- * Role gate only. Resource ownership must still be enforced in services
- * (e.g. profile/order.userId === req.user.id).
- */
 export function requireRole(...roles: UserRole[]) {
   return function requireRoleMiddleware(
     req: Request,

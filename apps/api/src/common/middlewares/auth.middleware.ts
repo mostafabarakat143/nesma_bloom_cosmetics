@@ -9,10 +9,6 @@ import {
   extractBearerToken,
 } from "../../modules/auth/token.service.js";
 
-/**
- * Verifies Bearer JWT, rejects revoked jti, loads live user status/role from DB.
- * Authorization role always comes from PostgreSQL, not JWT claims.
- */
 export function createRequireAuth(env: Env, prisma: Database) {
   return async function requireAuth(
     req: Request,
@@ -40,10 +36,6 @@ export function createRequireAuth(env: Env, prisma: Database) {
   };
 }
 
-/**
- * Logout-only: validates JWT but allows an already-revoked jti (idempotent logout).
- * Do not use on any other protected route.
- */
 export function createRequireAuthForLogout(env: Env, prisma: Database) {
   return async function requireAuthForLogout(
     req: Request,

@@ -15,9 +15,9 @@ export type BearerTokenClaims = {
   sub: number;
   authVersion: number;
   jti: string;
-  /** Unix seconds */
+
   iat: number;
-  /** Unix seconds */
+
   exp: number;
 };
 
@@ -32,7 +32,6 @@ function secretKey(env: Env): Uint8Array {
   return new TextEncoder().encode(env.JWT_ACCESS_SECRET);
 }
 
-/** Issue a Bearer JWT. Role is not embedded for authorization (loaded from DB). */
 export async function signBearerToken(
   env: Env,
   userId: number,
@@ -51,10 +50,6 @@ export async function signBearerToken(
     .sign(secretKey(env));
 }
 
-/**
- * Cryptographic JWT verification (signature, exp, iss, aud, sub, jti, authVersion).
- * Does not check revocation or user status.
- */
 export async function verifyBearerToken(
   env: Env,
   token: string,
@@ -112,10 +107,6 @@ export async function isJtiRevoked(
   return row !== null;
 }
 
-/**
- * Idempotent revoke by jti. Concurrent logouts are safe (unique jti).
- * Does not store the raw JWT.
- */
 export async function revokeAccessToken(
   prisma: Database,
   data: { jti: string; userId: number; expiresAt: Date },
@@ -149,9 +140,6 @@ async function loadUserForAuth(prisma: Database, userId: number) {
   return user;
 }
 
-/**
- * Full protected-route auth: verify JWT, reject revoked jti, load live role.
- */
 export async function authenticateBearerRequest(
   env: Env,
   prisma: Database,
@@ -179,10 +167,6 @@ export async function authenticateBearerRequest(
   };
 }
 
-/**
- * Logout-only auth: verify JWT and require the current account version.
- * Allows already-revoked jti and disabled accounts so logout stays idempotent.
- */
 export async function authenticateBearerForLogout(
   env: Env,
   prisma: Database,
@@ -195,7 +179,6 @@ export async function authenticateBearerForLogout(
     throw AppError.unauthorized("Authentication required");
   }
 
-  // Prefer DB role when ACTIVE; DISABLED still allowed to revoke their token.
   return {
     id: claims.sub,
     role: user.role,

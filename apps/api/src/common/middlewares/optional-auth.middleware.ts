@@ -7,10 +7,6 @@ import {
   extractBearerToken,
 } from "../../modules/auth/token.service.js";
 
-/**
- * If Authorization Bearer is present, fully verify JWT + revocation + live user.
- * Role comes from PostgreSQL. If absent, continue as anonymous.
- */
 export function createOptionalAuth(env: Env, prisma: Database) {
   return async function optionalAuth(
     req: Request,
@@ -34,7 +30,7 @@ export function createOptionalAuth(env: Env, prisma: Database) {
 
       next();
     } catch (error) {
-      // Preserve auth failures and infrastructure errors for the shared handler.
+
       next(error);
     }
   };

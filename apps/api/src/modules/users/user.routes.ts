@@ -33,7 +33,6 @@ export function createUserRouter(env: Env, prisma: Database): ExpressRouter {
     void controller.replaceMyAvatar(req, res, next),
   );
 
-  // Stub ADMIN-only route for authorization tests / future admin tools.
   router.get(
     "/admin/ping",
     requireAuth,

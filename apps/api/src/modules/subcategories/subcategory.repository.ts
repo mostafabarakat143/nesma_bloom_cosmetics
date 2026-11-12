@@ -17,7 +17,7 @@ const categorySelect = {
 
 export type SubcategoryListFilters = {
   status: CatalogStatus | "ALL";
-  /** When true, require parent Category.status = ACTIVE (public storefront). */
+
   requireActiveParent: boolean;
   categoryId?: number;
   search?: string;

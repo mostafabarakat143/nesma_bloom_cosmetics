@@ -40,7 +40,7 @@ export type ProductDto = {
   currency: string;
   stockQty: number;
   isAvailable: boolean;
-  /** Derived from stockQty only; not a purchasability guarantee. */
+
   inStock: boolean;
   status: Product["status"];
   createdAt: string;

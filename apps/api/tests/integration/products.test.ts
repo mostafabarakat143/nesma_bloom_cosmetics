@@ -558,7 +558,6 @@ describe("products CRUD and images", () => {
     expect(ok.status).toBe(201);
   });
 
-
   it("manages images: ordering, primary uniqueness, conflicts and promotion", async () => {
     const { token } = await asAdmin();
     const { activeSub } = await seedCatalog();

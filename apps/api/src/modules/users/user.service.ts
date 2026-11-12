@@ -67,7 +67,6 @@ export async function updateOwnProfile(
   return toPublicProfile(profile, profile.user.email);
 }
 
-/** Replace the single profile image for this user. The previous file is removed. */
 export async function replaceOwnAvatar(
   env: Env,
   prisma: Database,

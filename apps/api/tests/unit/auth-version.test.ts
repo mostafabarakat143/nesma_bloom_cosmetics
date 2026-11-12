@@ -22,7 +22,7 @@ let originalHash: string;
 
 beforeAll(async () => { originalHash = await hashPassword(oldPassword); });
 beforeEach(() => {
-  // Freeze only the clock: password hashing and request processing remain real.
+
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-11-05T12:00:00.750Z"));
 });
@@ -42,7 +42,7 @@ function buildDatabase() {
   };
   const database = {
     user: {
-      // Each read is a snapshot, just like a completed database query.
+
       findUnique: vi.fn(async () => ({ ...user })),
       updateMany: vi.fn(async (args: {
         where: { authVersion: number; status: string };
@@ -103,7 +103,7 @@ describe("authentication versions", () => {
     let racedToken = "";
     database.passwordResetToken.findUnique.mockImplementationOnce(async () => {
       const row = await readResetToken();
-      // The reset has begun, but its password update has not committed yet.
+
       vi.setSystemTime(new Date(Date.now() + 1500));
       racedToken = (await loginUser(prisma, env, {
         email: user.email,

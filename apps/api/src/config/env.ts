@@ -26,25 +26,22 @@ const envSchema = z
     JWT_ACCESS_SECRET: z
       .string()
       .min(32, "JWT_ACCESS_SECRET must be at least 32 characters"),
-    /** Bearer JWT lifetime in seconds (default 7 days). */
+
     JWT_TTL_SECONDS: z.coerce.number().int().positive().default(604_800),
     JWT_ISSUER: z.string().min(1).default("nesma-bloom-api"),
     JWT_AUDIENCE: z.string().min(1).default("nesma-bloom-clients"),
-    /** How long a password-reset link stays valid. */
+
     PASSWORD_RESET_TTL_SECONDS: z.coerce
       .number()
       .int()
       .positive()
       .max(86_400)
       .default(1_800),
-    /** Public site origin used to build reset links. */
+
     APP_PUBLIC_URL: z.string().url().default("http://localhost:3000"),
-    /**
-     * Directory for uploaded catalog and profile images.
-     * Relative paths are resolved from the API process working directory.
-     */
+
     UPLOAD_DIR: z.string().min(1).default("uploads"),
-    /** Origin used in stored image URLs. No path, query, or hash. */
+
     API_PUBLIC_URL: z
       .string()
       .url()
@@ -53,7 +50,7 @@ const envSchema = z
         const url = new URL(value);
         return url.pathname === "/" && url.search === "" && url.hash === "";
       }, "API_PUBLIC_URL must be an origin with no path, query, or hash"),
-    /** Leave blank to skip real email. All five SMTP values are required to send. */
+
     SMTP_HOST: z.string().default(""),
     SMTP_PORT: z.coerce.number().int().positive().max(65535).default(587),
     SMTP_USER: z.string().default(""),
@@ -65,10 +62,7 @@ const envSchema = z
       .positive()
       .default(900_000),
     AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20),
-    /**
-     * When true, serves /api/docs and /api/openapi.json.
-     * Defaults: enabled outside production; disabled in production unless set.
-     */
+
     ENABLE_API_DOCS: z.enum(["true", "false"]).optional(),
   })
   .transform((value) => {

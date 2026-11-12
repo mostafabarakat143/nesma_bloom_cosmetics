@@ -63,7 +63,6 @@ export function createErrorMiddleware(env: Env, logger: Logger) {
       "Unhandled error",
     );
 
-    // Never leak internals (including development Error.message) to clients.
     void env;
     sendError(res, 500, "Internal server error.");
   };

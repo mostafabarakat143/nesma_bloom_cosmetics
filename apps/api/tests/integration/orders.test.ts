@@ -294,7 +294,6 @@ describe("orders management", () => {
       .send({ items: [{ productId: a.id, quantity: 2 }] });
     expect(insufficient.status).toBe(409);
 
-    // Order product ids so B is decremented first, then A fails → full rollback
     const ids = [a.id, b.id].sort();
     const items = ids.map((productId) => ({
       productId,

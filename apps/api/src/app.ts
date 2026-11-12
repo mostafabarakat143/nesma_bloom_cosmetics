@@ -42,7 +42,6 @@ export function createApp({ env, logger, prisma, mailer }: AppDependencies): Exp
   app.use(requestIdMiddleware);
   app.use(
     helmet({
-      // Catalog and profile images are loaded by the storefront on another origin.
       crossOriginResourcePolicy: { policy: "cross-origin" },
     }),
   );
@@ -52,7 +51,6 @@ export function createApp({ env, logger, prisma, mailer }: AppDependencies): Exp
     app.use(
       cors({
         origin: corsOrigins,
-        // Bearer tokens use Authorization; cookie credentials not required.
         credentials: false,
       }),
     );
@@ -108,7 +106,6 @@ export function createApp({ env, logger, prisma, mailer }: AppDependencies): Exp
   app.use("/api/v1/products", createProductRouter(env, prisma));
   app.use("/api/v1/orders", createOrderRouter(env, prisma));
 
-  // /api/openapi.json and /api/docs (gated by ENABLE_API_DOCS)
   app.use("/api", createDocsRouter(env));
 
   app.use(notFoundMiddleware);

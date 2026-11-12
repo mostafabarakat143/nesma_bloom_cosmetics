@@ -1,4 +1,3 @@
-/** Shared minimal env overrides for unit tests that call loadEnv directly. */
 export const baseTestEnvVars: NodeJS.ProcessEnv = {
   NODE_ENV: "test",
   DATABASE_URL: "postgresql://test:test@127.0.0.1:5432/test",

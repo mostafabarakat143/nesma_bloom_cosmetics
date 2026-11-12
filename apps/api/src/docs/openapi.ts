@@ -1,8 +1,3 @@
-/**
- * OpenAPI 3.1 description of the Nesma Bloom Cosmetics API.
- * Kept as a maintainable document (not auto-generated from every Zod schema)
- * so Bearer JWT / idempotency security requirements stay accurate.
- */
 export const openApiDocument = {
   openapi: "3.1.0",
   info: {

@@ -52,9 +52,6 @@ export async function disconnectDatabase(
   }
 }
 
-/**
- * Avoid leaking credentials from driver/Prisma error messages into logs.
- */
 function sanitizeDbError(error: unknown): { name?: string; message: string } {
   if (!(error instanceof Error)) {
     return { message: "Unknown database error" };

@@ -146,7 +146,6 @@ export async function updateCategoryService(
 
   const previousUrl = existing.imageUrl;
 
-  // Name updates do not auto-change slug; slug changes only when explicitly sent.
   let category;
   try {
     category = await updateCategory(prisma, id, {
@@ -173,10 +172,6 @@ export async function updateCategoryService(
   return toCategoryDto(category);
 }
 
-/**
- * Soft-delete via archival. Idempotent: already-ARCHIVED returns 200 with DTO.
- * Does not cascade-archive children; public catalog must filter by parent status later.
- */
 export async function archiveCategoryService(
   prisma: Database,
   id: number,
