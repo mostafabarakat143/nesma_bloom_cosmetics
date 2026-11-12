@@ -17,17 +17,33 @@ async function bootstrap(): Promise<void> {
   const logger = createLogger(env);
   const prisma = createPrismaClient(env);
 
-  await connectDatabase(prisma, logger);
+  let server: Server;
+  let stopRevocationCleanup = (): void => { };
+  try {
+    await connectDatabase(prisma, logger);
 
-  const app = createApp({ env, logger, prisma });
-  const stopRevocationCleanup = startRevocationCleanup(prisma, logger);
+    const app = createApp({ env, logger, prisma });
+    stopRevocationCleanup = startRevocationCleanup(prisma, logger);
 
-  const server: Server = app.listen(env.PORT, () => {
+    server = await new Promise<Server>((resolve, reject) => {
+      const httpServer = app.listen(env.PORT, (error?: Error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve(httpServer);
+      });
+    });
     logger.info(
       { port: env.PORT },
       `Lamsa Cosmetics API listening on http://localhost:${env.PORT}`,
     );
-  });
+  } catch (error) {
+    stopRevocationCleanup();
+    await disconnectDatabase(prisma, logger);
+    logger.fatal({ err: error }, "API server startup failed");
+    throw error;
+  }
 
   let isShuttingDown = false;
 

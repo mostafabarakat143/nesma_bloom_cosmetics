@@ -1,7 +1,11 @@
-import type { Prisma, UserRole, UserStatus } from "../../generated/prisma/client.js";
+import { setTimeout as delay } from "node:timers/promises";
+
+import { Prisma, type UserRole, type UserStatus } from "../../generated/prisma/client.js";
 
 import type { Database } from "../../config/database.js";
 import type { ListUsersQuery } from "./user.schema.js";
+
+const MAX_ADMIN_UPDATE_ATTEMPTS = 3;
 
 const userAdminSelect = {
   id: true,
@@ -97,53 +101,71 @@ export async function updateUserForAdmin(
   id: number,
   data: { role?: UserRole; status?: UserStatus },
 ): Promise<AdminUserRecord | null> {
-  return prisma.$transaction(async (tx) => {
-    const locked = await tx.$queryRaw<Array<{ id: number }>>`
-      SELECT "id" FROM "users" WHERE "id" = ${id} FOR UPDATE
-    `;
-    if (locked.length === 0) {
-      return null;
-    }
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const locked = await tx.$queryRaw<Array<{ id: number }>>`
+          SELECT "id" FROM "users"
+          WHERE "id" = ${id} OR ("role" = 'ADMIN' AND "status" = 'ACTIVE')
+          ORDER BY "id"
+          FOR UPDATE
+        `;
+        if (!locked.some((user) => user.id === id)) {
+          return null;
+        }
 
-    const current = await tx.user.findUnique({
-      where: { id },
-      select: { id: true, role: true, status: true },
-    });
-    if (!current) {
-      return null;
-    }
+        const current = await tx.user.findUnique({
+          where: { id },
+          select: { id: true, role: true, status: true },
+        });
+        if (!current) {
+          return null;
+        }
 
-    const nextRole = data.role ?? current.role;
-    const nextStatus = data.status ?? current.status;
-    const wasActiveAdmin =
-      current.role === "ADMIN" && current.status === "ACTIVE";
-    const staysActiveAdmin = nextRole === "ADMIN" && nextStatus === "ACTIVE";
+        const nextRole = data.role ?? current.role;
+        const nextStatus = data.status ?? current.status;
+        const wasActiveAdmin =
+          current.role === "ADMIN" && current.status === "ACTIVE";
+        const staysActiveAdmin = nextRole === "ADMIN" && nextStatus === "ACTIVE";
 
-    if (wasActiveAdmin && !staysActiveAdmin) {
-      await tx.$queryRaw`
-        SELECT "id" FROM "users"
-        WHERE "role" = 'ADMIN' AND "status" = 'ACTIVE'
-        FOR UPDATE
-      `;
-      const others = await tx.user.count({
-        where: {
-          role: "ADMIN",
-          status: "ACTIVE",
-          id: { not: current.id },
-        },
+        if (wasActiveAdmin && !staysActiveAdmin) {
+          const others = await tx.user.count({
+            where: {
+              role: "ADMIN",
+              status: "ACTIVE",
+              id: { not: current.id },
+            },
+          });
+          if (others === 0) {
+            throw new LastAdminError();
+          }
+        }
+
+        return tx.user.update({
+          where: { id },
+          data: {
+            ...(data.role !== undefined ? { role: data.role } : {}),
+            ...(data.status !== undefined ? { status: data.status } : {}),
+          },
+          select: userAdminSelect,
+        });
       });
-      if (others === 0) {
-        throw new LastAdminError();
+    } catch (error) {
+      if (attempt >= MAX_ADMIN_UPDATE_ATTEMPTS - 1 || !isRetryableTransactionError(error)) {
+        throw error;
       }
+      await delay(25 * 2 ** attempt + Math.floor(Math.random() * 25));
     }
+  }
+}
 
-    return tx.user.update({
-      where: { id },
-      data: {
-        ...(data.role !== undefined ? { role: data.role } : {}),
-        ...(data.status !== undefined ? { status: data.status } : {}),
-      },
-      select: userAdminSelect,
-    });
-  });
+function isRetryableTransactionError(error: unknown): boolean {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
+    return false;
+  }
+  return (
+    error.code === "P2034" ||
+    (error.code === "P2010" &&
+      (error.meta?.code === "40P01" || error.meta?.code === "40001"))
+  );
 }

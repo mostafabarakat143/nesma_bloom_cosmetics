@@ -2,6 +2,8 @@ import { z } from "zod";
 
 export const MAX_DB_INT = 2_147_483_647;
 
+const POSITIVE_INT_ID_PATTERN = /^[1-9]\d*$/;
+
 export const positiveIntIdSchema = createPositiveIntIdSchema("ID", "ID is invalid.");
 
 export function positiveIntIdField(label: string) {
@@ -11,7 +13,9 @@ export function positiveIntIdField(label: string) {
 function createPositiveIntIdSchema(label: string, missingMessage: string) {
   return z.preprocess(
     (value) =>
-      typeof value === "string" && /^\d+$/.test(value) ? Number(value) : value,
+      typeof value === "string" && POSITIVE_INT_ID_PATTERN.test(value)
+        ? Number(value)
+        : value,
     z
       .number({
         error: (issue) =>
@@ -30,7 +34,7 @@ export function parsePositiveIntId(raw: unknown): number | null {
     }
     return raw;
   }
-  if (typeof raw !== "string" || !/^[1-9]\d*$/.test(raw)) {
+  if (typeof raw !== "string" || !POSITIVE_INT_ID_PATTERN.test(raw)) {
     return null;
   }
   const value = Number(raw);

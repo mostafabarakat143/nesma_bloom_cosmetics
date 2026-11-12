@@ -2,6 +2,7 @@ import request from "supertest";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
 import { hashPassword } from "../../src/modules/auth/password.service.js";
+import { LastAdminError, updateUserForAdmin } from "../../src/modules/users/user.repository.js";
 import { authHeaders, TEST_ORIGIN, extractToken } from "../helpers/auth.js";
 import { createAdminUser, loginAsAdmin } from "../helpers/admin.js";
 import { buildTestApp } from "../helpers/test-app.js";
@@ -105,6 +106,25 @@ describe("admin dashboard, users, and contact", () => {
       role: "CUSTOMER",
       status: "DISABLED",
     });
+  });
+
+  it.each([
+    { role: "CUSTOMER" as const },
+    { status: "DISABLED" as const },
+  ])("preserves one active admin during concurrent updates %j", async (change) => {
+    const first = await createAdminUser(prisma, "first-concurrent-admin@example.com");
+    const second = await createAdminUser(prisma, "second-concurrent-admin@example.com");
+
+    const results = await Promise.allSettled([
+      updateUserForAdmin(prisma, first.user.id, change),
+      updateUserForAdmin(prisma, second.user.id, change),
+    ]);
+
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    const rejected = results.filter((result) => result.status === "rejected");
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0]?.reason).toBeInstanceOf(LastAdminError);
+    expect(await prisma.user.count({ where: { role: "ADMIN", status: "ACTIVE" } })).toBe(1);
   });
 
   it("returns dashboard totals and a UTC order series", async () => {

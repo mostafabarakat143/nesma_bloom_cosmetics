@@ -1,5 +1,7 @@
 import { hash, verify } from "@node-rs/argon2";
 
+import { AppError } from "../../common/errors/app-error.js";
+
 export async function hashPassword(plainPassword: string): Promise<string> {
   return hash(plainPassword, {
     memoryCost: 19_456,
@@ -15,6 +17,9 @@ export async function verifyPassword(
   try {
     return await verify(passwordHash, plainPassword);
   } catch {
-    return false;
+    throw AppError.internal(
+      "Password verification failed.",
+      "PASSWORD_VERIFICATION_FAILED",
+    );
   }
 }

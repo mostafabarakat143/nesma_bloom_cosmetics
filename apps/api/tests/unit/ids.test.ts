@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   MAX_DB_INT,
+  parsePositiveIntId,
   positiveIntIdField,
   positiveIntIdSchema,
 } from "../../src/common/validation/ids.js";
@@ -12,16 +13,19 @@ describe("request ID validation", () => {
     "accepts database integer ID %j",
     (value) => {
       expect(positiveIntIdSchema.parse(value)).toBe(Number(value));
+      expect(positiveIntIdField("Product ID").parse(value)).toBe(Number(value));
+      expect(parsePositiveIntId(value)).toBe(Number(value));
     },
   );
 
   it.each([
     true, false, null, undefined, [], [1], { valueOf: () => 1 },
-    "", " ", " 1 ", "1.0", "1e2", "0x10", 0, -1, 1.5,
+    "", " ", " 1 ", "01", "0001", "00", "0", "1.0", "1e2", "0x10", 0, -1, 1.5,
     Number.NaN, Number.POSITIVE_INFINITY, MAX_DB_INT + 1,
   ])("rejects invalid ID %j", (value) => {
     expect(positiveIntIdSchema.safeParse(value).success).toBe(false);
     expect(positiveIntIdField("Product ID").safeParse(value).success).toBe(false);
+    expect(parsePositiveIntId(value)).toBeNull();
   });
 
   it("preserves a field-specific message for missing IDs", () => {
