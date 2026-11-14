@@ -2,6 +2,7 @@ import { Router, type Router as ExpressRouter } from "express";
 
 import type { Database } from "../../config/database.js";
 import type { Env } from "../../config/env.js";
+import { uncachedCatalog, type CatalogCache } from "../../common/cache/catalog-cache.js";
 import { createRequireAuth } from "../../common/middlewares/auth.middleware.js";
 import { createOptionalAuth } from "../../common/middlewares/optional-auth.middleware.js";
 import { requireRole } from "../../common/middlewares/require-role.middleware.js";
@@ -20,9 +21,10 @@ import {
 export function createProductRouter(
   env: Env,
   prisma: Database,
+  cache: CatalogCache = uncachedCatalog,
 ): ExpressRouter {
   const router: ExpressRouter = Router();
-  const controller = createProductController(env, prisma);
+  const controller = createProductController(env, prisma, cache);
   const optionalAuth = createOptionalAuth(env, prisma);
   const requireAuth = createRequireAuth(env, prisma);
 

@@ -10,19 +10,22 @@ import {
 } from "./config/database.js";
 import { loadEnv } from "./config/env.js";
 import { createLogger } from "./config/logger.js";
+import { createRedisCache } from "./config/redis.js";
 import { startRevocationCleanup } from "./modules/auth/revocation-cleanup.js";
 
 async function bootstrap(): Promise<void> {
   const env = loadEnv();
   const logger = createLogger(env);
   const prisma = createPrismaClient(env);
+  const redis = createRedisCache(env, logger);
 
   let server: Server;
   let stopRevocationCleanup = (): void => { };
   try {
     await connectDatabase(prisma, logger);
+    redis.start();
 
-    const app = createApp({ env, logger, prisma });
+    const app = createApp({ env, logger, prisma, cache: redis.cache });
     stopRevocationCleanup = startRevocationCleanup(prisma, logger);
 
     server = await new Promise<Server>((resolve, reject) => {
@@ -40,6 +43,7 @@ async function bootstrap(): Promise<void> {
     );
   } catch (error) {
     stopRevocationCleanup();
+    redis.stop();
     await disconnectDatabase(prisma, logger);
     logger.fatal({ err: error }, "API server startup failed");
     throw error;
@@ -57,6 +61,7 @@ async function bootstrap(): Promise<void> {
     stopRevocationCleanup();
 
     server.close(async (closeError) => {
+      redis.stop();
       if (closeError) {
         logger.error({ err: closeError }, "Error during server close");
         await disconnectDatabase(prisma, logger);
@@ -88,11 +93,13 @@ async function bootstrap(): Promise<void> {
 
   process.on("uncaughtException", (error) => {
     logger.fatal({ err: error }, "Uncaught exception");
+    redis.stop();
     void disconnectDatabase(prisma, logger).finally(() => process.exit(1));
   });
 
   process.on("unhandledRejection", (reason) => {
     logger.fatal({ err: reason }, "Unhandled rejection");
+    redis.stop();
     void disconnectDatabase(prisma, logger).finally(() => process.exit(1));
   });
 }

@@ -1,6 +1,6 @@
-# Local PostgreSQL (Docker Compose)
+# Local PostgreSQL and Redis (Docker Compose)
 
-This folder runs PostgreSQL 16 for Nesma Bloom Cosmetics local development.
+This folder runs PostgreSQL 16 and Redis for Nesma Bloom Cosmetics local development.
 
 ## Prerequisites
 
@@ -27,6 +27,20 @@ cd infra
 docker compose up -d
 docker compose ps
 ```
+
+## Redis catalog cache
+
+Redis starts alongside PostgreSQL with `docker compose up -d`. To start only Redis:
+
+```powershell
+cd infra
+docker compose up -d redis
+docker compose exec redis redis-cli ping
+```
+
+Configure `REDIS_URL=redis://127.0.0.1:6379/0` in `apps/api/.env`. `REDIS_PORT` defaults to `6379`; keep the URL port in sync if you change it. Redis is optional, and the API falls back to PostgreSQL when it is unavailable. Cache entries expire after 30 seconds by default. Local Redis data is disposable and is not included in database backups.
+
+See [the caching guide](../docs/redis-caching.md) for the request flow, invalidation rules, failure behavior, and alternatives.
 
 ## Stop (keep data)
 

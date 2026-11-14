@@ -7,6 +7,7 @@ import { pinoHttp } from "pino-http";
 import type { Database } from "./config/database.js";
 import { getCorsOrigins, type Env } from "./config/env.js";
 import type { Logger } from "./config/logger.js";
+import { uncachedCatalog, type CatalogCache } from "./common/cache/catalog-cache.js";
 import { createErrorMiddleware } from "./common/middlewares/error.middleware.js";
 import { notFoundMiddleware } from "./common/middlewares/not-found.middleware.js";
 import { requestIdMiddleware } from "./common/middlewares/request-id.middleware.js";
@@ -31,9 +32,10 @@ export type AppDependencies = {
   logger: Logger;
   prisma: Database;
   mailer?: PasswordResetMailer;
+  cache?: CatalogCache;
 };
 
-export function createApp({ env, logger, prisma, mailer }: AppDependencies): Express {
+export function createApp({ env, logger, prisma, mailer, cache = uncachedCatalog }: AppDependencies): Express {
   const app: Express = express();
 
   app.disable("x-powered-by");
@@ -101,10 +103,10 @@ export function createApp({ env, logger, prisma, mailer }: AppDependencies): Exp
   app.use("/api/v1/media", createMediaRouter(env));
   app.use("/api/v1/contact", createContactRouter(env, prisma));
   app.use("/api/v1/admin", createDashboardRouter(env, prisma));
-  app.use("/api/v1/categories", createCategoryRouter(env, prisma));
-  app.use("/api/v1/subcategories", createSubcategoryRouter(env, prisma));
-  app.use("/api/v1/products", createProductRouter(env, prisma));
-  app.use("/api/v1/orders", createOrderRouter(env, prisma));
+  app.use("/api/v1/categories", createCategoryRouter(env, prisma, cache));
+  app.use("/api/v1/subcategories", createSubcategoryRouter(env, prisma, cache));
+  app.use("/api/v1/products", createProductRouter(env, prisma, cache));
+  app.use("/api/v1/orders", createOrderRouter(env, prisma, cache));
 
   app.use("/api", createDocsRouter(env));
 

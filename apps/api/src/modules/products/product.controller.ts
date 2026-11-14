@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 
 import type { Database } from "../../config/database.js";
 import type { Env } from "../../config/env.js";
+import { catalogCacheKey, uncachedCatalog, type CatalogCache } from "../../common/cache/catalog-cache.js";
 import type {
   CreateProductBody,
   CreateProductImageBody,
@@ -20,12 +21,16 @@ import {
   updateProductService,
 } from "./product.service.js";
 
-export function createProductController(env: Env, prisma: Database) {
+export function createProductController(env: Env, prisma: Database, cache: CatalogCache = uncachedCatalog) {
   return {
     async list(req: Request, res: Response, next: NextFunction): Promise<void> {
       try {
         const query = req.query as unknown as ListProductsQuery;
-        const data = await listProducts(prisma, query, req.user);
+        const data = await cache.read(
+          catalogCacheKey("products:list", query),
+          () => listProducts(prisma, query, req.user),
+          !req.user,
+        );
         res.status(200).json({ status: "success", data });
       } catch (error) {
         next(error);
@@ -39,7 +44,11 @@ export function createProductController(env: Env, prisma: Database) {
     ): Promise<void> {
       try {
         const { id } = req.params as unknown as { id: number };
-        const product = await getProductById(prisma, id, req.user);
+        const product = await cache.read(
+          catalogCacheKey("products:detail", id),
+          () => getProductById(prisma, id, req.user),
+          !req.user,
+        );
         res.status(200).json({ status: "success", data: { product } });
       } catch (error) {
         next(error);
@@ -53,7 +62,7 @@ export function createProductController(env: Env, prisma: Database) {
     ): Promise<void> {
       try {
         const body = req.body as CreateProductBody;
-        const product = await createProductService(prisma, body);
+        const product = await cache.write(() => createProductService(prisma, body));
         res.status(201).json({ status: "success", data: { product } });
       } catch (error) {
         next(error);
@@ -68,7 +77,7 @@ export function createProductController(env: Env, prisma: Database) {
       try {
         const { id } = req.params as unknown as { id: number };
         const body = req.body as UpdateProductBody;
-        const product = await updateProductService(prisma, id, body);
+        const product = await cache.write(() => updateProductService(prisma, id, body));
         res.status(200).json({ status: "success", data: { product } });
       } catch (error) {
         next(error);
@@ -82,7 +91,7 @@ export function createProductController(env: Env, prisma: Database) {
     ): Promise<void> {
       try {
         const { id } = req.params as unknown as { id: number };
-        const product = await archiveProductService(prisma, id);
+        const product = await cache.write(() => archiveProductService(prisma, id));
         res.status(200).json({ status: "success", data: { product } });
       } catch (error) {
         next(error);
@@ -97,7 +106,7 @@ export function createProductController(env: Env, prisma: Database) {
       try {
         const { id } = req.params as unknown as { id: number };
         const body = req.body as CreateProductImageBody;
-        const product = await addProductImageService(prisma, id, body);
+        const product = await cache.write(() => addProductImageService(prisma, id, body));
         res.status(201).json({ status: "success", data: { product } });
       } catch (error) {
         next(error);
@@ -112,13 +121,13 @@ export function createProductController(env: Env, prisma: Database) {
       try {
         const { id, imageId } = req.params as unknown as { id: number; imageId: number };
         const body = req.body as UpdateProductImageBody;
-        const product = await updateProductImageService(
+        const product = await cache.write(() => updateProductImageService(
           prisma,
           id,
           imageId,
           body,
           env,
-        );
+        ));
         res.status(200).json({ status: "success", data: { product } });
       } catch (error) {
         next(error);
@@ -132,7 +141,7 @@ export function createProductController(env: Env, prisma: Database) {
     ): Promise<void> {
       try {
         const { id, imageId } = req.params as unknown as { id: number; imageId: number };
-        const product = await deleteProductImageService(prisma, id, imageId, env);
+        const product = await cache.write(() => deleteProductImageService(prisma, id, imageId, env));
         res.status(200).json({ status: "success", data: { product } });
       } catch (error) {
         next(error);

@@ -12,12 +12,17 @@ const mocks = vi.hoisted(() => ({
   disconnectDatabase: vi.fn(),
   startCleanup: vi.fn(),
   stopCleanup: vi.fn(),
+  redisStart: vi.fn(),
+  redisStop: vi.fn(),
 }));
 
 vi.mock("dotenv/config", () => ({}));
 vi.mock("../../src/app.js", () => ({ createApp: mocks.createApp }));
 vi.mock("../../src/config/env.js", () => ({ loadEnv: () => mocks.env }));
 vi.mock("../../src/config/logger.js", () => ({ createLogger: () => mocks.logger }));
+vi.mock("../../src/config/redis.js", () => ({
+  createRedisCache: () => ({ cache: {}, start: mocks.redisStart, stop: mocks.redisStop }),
+}));
 vi.mock("../../src/config/database.js", () => ({
   createPrismaClient: () => mocks.prisma,
   connectDatabase: mocks.connectDatabase,
@@ -67,6 +72,8 @@ describe("HTTP server startup", () => {
     expect(server?.listening).toBe(true);
     expect(mocks.stopCleanup).not.toHaveBeenCalled();
     expect(mocks.disconnectDatabase).not.toHaveBeenCalled();
+    expect(mocks.redisStart).toHaveBeenCalledTimes(1);
+    expect(mocks.redisStop).not.toHaveBeenCalled();
     expect(process.exit).not.toHaveBeenCalled();
   });
 
@@ -82,6 +89,7 @@ describe("HTTP server startup", () => {
       await vi.waitFor(() => expect(process.exit).toHaveBeenCalledWith(1));
 
       expect(mocks.stopCleanup).toHaveBeenCalledTimes(1);
+      expect(mocks.redisStop).toHaveBeenCalledTimes(1);
       expect(mocks.disconnectDatabase).toHaveBeenCalledExactlyOnceWith(mocks.prisma, mocks.logger);
       expect(mocks.logger.fatal).toHaveBeenCalledWith(
         { err: expect.objectContaining({ code: "EADDRINUSE" }) },
@@ -103,6 +111,7 @@ describe("HTTP server startup", () => {
     await vi.waitFor(() => expect(process.exit).toHaveBeenCalledWith(1));
 
     expect(mocks.stopCleanup).toHaveBeenCalledTimes(1);
+    expect(mocks.redisStop).toHaveBeenCalledTimes(1);
     expect(mocks.disconnectDatabase).toHaveBeenCalledTimes(1);
     expect(mocks.logger.fatal).toHaveBeenCalledWith({ err: failure }, "API server startup failed");
     expect(mocks.logger.info).not.toHaveBeenCalled();
@@ -115,6 +124,8 @@ describe("HTTP server startup", () => {
     await vi.waitFor(() => expect(process.exit).toHaveBeenCalledWith(1));
 
     expect(mocks.startCleanup).not.toHaveBeenCalled();
+    expect(mocks.redisStart).not.toHaveBeenCalled();
+    expect(mocks.redisStop).toHaveBeenCalledTimes(1);
     expect(mocks.disconnectDatabase).toHaveBeenCalledTimes(1);
     expect(mocks.createApp).not.toHaveBeenCalled();
   });

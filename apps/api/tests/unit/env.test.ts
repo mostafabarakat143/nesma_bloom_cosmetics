@@ -18,6 +18,8 @@ describe("loadEnv", () => {
     expect(env.JWT_AUDIENCE).toBe("nesma-bloom-clients");
     expect(env.API_PUBLIC_URL).toBe("http://localhost:4000");
     expect(env.UPLOAD_DIR).toBe(path.resolve("uploads"));
+    expect(env.REDIS_URL).toBe("");
+    expect(env.CACHE_TTL_SECONDS).toBe(30);
   });
 
   it("fails fast on invalid configuration", () => {
@@ -27,6 +29,22 @@ describe("loadEnv", () => {
         PORT: "not-a-number",
       }),
     ).toThrow(/Invalid environment configuration/);
+  });
+
+  it.each(["redis://127.0.0.1:6379/0", "rediss://cache.example.com:6380/0", ""])(
+    "accepts Redis configuration %s", (REDIS_URL) => {
+      expect(loadEnv({ ...baseTestEnvVars, REDIS_URL }).REDIS_URL).toBe(REDIS_URL);
+    },
+  );
+
+  it.each([
+    { REDIS_URL: "https://cache.example.com" },
+    { REDIS_URL: "not-a-url" },
+    { CACHE_TTL_SECONDS: "0" },
+    { CACHE_TTL_SECONDS: "3601" },
+    { REDIS_KEY_PREFIX: " " },
+  ])("rejects invalid cache configuration %j", (overrides) => {
+    expect(() => loadEnv({ ...baseTestEnvVars, ...overrides })).toThrow(/Invalid environment configuration/);
   });
 
   it("requires a PostgreSQL DATABASE_URL", () => {

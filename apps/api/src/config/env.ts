@@ -23,6 +23,17 @@ const envSchema = z
           value.startsWith("postgresql://") || value.startsWith("postgres://"),
         "DATABASE_URL must be a PostgreSQL connection string",
       ),
+    REDIS_URL: z.string().default("").refine((value) => {
+      if (value === "") return true;
+      try {
+        const url = new URL(value);
+        return ["redis:", "rediss:"].includes(url.protocol) && url.hostname !== "";
+      } catch {
+        return false;
+      }
+    }, "REDIS_URL must be empty or a valid redis:// or rediss:// URL"),
+    REDIS_KEY_PREFIX: z.string().trim().min(1).default("cosmetics:api"),
+    CACHE_TTL_SECONDS: z.coerce.number().int().positive().max(3_600).default(30),
     JWT_ACCESS_SECRET: z
       .string()
       .min(32, "JWT_ACCESS_SECRET must be at least 32 characters"),

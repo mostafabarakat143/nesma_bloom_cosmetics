@@ -2,6 +2,7 @@ import { Router, type Router as ExpressRouter } from "express";
 
 import type { Database } from "../../config/database.js";
 import type { Env } from "../../config/env.js";
+import { uncachedCatalog, type CatalogCache } from "../../common/cache/catalog-cache.js";
 import { createRequireAuth } from "../../common/middlewares/auth.middleware.js";
 import { requireRole } from "../../common/middlewares/require-role.middleware.js";
 import { validate } from "../../common/middlewares/validate.middleware.js";
@@ -14,9 +15,9 @@ import {
   updateOrderStatusBodySchema,
 } from "./order.schema.js";
 
-export function createOrderRouter(env: Env, prisma: Database): ExpressRouter {
+export function createOrderRouter(env: Env, prisma: Database, cache: CatalogCache = uncachedCatalog): ExpressRouter {
   const router: ExpressRouter = Router();
-  const controller = createOrderController(prisma);
+  const controller = createOrderController(prisma, cache);
   const requireAuth = createRequireAuth(env, prisma);
 
   router.post(

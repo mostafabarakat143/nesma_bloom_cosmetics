@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 
 import type { Database } from "../../config/database.js";
+import { uncachedCatalog, type CatalogCache } from "../../common/cache/catalog-cache.js";
 import type {
   CreateOrderBody,
   ListMyOrdersQuery,
@@ -16,7 +17,7 @@ import {
   updateOrderStatusService,
 } from "./order.service.js";
 
-export function createOrderController(prisma: Database) {
+export function createOrderController(prisma: Database, cache: CatalogCache = uncachedCatalog) {
   return {
     async create(
       req: Request,
@@ -25,12 +26,12 @@ export function createOrderController(prisma: Database) {
     ): Promise<void> {
       try {
         const body = req.body as CreateOrderBody;
-        const result = await createOrderService(
+        const result = await cache.write(() => createOrderService(
           prisma,
           req.user!,
           body,
           req.get("Idempotency-Key"),
-        );
+        ));
         res
           .status(result.created ? 201 : 200)
           .json({ status: "success", data: { order: result.order } });
@@ -88,7 +89,7 @@ export function createOrderController(prisma: Database) {
     ): Promise<void> {
       try {
         const { id } = req.params as unknown as { id: number };
-        const order = await cancelOrderService(prisma, id, req.user!);
+        const order = await cache.write(() => cancelOrderService(prisma, id, req.user!));
         res.status(200).json({ status: "success", data: { order } });
       } catch (error) {
         next(error);
@@ -103,7 +104,7 @@ export function createOrderController(prisma: Database) {
       try {
         const { id } = req.params as unknown as { id: number };
         const body = req.body as UpdateOrderStatusBody;
-        const order = await updateOrderStatusService(prisma, id, body);
+        const order = await cache.write(() => updateOrderStatusService(prisma, id, body));
         res.status(200).json({ status: "success", data: { order } });
       } catch (error) {
         next(error);
